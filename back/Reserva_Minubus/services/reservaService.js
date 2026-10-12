@@ -73,12 +73,22 @@ class ReservaService {
       }
 
       // 1. Crear reserva
-      const nuevaReserva = await Reserva.create(reservaData, { transaction: t });
+      const datosParaCrear = {
+        usuarios_id: parseInt(reservaData.usuarios_id, 10),
+        viajes_id: parseInt(reservaData.viajes_id, 10),
+        fechaReserva: reservaData.fechaReserva || new Date(),
+        eliminado: "no",
+      };
+      const nuevaReserva = await Reserva.create(datosParaCrear, { transaction: t });
 
       // 2. Registrar pasajeros asociados
       if (pasajerosData && pasajerosData.length > 0) {
         const pasajerosConReserva = pasajerosData.map(p => ({
-          ...p,
+          nombre: p.nombre,
+          apellido: p.apellido,
+          dni: parseInt(p.dni, 10),
+          ubicacionOrigen: p.ubicacionOrigen,
+          ubicacionDestino: p.ubicacionDestino,
           reserva_id: nuevaReserva.id,
           eliminado: "no"
         }));

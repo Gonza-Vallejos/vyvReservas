@@ -77,6 +77,7 @@ const BookingPage = () => {
       const reservaData = {
         usuarios_id: parseInt(user.id, 10),
         viajes_id: parseInt(trip.id, 10),
+        fechaReserva: new Date().toISOString(),
         personas: personasData,
         pasajeros: personasData,
         asientos_reservados: selectedSeats.length

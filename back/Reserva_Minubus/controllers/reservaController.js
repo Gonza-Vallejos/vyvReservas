@@ -36,6 +36,7 @@ exports.crearReserva = async (req, res) => {
     const nuevaReserva = await reservaService.create(reservaData, pasajeros);
     sendSuccess(res, nuevaReserva, "Reserva creada correctamente", 201);
   } catch (error) {
+    console.error("Error al crear reserva:", error);
     if (error.message === "NO_AVAILABILITY") {
       return sendError(res, "No hay lugares disponibles para este viaje", 400);
     }
