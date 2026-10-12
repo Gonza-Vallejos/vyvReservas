@@ -483,7 +483,6 @@ const styles = StyleSheet.create({
   webScrollWrapper: {
     alignItems: "center",
     width: "100%",
-    overflowX: "auto",
   },
   buttonContainer: {
     flexDirection: "row",

@@ -882,7 +882,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
     transform: [{ scale: 1 }],
-    transitionDuration: "200ms",
     alignSelf: "center",
   },
   buttonText: {
