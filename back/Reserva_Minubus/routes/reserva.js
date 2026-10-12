@@ -163,4 +163,17 @@ router.get('/viaje/:id/pasajeros', autenticarToken, permitirPerfiles('usuarioAdm
  */
 router.get('/empresa/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa'), reservaController.obtenerReservasPorEmpresa);
 
+// Rutas de compatibilidad para endpoints de la app móvil
+router.post('/crearReserva', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente'), validateReserva, validatePasajero, reservaController.crearReserva);
+router.get('/obtenerReservasPorUsuario', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioEmpresa', 'usuarioMostrador'), reservaController.obtenerReservasPorUsuario);
+router.put('/actualizarReserva/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente'), validateUpdatePasajero, reservaController.actualizarReserva);
+router.put('/eliminarReserva/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioCliente'), reservaController.eliminarReserva);
+router.put('/eliminarPasajero/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioCliente', 'usuarioChofer'), reservaController.eliminarPasajero);
+router.get('/listarPasajeroPorId/:id', autenticarToken, reservaController.obtenerReservaPorId);
+router.get('/listarPasajerosPorReserva/:id', autenticarToken, reservaController.listarPasajerosPorReserva);
+router.get('/listarPasajeroPorViaje/:id', autenticarToken, reservaController.listarPasajerosPorViaje);
+router.get('/listarReservasPorViaje/:id', autenticarToken, reservaController.listarPasajerosPorViaje);
+router.get('/listarReservasYPasajerosPorViaje/:id', autenticarToken, reservaController.listarPasajerosPorViaje);
+router.get('/obtenerReservasPorEmpresa/:id', autenticarToken, reservaController.obtenerReservasPorEmpresa);
+
 module.exports = router;

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import SeatSelector from '../components/SeatSelector';
 import PassengerForm from '../components/PassengerForm';
 import { reservaService } from '../services/api';
@@ -9,6 +10,7 @@ import toast from 'react-hot-toast';
 const BookingPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const trip = location.state?.trip;
 
   const [step, setStep] = useState(1);
@@ -48,8 +50,14 @@ const BookingPage = () => {
   };
 
   const handleConfirm = async () => {
+    if (!user) {
+      toast.error('Tenés que iniciar sesión para reservar');
+      navigate('/login', { state: { from: location } });
+      return;
+    }
+
     // Validar que todos los campos de pasajeros estén completos
-    const invalid = passengers.some(p => !p.nombre || !p.apellido || !p.dni);
+    const invalid = passengers.some(p => !p.nombre?.trim() || !p.apellido?.trim() || !p.dni);
     if (invalid) {
       toast.error('Por favor, completá los datos de todos los pasajeros');
       return;
@@ -57,18 +65,29 @@ const BookingPage = () => {
 
     setLoading(true);
     try {
-      // Formatear datos para el backend
+      // Formatear personas para el backend con casteo de DNI a entero
+      const personasData = passengers.map(p => ({
+        nombre: p.nombre.trim(),
+        apellido: p.apellido.trim(),
+        dni: parseInt(p.dni, 10),
+        ubicacionOrigen: p.ubicacionOrigen || trip.origenLocalidad,
+        ubicacionDestino: p.ubicacionDestino || trip.destinoLocalidad
+      }));
+
       const reservaData = {
+        usuarios_id: user.id,
         viajes_id: trip.id,
-        asientos: selectedSeats,
-        pasajeros: passengers
+        personas: personasData,
+        pasajeros: personasData,
+        asientos_reservados: selectedSeats.length
       };
 
       await reservaService.crear(reservaData);
       toast.success('¡Reserva realizada con éxito!');
       navigate('/mis-reservas');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al procesar la reserva');
+      const errorMsg = error.response?.data?.mensaje || error.response?.data?.message || (error.response?.data?.errores ? error.response.data.errores.map(e => e.msg).join(', ') : 'Error al procesar la reserva');
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }

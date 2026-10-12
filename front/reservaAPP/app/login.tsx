@@ -69,9 +69,17 @@ export default function LoginScreen({
 
   const handleLogin = async () => {
     setLoading(true);
+    setErrorMensaje("");
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      const { token } = await loginUsuario(usuario, contrasenia);
+      const limpioUsuario = usuario.trim();
+      const res = await loginUsuario(limpioUsuario, contrasenia);
+      // El backend devuelve { success: true, data: { token, usuario } }
+      const token = res?.data?.token || res?.token;
+
+      if (!token) {
+        throw new Error("No se recibió token del servidor");
+      }
+
       await login(token);
       await AsyncStorage.setItem("token", token);
 

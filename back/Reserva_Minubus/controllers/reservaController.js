@@ -22,7 +22,8 @@ exports.obtenerReservaPorId = async (req, res) => {
 
 exports.obtenerReservasPorUsuario = async (req, res) => {
   try {
-    const reservas = await reservaService.getByUsuario(req.query.id);
+    const usuarioId = req.query.id || req.usuario?.id;
+    const reservas = await reservaService.getByUsuario(usuarioId);
     sendSuccess(res, reservas);
   } catch (error) {
     sendError(res, "Error al obtener las reservas del usuario", 500, error);

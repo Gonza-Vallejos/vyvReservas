@@ -20,6 +20,13 @@ class ReservaService {
     const reservas = await Reserva.findAll({
       where: { usuarios_id: usuarioId, eliminado: "no" },
       attributes: ["id", "fechaReserva", "usuarios_id", "viajes_id"],
+      include: [
+        {
+          model: Pasajeros,
+          where: { eliminado: "no" },
+          required: false,
+        }
+      ]
     });
 
     const viajesIds = reservas.map((r) => r.viajes_id);
@@ -30,11 +37,19 @@ class ReservaService {
       attributes: ["id", "origenLocalidad", "destinoLocalidad", "horarioSalida", "fechaViaje", "precio", "usuarioEmpresa_id", "medioTransporte_id"],
     });
 
-    return reservas.map((reserva) => ({
-      id: reserva.id,
-      fechaReserva: reserva.fechaReserva,
-      viaje: viajes.find((v) => v.id === reserva.viajes_id),
-    }));
+    return reservas.map((reserva) => {
+      const viajeInfo = viajes.find((v) => v.id === reserva.viajes_id);
+      return {
+        id: reserva.id,
+        fechaReserva: reserva.fechaReserva,
+        usuarios_id: reserva.usuarios_id,
+        viajes_id: reserva.viajes_id,
+        viaje: viajeInfo,
+        Viaje: viajeInfo,
+        Pasajeros: reserva.Pasajeros || [],
+        pasajeros: reserva.Pasajeros || [],
+      };
+    });
   }
 
   /**

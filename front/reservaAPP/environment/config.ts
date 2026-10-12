@@ -8,7 +8,7 @@ const config = {
     API_URL: 'http://192.168.1.106:3000',
   },
   production: {
-    API_URL: 'https://reserva-minubus-m39k.onrender.com',
+    API_URL: 'https://vyvreservas-api.onrender.com',
   },
 };
 

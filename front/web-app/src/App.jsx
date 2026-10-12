@@ -10,6 +10,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import MyReservationsPage from './pages/MyReservationsPage';
+import MinibusLoader from './components/MinibusLoader';
 import { viajeService } from './services/api';
 import './index.css';
 
@@ -149,8 +150,11 @@ const Navbar = () => {
 };
 
 function App() {
+  const [initialLoading, setInitialLoading] = useState(true);
+
   return (
     <AuthProvider>
+      {initialLoading && <MinibusLoader onFinish={() => setInitialLoading(false)} />}
       <Router>
         <Toaster position="top-center" limit={1} />
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -182,7 +186,7 @@ const heroSection = { background: 'radial-gradient(circle at top right, #2563eb,
 const heroBadge = { background: 'rgba(255,255,255,0.1)', display: 'inline-block', padding: '8px 20px', borderRadius: '50px', fontSize: '0.85rem', fontWeight: '800', marginBottom: '20px', border: '1px solid rgba(255,255,255,0.2)' };
 const heroTitle = { fontSize: '4.2rem', fontWeight: '800', lineHeight: 1.1, marginBottom: '25px', letterSpacing: '-2px' };
 const heroSubtitle = { fontSize: '1.3rem', opacity: '0.8', maxWidth: '600px', margin: '0 auto 50px auto' };
-const searchContainer = { maxWidth: '900px', margin: '0 auto', background: 'white', padding: '10px', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' };
+const searchContainer = { maxWidth: '1150px', width: '100%', margin: '0 auto', background: 'white', padding: '12px', borderRadius: '32px', boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.35)' };
 
 const resultsGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '30px' };
 const statusDot = { width: '12px', height: '12px', background: 'var(--success)', borderRadius: '50%', boxShadow: '0 0 0 4px rgba(16, 185, 129, 0.2)' };

@@ -161,4 +161,7 @@ router.get('/choferes/asociados', autenticarToken, permitirPerfiles('usuarioAdmi
  */
 router.get('/choferes/empresa/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa'), usuarioController.obtenerUsuariosChoferPorEmpresa);
 
+// Alias de compatibilidad para app móvil
+router.post('/crearUsuario', validateUsuario, usuarioController.crearUsuario);
+
 module.exports = router;

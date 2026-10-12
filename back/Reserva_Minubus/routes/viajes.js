@@ -137,4 +137,8 @@ router.get('/chofer/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 
  */
 router.get('/existe-reserva/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioMostrador', 'usuarioChofer'), viajesController.existeReservaParaViaje);
 
+// Rutas de compatibilidad para app móvil
+router.get('/viajesDisponible', viajesController.obtenerViajesDisponibles);
+router.get('/obtenerViajesId/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa', 'usuarioCliente'), viajesController.obtenerViajePorId);
+
 module.exports = router;

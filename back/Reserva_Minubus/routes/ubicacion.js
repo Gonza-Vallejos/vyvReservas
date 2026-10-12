@@ -63,4 +63,8 @@ router.get('/localidades/:id', ubicacionController.obtenerLocalidadesId);
  */
 router.get('/provincias/:id', ubicacionController.obtenerProvinciasId);
 
+// Rutas de compatibilidad para app móvil
+router.get('/obtenerLocalidad', ubicacionController.obtenerLocalidades);
+router.get('/obtenerProvincia', ubicacionController.obtenerProvincias);
+
 module.exports = router;

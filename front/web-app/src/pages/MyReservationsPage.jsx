@@ -59,7 +59,7 @@ const MyReservationsPage = () => {
                     <MapPin size={18} color="var(--primary)" />
                     <div>
                       <span style={locationLabel}>Origen</span>
-                      <p style={locationName}>{reserva.Viaje?.origenLocalidad || 'Cargando...'}</p>
+                      <p style={locationName}>{reserva.viaje?.origenLocalidad || reserva.Viaje?.origenLocalidad || 'Origen'}</p>
                     </div>
                   </div>
                   <div style={divider} />
@@ -67,7 +67,7 @@ const MyReservationsPage = () => {
                     <MapPin size={18} color="#ef4444" />
                     <div>
                       <span style={locationLabel}>Destino</span>
-                      <p style={locationName}>{reserva.Viaje?.destinoLocalidad || 'Cargando...'}</p>
+                      <p style={locationName}>{reserva.viaje?.destinoLocalidad || reserva.Viaje?.destinoLocalidad || 'Destino'}</p>
                     </div>
                   </div>
                 </div>
@@ -75,20 +75,35 @@ const MyReservationsPage = () => {
                 <div style={tripDetails}>
                   <div style={detailItem}>
                     <Calendar size={16} />
-                    <span>{reserva.Viaje?.fechaViaje}</span>
+                    <span>{reserva.viaje?.fechaViaje || reserva.Viaje?.fechaViaje ? new Date(reserva.viaje?.fechaViaje || reserva.Viaje?.fechaViaje).toLocaleDateString('es-AR') : 'Fecha no disp.'}</span>
                   </div>
                   <div style={detailItem}>
                     <Clock size={16} />
-                    <span>{reserva.Viaje?.horarioSalida} hs</span>
+                    <span>{(reserva.viaje?.horarioSalida || reserva.Viaje?.horarioSalida)?.substring(0, 5)} hs</span>
                   </div>
                   <div style={detailItem}>
-                    <span style={{ fontWeight: '700', color: 'var(--primary)' }}>Asiento {reserva.asiento}</span>
+                    <span style={{ fontWeight: '700', color: 'var(--primary)' }}>
+                      {(reserva.pasajeros?.length || reserva.Pasajeros?.length || 1)} pasajero(s)
+                    </span>
                   </div>
                 </div>
+
+                {((reserva.pasajeros || reserva.Pasajeros) && (reserva.pasajeros || reserva.Pasajeros).length > 0) && (
+                  <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px dashed #e2e8f0' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Pasajeros:</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
+                      {(reserva.pasajeros || reserva.Pasajeros).map((p, idx) => (
+                        <span key={idx} style={{ background: '#f1f5f9', padding: '4px 10px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '600' }}>
+                          {p.nombre} {p.apellido} (DNI: {p.dni})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div style={cardFooter}>
-                <span style={{ fontWeight: '700' }}>Total: ${reserva.Viaje?.precio}</span>
+                <span style={{ fontWeight: '700' }}>Total: ${reserva.viaje?.precio || reserva.Viaje?.precio || 0}</span>
                 <button style={detailButton}>
                   Ver Comprobante <ChevronRight size={16} />
                 </button>
