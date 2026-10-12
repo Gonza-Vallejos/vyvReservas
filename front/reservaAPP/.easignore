@@ -1,0 +1,5 @@
+# Ignorar todo node_modules y dist innecesario
+dist/assets/node_modules/
+
+# Ignorar assets específicos pesados
+
