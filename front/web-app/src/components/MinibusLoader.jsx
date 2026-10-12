@@ -35,215 +35,254 @@ const MinibusLoader = ({ onFinish }) => {
           {/* Nubes de humo / velocidad */}
           <div className="speed-lines" />
 
-          {/* Ilustración SVG hiperrealista estilo Minibús Sprinter */}
+          {/* Ilustración SVG estilo Toyota Hiace Commuter Blanca Techo Alto */}
           <div className="minibus-vehicle">
             <svg
-              width="210"
-              height="95"
-              viewBox="0 0 210 95"
+              width="230"
+              height="105"
+              viewBox="0 0 230 105"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
               <defs>
-                {/* Carrocería azul vibrante premium con reflejo */}
-                <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#2563eb" />
-                  <stop offset="45%" stopColor="#1d4ed8" />
-                  <stop offset="100%" stopColor="#1e3a8a" />
+                {/* Carrocería Blanco Perlado Toyota Hiace */}
+                <linearGradient id="hiaceWhiteGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="20%" stopColor="#f8fafc" />
+                  <stop offset="70%" stopColor="#f1f5f9" />
+                  <stop offset="100%" stopColor="#e2e8f0" />
                 </linearGradient>
-                {/* Techo alto característico de Sprinter */}
-                <linearGradient id="roofGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#3b82f6" />
-                  <stop offset="50%" stopColor="#60a5fa" />
-                  <stop offset="100%" stopColor="#2563eb" />
+
+                {/* Techo alto curvado blanco brillante */}
+                <linearGradient id="hiaceRoofGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#f8fafc" />
+                  <stop offset="35%" stopColor="#ffffff" />
+                  <stop offset="85%" stopColor="#f1f5f9" />
+                  <stop offset="100%" stopColor="#e2e8f0" />
                 </linearGradient>
-                {/* Ventanillas polarizadas panorámicas */}
-                <linearGradient id="glassGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#0f172a" />
-                  <stop offset="70%" stopColor="#1e293b" />
-                  <stop offset="100%" stopColor="#334155" />
+
+                {/* Vidrios polarizados oscuros con reflejo del atardecer */}
+                <linearGradient id="hiaceGlassTint" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#0b1329" />
+                  <stop offset="45%" stopColor="#1e293b" />
+                  <stop offset="80%" stopColor="#334155" />
+                  <stop offset="100%" stopColor="#1e293b" />
                 </linearGradient>
-                {/* Reflejo celeste en el vidrio */}
-                <linearGradient id="glareGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="rgba(255,255,255,0.45)" />
-                  <stop offset="50%" stopColor="rgba(147,197,253,0.15)" />
-                  <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+
+                {/* Reflejo cálido del cielo en las ventanillas */}
+                <linearGradient id="skyReflection" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="rgba(254, 243, 199, 0.5)" />
+                  <stop offset="40%" stopColor="rgba(251, 191, 36, 0.28)" />
+                  <stop offset="80%" stopColor="rgba(147, 197, 253, 0.18)" />
+                  <stop offset="100%" stopColor="rgba(255, 255, 255, 0.45)" />
                 </linearGradient>
-                {/* Sombra de suelo realista */}
-                <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="rgba(15,23,42,0.35)" />
-                  <stop offset="100%" stopColor="rgba(15,23,42,0)" />
+
+                {/* Parrilla y barra cromada Toyota */}
+                <linearGradient id="chromeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="45%" stopColor="#cbd5e1" />
+                  <stop offset="70%" stopColor="#94a3b8" />
+                  <stop offset="100%" stopColor="#e2e8f0" />
+                </linearGradient>
+
+                {/* Óptica delantera moderna */}
+                <linearGradient id="headlightGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="65%" stopColor="#fef08a" />
+                  <stop offset="100%" stopColor="#facc15" />
+                </linearGradient>
+
+                {/* Sombra de suelo */}
+                <radialGradient id="hiaceDropShadow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="rgba(15, 23, 42, 0.4)" />
+                  <stop offset="85%" stopColor="rgba(15, 23, 42, 0.05)" />
+                  <stop offset="100%" stopColor="rgba(15, 23, 42, 0)" />
                 </radialGradient>
+
+                {/* Llantas de aleación multirrayo Toyota */}
+                <linearGradient id="rimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="45%" stopColor="#cbd5e1" />
+                  <stop offset="100%" stopColor="#64748b" />
+                </linearGradient>
               </defs>
 
-              {/* Sombra proyectada en el asfalto */}
-              <ellipse cx="105" cy="86" rx="90" ry="5.5" fill="url(#shadowGrad)" />
+              {/* Sombra bajo el vehículo */}
+              <ellipse cx="118" cy="94" rx="100" ry="6" fill="url(#hiaceDropShadow)" />
 
-              {/* Techo sobre-elevado tipo Van / Minibús Sprinter */}
-              <path
-                d="M50 14 C58 12 185 12 192 14 C195 15 196 18 196 22 L46 22 C46 17 48 14 50 14 Z"
-                fill="url(#roofGrad)"
-              />
-              {/* Moldura del techo (aire acondicionado / ventilador) */}
-              <rect x="95" y="9" width="45" height="5" rx="2.5" fill="#1e3a8a" />
+              {/* Pequeña antena negra en el techo */}
+              <line x1="168" y1="18" x2="162" y2="10" stroke="#1e293b" strokeWidth="1.8" strokeLinecap="round" />
 
-              {/* Carrocería Principal (Frente con trompa aerodinámica inclinada hacia la derecha) */}
-              {/* El minibús mira hacia la DERECHA que es hacia donde avanza */}
+              {/* Techo alto curvado aerodinámico (Toyota Hiace Commuter) */}
               <path
-                d="M196 22 
-                   L196 66 
-                   C196 69 193 71 189 71 
-                   L170 71 
-                   C168 62 158 55 147 55 
-                   C136 55 126 62 124 71 
-                   L80 71 
-                   C78 62 68 55 57 55 
-                   C46 55 36 62 34 71 
-                   L20 71 
-                   C17 71 15 68 15 65 
-                   L15 28 
-                   C15 24 18 22 22 22 
+                d="M 22 26 
+                   C 22 19 32 17 48 16 
+                   L 142 16 
+                   C 156 16 168 18 178 22 
+                   L 185 26 
                    Z"
-                fill="url(#bodyGrad)"
+                fill="url(#hiaceRoofGrad)"
               />
 
-              {/* Frente y capó estilo Sprinter (a la derecha) */}
+              {/* Carrocería principal blanca perlada */}
               <path
-                d="M175 22 
-                   L188 38 
-                   L205 45 
-                   C208 46 210 49 210 52 
-                   L210 65 
-                   C210 69 207 71 203 71 
-                   L170 71 
-                   C168 62 158 55 147 55 
-                   C143 55 140 56 137 58 
-                   L175 22 Z"
-                fill="url(#bodyGrad)"
+                d="M 22 26
+                   L 185 26
+                   L 204 45
+                   L 221 53
+                   C 224 54.5 225 57 225 60
+                   L 225 73
+                   C 225 76 222 78 218 78
+                   L 186 78
+                   C 184 68 175 61 164 61
+                   C 153 61 144 68 142 78
+                   L 84 78
+                   C 82 68 73 61 62 61
+                   C 51 61 42 68 40 78
+                   L 25 78
+                   C 22 78 20 75 20 72
+                   L 20 30
+                   C 20 27 21 26 22 26
+                   Z"
+                fill="url(#hiaceWhiteGrad)"
+                stroke="#cbd5e1"
+                strokeWidth="1"
               />
 
-              {/* Paragolpes delantero resistente y parrilla */}
+              {/* Zócalo inferior y moldura inferior en tono plata suave */}
+              <path d="M 84 75 L 142 75 L 142 78 L 84 78 Z" fill="#cbd5e1" />
+              <path d="M 20 74 L 40 74 L 40 78 L 22 78 Z" fill="#cbd5e1" />
+
+              {/* Nervadura horizontal de la carrocería lateral de Hiace */}
+              <line x1="22" y1="58" x2="218" y2="58" stroke="#e2e8f0" strokeWidth="1.2" />
+              <line x1="22" y1="59" x2="218" y2="59" stroke="#ffffff" strokeWidth="1" />
+
+              {/* Pliegue superior del techo alto */}
               <path
-                d="M195 56 L209 56 C210.5 56 211 58 211 60 L211 67 C211 69 209 71 206 71 L185 71 Z"
-                fill="#0f172a"
+                d="M 24 23 C 35 21 135 21 180 25"
+                stroke="#cbd5e1"
+                strokeWidth="1.5"
+                fill="none"
               />
-              {/* Parrilla frontal */}
-              <rect x="204" y="52" width="6" height="3" rx="1" fill="#334155" />
-              <rect x="202" y="56" width="8" height="2" rx="1" fill="#475569" />
 
-              {/* Faro delantero LED dinámico */}
+              {/* FRENTE TOYOTA HIACE */}
+              {/* Parrilla frontal trapezoidal con ranuras negras horizontales */}
               <path
-                d="M198 47 L209 49 C210 49.5 210 52 208 53 L197 53 Z"
-                fill="#fef08a"
+                d="M 205 60 L 224 60 C 225 60 225.5 61 225.5 62 L 225.5 73 C 225.5 75 224 76 222 76 L 205 76 Z"
+                fill="#1e293b"
               />
+              <line x1="208" y1="63" x2="224" y2="63" stroke="#475569" strokeWidth="1.5" />
+              <line x1="207" y1="67" x2="224" y2="67" stroke="#475569" strokeWidth="1.5" />
+              <line x1="206" y1="71" x2="224" y2="71" stroke="#475569" strokeWidth="1.5" />
+
+              {/* Placa "HIACE" frontal */}
+              <rect x="210" y="65" width="12" height="5" rx="1" fill="#0f172a" stroke="#64748b" strokeWidth="0.5" />
+              <text x="216" y="68.8" fontSize="2.8" fontWeight="900" fill="#ffffff" textAnchor="middle" fontFamily="sans-serif">HIACE</text>
+
+              {/* Barra cromada superior con logo Toyota */}
               <path
-                d="M200 48 L208 50 L206 52 L199 52 Z"
-                fill="#ffffff"
+                d="M 203 54 L 222 54 C 223.5 54 224 55 224 57 L 224 59 L 203 59 Z"
+                fill="url(#chromeGrad)"
               />
+              <ellipse cx="214" cy="56.5" rx="3" ry="1.8" fill="none" stroke="#475569" strokeWidth="0.8" />
+              <ellipse cx="214" cy="56.5" rx="1.4" ry="1.4" fill="none" stroke="#475569" strokeWidth="0.6" />
 
-              {/* Faros auxiliares / DRL */}
-              <line x1="202" y1="62" x2="208" y2="62" stroke="#67e8f9" strokeWidth="1.5" strokeLinecap="round" />
-
-              {/* Área acristalada corrida (Vidrios oscurecidos panorámicos de Sprinter) */}
-              <rect x="24" y="24" width="168" height="23" rx="3" fill="url(#glassGrad)" />
-
-              {/* Parabrisas frontal inclinado */}
+              {/* Óptica delantera moderna con proyector */}
               <path
-                d="M170 24 L185 38 L200 44 L175 44 L165 24 Z"
-                fill="url(#glassGrad)"
+                d="M 197 46 
+                   L 219 53 
+                   C 221 53.5 221 55 220 56 
+                   L 198 56 
+                   Z"
+                fill="url(#headlightGlow)"
               />
-              {/* Reflejo diagonal en el parabrisas */}
-              <path
-                d="M172 25 L187 38 L182 44 L168 25 Z"
-                fill="url(#glareGrad)"
-              />
+              <circle cx="210" cy="52" r="2.2" fill="#ffffff" />
+              <circle cx="216" cy="54" r="1.5" fill="#ffffff" />
 
-              {/* Separadores de ventanillas y puertas */}
-              {/* Ventanilla Conductor */}
-              <rect x="155" y="25" width="22" height="21" rx="2" fill="url(#glassGrad)" />
-              <line x1="154" y1="24" x2="154" y2="70" stroke="#0f172a" strokeWidth="1.5" />
+              {/* Luces diurnas verticales LED (DRL) y antiniebla */}
+              <rect x="218" y="62" width="2" height="7" rx="1" fill="#06b6d4" opacity="0.9" />
+              <circle cx="219" cy="72" r="1.8" fill="#fef08a" />
 
-              {/* Ventanillas de Pasajeros Minibús */}
-              <rect x="118" y="25" width="34" height="21" rx="2" fill="url(#glassGrad)" />
-              <rect x="80" y="25" width="35" height="21" rx="2" fill="url(#glassGrad)" />
-              <rect x="42" y="25" width="35" height="21" rx="2" fill="url(#glassGrad)" />
-              <rect x="25" y="25" width="14" height="21" rx="2" fill="url(#glassGrad)" />
+              {/* VENTANILLAS PANORÁMICAS TINTADAS TOYOTA HIACE */}
+              <g>
+                {/* Ventanilla trasera panorámica */}
+                <path d="M 28 28 L 84 28 L 84 51 L 28 51 Z" fill="url(#hiaceGlassTint)" />
+                {/* Ventana de puerta corrediza */}
+                <path d="M 87 28 L 138 28 L 138 51 L 87 51 Z" fill="url(#hiaceGlassTint)" />
+                {/* Ventana amplia del conductor */}
+                <path d="M 141 28 L 175 28 L 175 51 L 141 51 Z" fill="url(#hiaceGlassTint)" />
+                {/* Ventilete triangular delantero (típico de Hiace) */}
+                <path d="M 177 28 L 184 28 L 198 46 L 177 46 Z" fill="url(#hiaceGlassTint)" />
+                {/* Parabrisas frontal inclinado */}
+                <path d="M 183 27 L 187 27 L 204 45 L 198 45 Z" fill="url(#hiaceGlassTint)" />
 
-              {/* Brillo / reflejo solar corrido en las ventanas */}
-              <path
-                d="M30 27 L175 27 L168 33 L25 33 Z"
-                fill="url(#glareGrad)"
-                opacity="0.6"
-              />
+                {/* Reflejo cálido del horizonte solar */}
+                <path d="M 30 38 L 194 44 L 192 48 L 30 48 Z" fill="url(#skyReflection)" />
+                <path d="M 35 29 L 170 29 L 160 34 L 30 34 Z" fill="rgba(255,255,255,0.4)" />
 
-              {/* Línea de puerta corrediza lateral del minibús */}
-              <line x1="116" y1="24" x2="116" y2="69" stroke="#1e3a8a" strokeWidth="1.5" />
-              <rect x="113" y="49" width="3" height="6" rx="1.5" fill="#cbd5e1" /> {/* Manija */}
-
-              {/* Manija de puerta del conductor */}
-              <rect x="160" y="49" width="4" height="3" rx="1" fill="#cbd5e1" />
-
-              {/* Espejo retrovisor exterior lateral */}
-              <path
-                d="M182 40 L188 39 C190 39 191 41 191 43 L189 47 C188 48 186 48 184 47 L181 44 Z"
-                fill="#0f172a"
-              />
-              <ellipse cx="186" cy="43" rx="2" ry="3" fill="#64748b" />
-
-              {/* Franja aerodinámica moderna de color naranja / amarillo V&V */}
-              <path
-                d="M20 54 L190 54 L187 57 L20 57 Z"
-                fill="#f59e0b"
-              />
-              <path
-                d="M130 54 L170 54 L167 57 L127 57 Z"
-                fill="#fde047"
-              />
-
-              {/* Luz trasera de freno vertical (típica de Sprinter) */}
-              <rect x="15" y="35" width="3.5" height="18" rx="1.5" fill="#ef4444" />
-              <rect x="15" y="44" width="3.5" height="4" rx="0.5" fill="#fca5a5" />
-
-              {/* Guardabarros / Molduras de rueda */}
-              <path
-                d="M33 71 C35 61 45 54 57 54 C69 54 79 61 81 71 Z"
-                fill="#0f172a"
-              />
-              <path
-                d="M123 71 C125 61 135 54 147 54 C159 54 169 61 171 71 Z"
-                fill="#0f172a"
-              />
-
-              {/* RUEDA TRASERA (con llanta de aleación y disco) */}
-              <g className="wheel-spin" style={{ transformOrigin: '57px 71px' }}>
-                {/* Neumático */}
-                <circle cx="57" cy="71" r="14.5" fill="#0f172a" />
-                <circle cx="57" cy="71" r="13" stroke="#1e293b" strokeWidth="2" fill="none" />
-                {/* Llanta de aleación */}
-                <circle cx="57" cy="71" r="9" fill="#94a3b8" />
-                {/* Rayos de llanta */}
-                <circle cx="57" cy="71" r="4.5" fill="#475569" />
-                <circle cx="57" cy="71" r="2" fill="#0f172a" />
-                <line x1="57" y1="62" x2="57" y2="80" stroke="#f1f5f9" strokeWidth="1.8" />
-                <line x1="48" y1="71" x2="66" y2="71" stroke="#f1f5f9" strokeWidth="1.8" />
-                <line x1="51" y1="65" x2="63" y2="77" stroke="#f1f5f9" strokeWidth="1.8" />
-                <line x1="51" y1="77" x2="63" y2="65" stroke="#f1f5f9" strokeWidth="1.8" />
+                {/* Pilares negros de división */}
+                <line x1="85.5" y1="28" x2="85.5" y2="51" stroke="#0f172a" strokeWidth="2" />
+                <line x1="139.5" y1="28" x2="139.5" y2="51" stroke="#0f172a" strokeWidth="2" />
+                <line x1="176" y1="28" x2="176" y2="51" stroke="#0f172a" strokeWidth="2" />
               </g>
 
-              {/* RUEDA DELANTERA */}
-              <g className="wheel-spin" style={{ transformOrigin: '147px 71px' }}>
-                {/* Neumático */}
-                <circle cx="147" cy="71" r="14.5" fill="#0f172a" />
-                <circle cx="147" cy="71" r="13" stroke="#1e293b" strokeWidth="2" fill="none" />
-                {/* Llanta de aleación */}
-                <circle cx="147" cy="71" r="9" fill="#94a3b8" />
-                {/* Rayos de llanta */}
-                <circle cx="147" cy="71" r="4.5" fill="#475569" />
-                <circle cx="147" cy="71" r="2" fill="#0f172a" />
-                <line x1="147" y1="62" x2="147" y2="80" stroke="#f1f5f9" strokeWidth="1.8" />
-                <line x1="138" y1="71" x2="156" y2="71" stroke="#f1f5f9" strokeWidth="1.8" />
-                <line x1="141" y1="65" x2="153" y2="77" stroke="#f1f5f9" strokeWidth="1.8" />
-                <line x1="141" y1="77" x2="153" y2="65" stroke="#f1f5f9" strokeWidth="1.8" />
+              {/* Guía de puerta lateral y manijas cromadas */}
+              <line x1="86" y1="51" x2="86" y2="76" stroke="#cbd5e1" strokeWidth="1.2" />
+              <line x1="139" y1="51" x2="139" y2="76" stroke="#cbd5e1" strokeWidth="1.2" />
+              <rect x="89" y="55" width="5" height="2.5" rx="1" fill="#ffffff" stroke="#94a3b8" strokeWidth="0.8" />
+              <rect x="144" y="55" width="5" height="2.5" rx="1" fill="#ffffff" stroke="#94a3b8" strokeWidth="0.8" />
+
+              {/* Espejo lateral blanco */}
+              <path
+                d="M 172 44 L 178 44 C 180 44 182 46 182 48 L 181 52 C 180 54 178 54 175 53 L 171 47 Z"
+                fill="#ffffff"
+                stroke="#cbd5e1"
+                strokeWidth="1"
+              />
+              <path d="M 168 47 L 172 47" stroke="#1e293b" strokeWidth="2" />
+
+              {/* Luz trasera vertical de freno */}
+              <rect x="20" y="36" width="3.5" height="22" rx="1.5" fill="#dc2626" />
+              <rect x="20" y="44" width="3.5" height="6" rx="0.5" fill="#fca5a5" />
+
+              {/* Guardabarros redondeados */}
+              <path d="M 38 78 C 40 67 49 59 62 59 C 75 59 84 67 86 78 Z" fill="#1e293b" />
+              <path d="M 140 78 C 142 67 151 59 164 59 C 177 59 186 67 188 78 Z" fill="#1e293b" />
+
+              {/* RUEDA TRASERA (Llanta de aleación multirrayo Toyota) */}
+              <g className="wheel-spin" style={{ transformOrigin: '62px 78px' }}>
+                <circle cx="62" cy="78" r="16" fill="#0f172a" />
+                <circle cx="62" cy="78" r="14.5" stroke="#1e293b" strokeWidth="2" fill="none" />
+                <circle cx="62" cy="78" r="10.5" fill="url(#rimGrad)" />
+                <circle cx="62" cy="78" r="8" fill="#1e293b" />
+                <line x1="62" y1="68" x2="62" y2="88" stroke="#ffffff" strokeWidth="1.5" />
+                <line x1="52" y1="78" x2="72" y2="78" stroke="#ffffff" strokeWidth="1.5" />
+                <line x1="55" y1="71" x2="69" y2="85" stroke="#ffffff" strokeWidth="1.5" />
+                <line x1="55" y1="85" x2="69" y2="71" stroke="#ffffff" strokeWidth="1.5" />
+                <line x1="53.5" y1="74.5" x2="70.5" y2="81.5" stroke="#cbd5e1" strokeWidth="1.2" />
+                <line x1="53.5" y1="81.5" x2="70.5" y2="74.5" stroke="#cbd5e1" strokeWidth="1.2" />
+                <line x1="58.5" y1="69.5" x2="65.5" y2="86.5" stroke="#cbd5e1" strokeWidth="1.2" />
+                <line x1="65.5" y1="69.5" x2="58.5" y2="86.5" stroke="#cbd5e1" strokeWidth="1.2" />
+                <circle cx="62" cy="78" r="3.2" fill="url(#chromeGrad)" />
+                <circle cx="62" cy="78" r="1.2" fill="#0f172a" />
+              </g>
+
+              {/* RUEDA DELANTERA (Llanta de aleación multirrayo Toyota) */}
+              <g className="wheel-spin" style={{ transformOrigin: '164px 78px' }}>
+                <circle cx="164" cy="78" r="16" fill="#0f172a" />
+                <circle cx="164" cy="78" r="14.5" stroke="#1e293b" strokeWidth="2" fill="none" />
+                <circle cx="164" cy="78" r="10.5" fill="url(#rimGrad)" />
+                <circle cx="164" cy="78" r="8" fill="#1e293b" />
+                <line x1="164" y1="68" x2="164" y2="88" stroke="#ffffff" strokeWidth="1.5" />
+                <line x1="154" y1="78" x2="174" y2="78" stroke="#ffffff" strokeWidth="1.5" />
+                <line x1="157" y1="71" x2="171" y2="85" stroke="#ffffff" strokeWidth="1.5" />
+                <line x1="157" y1="85" x2="171" y2="71" stroke="#ffffff" strokeWidth="1.5" />
+                <line x1="155.5" y1="74.5" x2="172.5" y2="81.5" stroke="#cbd5e1" strokeWidth="1.2" />
+                <line x1="155.5" y1="81.5" x2="172.5" y2="74.5" stroke="#cbd5e1" strokeWidth="1.2" />
+                <line x1="160.5" y1="69.5" x2="167.5" y2="86.5" stroke="#cbd5e1" strokeWidth="1.2" />
+                <line x1="167.5" y1="69.5" x2="160.5" y2="86.5" stroke="#cbd5e1" strokeWidth="1.2" />
+                <circle cx="164" cy="78" r="3.2" fill="url(#chromeGrad)" />
+                <circle cx="164" cy="78" r="1.2" fill="#0f172a" />
               </g>
             </svg>
           </div>
@@ -270,25 +309,25 @@ const MinibusLoader = ({ onFinish }) => {
 
         @keyframes driveAccelerate {
           0% {
-            transform: translateX(-160px) scale(0.92);
+            transform: translateX(-200px) scale(0.92);
             opacity: 0;
           }
           20% {
-            transform: translateX(-30px) scale(0.98) rotate(-1.5deg);
+            transform: translateX(-30px) scale(0.98) rotate(-1.2deg);
             opacity: 1;
           }
           45% {
-            transform: translateX(10px) scale(1) translateY(-1.5px) rotate(0.8deg);
+            transform: translateX(10px) scale(1) translateY(-1.5px) rotate(0.6deg);
           }
           65% {
-            transform: translateX(25px) translateY(1px) rotate(-0.5deg);
+            transform: translateX(25px) translateY(1px) rotate(-0.4deg);
           }
           80% {
-            transform: translateX(50px) translateY(-1px) rotate(0.5deg);
+            transform: translateX(55px) translateY(-1px) rotate(0.4deg);
             opacity: 1;
           }
           100% {
-            transform: translateX(280px) scale(1.04) rotate(-1deg);
+            transform: translateX(330px) scale(1.04) rotate(-0.8deg);
             opacity: 0;
           }
         }
@@ -309,7 +348,7 @@ const MinibusLoader = ({ onFinish }) => {
 
         /* Línea de carretera animada en movimiento continuo rápido */
         .road-line {
-          width: 360px;
+          width: 420px;
           height: 3.5px;
           background: repeating-linear-gradient(
             to right,
@@ -357,7 +396,7 @@ const contentWrapper = {
 };
 
 const sceneContainer = {
-  width: '320px',
+  width: '380px',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
