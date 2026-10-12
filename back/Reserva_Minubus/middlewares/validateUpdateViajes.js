@@ -14,8 +14,8 @@ const validarActualizarViaje = [
   body("horarioSalida")
     .notEmpty()
     .withMessage("El horario de salida es requerido.")
-    .matches(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/)
-    .withMessage("El formato de la hora debe ser HH:mm:ss"),
+    .matches(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/)
+    .withMessage("El formato de la hora debe ser HH:mm o HH:mm:ss"),
   body("fechaViaje")
     .notEmpty()
     .withMessage("La fecha del viaje es requerida.")

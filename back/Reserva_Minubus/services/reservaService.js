@@ -195,14 +195,39 @@ class ReservaService {
   }
 
   async getReservasByEmpresa(empresaId) {
+    const viajes = await Viajes.findAll({
+      where: { eliminado: "no" },
+      include: [{
+        model: MedioTransporte,
+        where: { empresa_id: empresaId }
+      }]
+    });
+
+    const viajesIds = viajes.map(v => v.id);
+    if (viajesIds.length === 0) return [];
+
     return await Reserva.findAll({
+      where: {
+        viajes_id: viajesIds,
+        eliminado: "no"
+      },
       include: [
         {
           model: Viajes,
-          where: { usuarioEmpresa_id: empresaId }
+          include: [MedioTransporte]
         },
-        Pasajeros
-      ]
+        {
+          model: Pasajeros,
+          where: { eliminado: "no" },
+          required: false
+        },
+        {
+          model: require("../models").Usuario,
+          attributes: ["id", "nombre", "apellido", "email", "telefono", "dni"],
+          required: false
+        }
+      ],
+      order: [["fechaReserva", "DESC"]]
     });
   }
 }

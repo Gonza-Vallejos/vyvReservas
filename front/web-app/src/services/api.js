@@ -24,7 +24,10 @@ export const viajeService = {
   obtenerLocalidades: () => api.get('/ubicacion/localidades'),
   obtenerPorId: (id) => api.get(`/viajes/${id}`),
   obtenerPorEmpresa: (id) => api.get(`/viajes/empresa/${id}`),
+  obtenerPorChofer: (id) => api.get(`/viajes/chofer/${id}`),
   crear: (data) => api.post('/viajes', data),
+  actualizar: (id, data) => api.put(`/viajes/${id}`, data),
+  eliminar: (id) => api.delete(`/viajes/${id}`),
 };
 
 export const transporteService = {
@@ -47,7 +50,9 @@ export const usuarioService = {
 export const reservaService = {
   crear: (reservaData) => api.post('/reserva', reservaData),
   obtenerPorUsuario: () => api.get('/reserva/usuario'),
+  obtenerPorEmpresa: (empresaId) => api.get(`/reserva/empresa/${empresaId}`),
   obtenerPasajerosPorViaje: (viajeId) => api.get(`/reserva/viaje/${viajeId}/pasajeros`),
+  cancelar: (id) => api.delete(`/reserva/${id}`),
 };
 
 export default api;

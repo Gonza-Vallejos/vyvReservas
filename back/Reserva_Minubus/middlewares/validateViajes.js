@@ -14,13 +14,12 @@ const validarViaje = [
   body("horarioSalida")
     .notEmpty()
     .withMessage("El horario de salida es requerido.")
-    .matches(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/)
-    .withMessage("El formato del horario de salida no es válido. Use HH:mm:ss.")
+    .matches(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/)
+    .withMessage("El formato del horario de salida no es válido. Use HH:mm o HH:mm:ss.")
     .custom((value) => {
-      // Convierte el valor en una instancia de Date con hora especificada
-      const [hours, minutes, seconds] = value.split(":");
+      const parts = value.split(":");
       const date = new Date();
-      date.setHours(hours, minutes, seconds, 0);
+      date.setHours(parseInt(parts[0], 10), parseInt(parts[1], 10), parts[2] ? parseInt(parts[2], 10) : 0, 0);
       return date;
     }),
   body("fechaViaje")

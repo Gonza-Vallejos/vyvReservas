@@ -23,6 +23,7 @@ const LoginPage = () => {
         toast.success('¡Bienvenido!');
         const perfilId = data.usuario?.perfil_id;
         if (perfilId === 1 || perfilId === 5 || perfilId === 3) navigate('/dashboard');
+        else if (perfilId === 4) navigate('/chofer');
         else navigate('/');
       } else {
         toast.error(response.data.message || 'Error de credenciales');

@@ -68,14 +68,23 @@ class ViajesService {
       throw new Error("EMPRESA_MISMATCH");
     }
 
+    const horarioNormalizado = (viajeData.horarioSalida && viajeData.horarioSalida.length === 5)
+      ? `${viajeData.horarioSalida}:00`
+      : viajeData.horarioSalida;
+
     return await Viajes.create({
       ...viajeData,
+      horarioSalida: horarioNormalizado,
       cantPasajeros: transporte.cantLugares
     });
   }
 
   async update(id, updateData) {
-    const [rowsUpdated] = await Viajes.update(updateData, {
+    const dataToUpdate = { ...updateData };
+    if (dataToUpdate.horarioSalida && dataToUpdate.horarioSalida.length === 5) {
+      dataToUpdate.horarioSalida = `${dataToUpdate.horarioSalida}:00`;
+    }
+    const [rowsUpdated] = await Viajes.update(dataToUpdate, {
       where: { id, eliminado: "no" }
     });
     return rowsUpdated > 0;
@@ -109,10 +118,36 @@ class ViajesService {
     });
   }
 
-  async getByChofer(usuarioEmpresaId) {
+  async getByChofer(id) {
+    // Buscar si el id provisto es de usuario o de usuarioEmpresa
+    const asoc = await UsuarioEmpresa.findOne({
+      where: {
+        [Op.or]: [{ id: id }, { id_usuario: id }]
+      }
+    });
+
+    const whereClause = { eliminado: "no" };
+    if (asoc) {
+      whereClause.usuarioEmpresa_id = asoc.id;
+    } else {
+      whereClause.usuarioEmpresa_id = id;
+    }
+
     return await Viajes.findAll({
-      where: { usuarioEmpresa_id: usuarioEmpresaId, eliminado: "no" },
-      include: [MedioTransporte]
+      where: whereClause,
+      include: [
+        {
+          model: MedioTransporte,
+          include: [{ model: Empresa, attributes: ['nombre', 'telefono'] }]
+        },
+        {
+          model: Reserva,
+          where: { eliminado: "no" },
+          required: false,
+          include: [{ model: Pasajeros, where: { eliminado: "no" }, required: false }]
+        }
+      ],
+      order: [["fechaViaje", "ASC"], ["horarioSalida", "ASC"]]
     });
   }
 

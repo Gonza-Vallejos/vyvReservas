@@ -10,6 +10,7 @@ import BookingPage from './pages/BookingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import ChoferDashboardPage from './pages/ChoferDashboardPage';
 import MyReservationsPage from './pages/MyReservationsPage';
 import MinibusLoader from './components/MinibusLoader';
 import { viajeService } from './services/api';
@@ -21,8 +22,12 @@ const Home = () => {
 
   // Si el usuario es Dueño (5), Administrador (1) o Mostrador (3), debe ir directo a su Panel
   useEffect(() => {
-    if (user && (user.perfil_id === 5 || user.perfil_id === 1 || user.perfil_id === 3)) {
-      navigate('/dashboard', { replace: true });
+    if (user) {
+      if (user.perfil_id === 5 || user.perfil_id === 1 || user.perfil_id === 3) {
+        navigate('/dashboard', { replace: true });
+      } else if (user.perfil_id === 4) {
+        navigate('/chofer', { replace: true });
+      }
     }
   }, [user, navigate]);
 
@@ -170,6 +175,9 @@ const Navbar = () => {
               {(user?.perfil_id === 1 || user?.perfil_id === 5 || user?.perfil_id === 3) && (
                 <Link to="/dashboard" style={panelBadge}><ShieldCheck size={18} /> Panel</Link>
               )}
+              {user?.perfil_id === 4 && (
+                <Link to="/chofer" style={{ ...panelBadge, background: '#2563eb' }}><Bus size={18} /> Panel Chofer</Link>
+              )}
               
               <div style={userInfoStyle}>
                 <div style={avatarStyle}>{user?.nombre?.charAt(0).toUpperCase()}</div>
@@ -193,7 +201,11 @@ const Navbar = () => {
           <Link to="/" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Inicio</Link>
           {user ? (
             <>
-              <Link to="/mis-reservas" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Mis Reservas</Link>
+              {user.perfil_id === 4 ? (
+                <Link to="/chofer" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Panel Chofer</Link>
+              ) : (
+                <Link to="/mis-reservas" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Mis Reservas</Link>
+              )}
               <button onClick={handleLogout} style={{ ...mobileNavLink, color: 'var(--error)', border: 'none', background: 'none', textAlign: 'left' }}>Cerrar Sesión</button>
             </>
           ) : (
@@ -222,6 +234,7 @@ function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/booking" element={<BookingPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/chofer" element={<ChoferDashboardPage />} />
               <Route path="/mis-reservas" element={<MyReservationsPage />} />
             </Routes>
           </main>
