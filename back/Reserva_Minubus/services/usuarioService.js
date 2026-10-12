@@ -39,21 +39,37 @@ class UsuarioService {
   }
 
   async createEmployee(userData, empresaId) {
-    const { contrasenia } = userData;
-    const hashedPassword = await bcrypt.hash(contrasenia, 10);
+    const rawPassword = userData.contrasenia || '123456';
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
     
-    // Crear usuario ya verificado (lo crea su jefe)
+    // Si no enviaron 'usuario', autogenerar basado en nombre.apellido o DNI
+    const baseUsername = userData.usuario 
+      ? userData.usuario.trim().toLowerCase() 
+      : `${(userData.nombre || 'user').trim().toLowerCase().replace(/\s+/g, '')}.${(userData.dni || Math.floor(Math.random()*10000))}`.slice(0, 24);
+
+    const telefono = userData.telefono || `3794${Math.floor(100000 + Math.random() * 900000)}`;
+
+    // Crear usuario ya verificado (lo crea la empresa)
     const nuevoUsuario = await Usuario.create({
-      ...userData,
+      nombre: userData.nombre?.trim(),
+      apellido: userData.apellido?.trim(),
+      dni: parseInt(userData.dni, 10),
+      email: userData.email?.trim().toLowerCase(),
+      telefono,
+      usuario: baseUsername,
       contrasenia: hashedPassword,
-      verificado: true
+      perfil_id: parseInt(userData.perfil_id, 10),
+      verificado: true,
+      eliminado: "no"
     });
 
-    // Vincular con la empresa
-    await UsuarioEmpresa.create({
-      id_usuario: nuevoUsuario.id,
-      id_empresa: empresaId
-    });
+    // Vincular con la empresa si se especificó
+    if (empresaId) {
+      await UsuarioEmpresa.create({
+        id_usuario: nuevoUsuario.id,
+        id_empresa: parseInt(empresaId, 10)
+      });
+    }
 
     return nuevoUsuario;
   }

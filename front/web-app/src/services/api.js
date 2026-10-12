@@ -35,6 +35,8 @@ export const transporteService = {
 export const empresaService = {
   obtenerUsuarios: (id) => api.get(`/usuario-empresa/empresa/${id}/usuarios`),
   listarTodas: () => api.get('/empresa'),
+  obtenerPorId: (id) => api.get(`/empresa/${id}`),
+  obtenerEmpresaDeUsuario: (usuarioId) => api.get(`/usuario-empresa/usuario/${usuarioId}`),
   actualizar: (id, data) => api.put(`/empresa/${id}`, data),
 };
 

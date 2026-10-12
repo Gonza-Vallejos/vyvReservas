@@ -80,7 +80,7 @@ router.get('/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuari
  *               medioTransporte_id:
  *                 type: integer
  */
-router.post('/', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador'), validateViaje, viajesController.crearViaje);
+router.post('/', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa'), validateViaje, viajesController.crearViaje);
 
 /**
  * @swagger
@@ -91,7 +91,7 @@ router.post('/', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioA
  *     security:
  *       - bearerAuth: []
  */
-router.put('/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador'), validateUpdateViaje, viajesController.actualizarViajes);
+router.put('/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa'), validateUpdateViaje, viajesController.actualizarViajes);
 
 /**
  * @swagger
@@ -102,7 +102,7 @@ router.put('/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuari
  *     security:
  *       - bearerAuth: []
  */
-router.delete('/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador'), viajesController.eliminarViajes);
+router.delete('/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa'), viajesController.eliminarViajes);
 
 /**
  * @swagger

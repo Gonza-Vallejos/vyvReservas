@@ -65,7 +65,7 @@ router.get('/empresa/:id', autenticarToken, permitirPerfiles('usuarioAdministrad
  *               empresa_id:
  *                 type: integer
  */
-router.post('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador'), validateMedioTransporte, transporteController.crearTransporte);
+router.post('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa'), validateMedioTransporte, transporteController.crearTransporte);
 
 /**
  * @swagger
@@ -110,7 +110,7 @@ router.get('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'us
  *               cantLugares:
  *                 type: integer
  */
-router.put('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador'), validateUpdateTransporte, transporteController.actualizarTransporte);
+router.put('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa'), validateUpdateTransporte, transporteController.actualizarTransporte);
 
 /**
  * @swagger
@@ -121,7 +121,7 @@ router.put('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'us
  *     security:
  *       - bearerAuth: []
  */
-router.delete('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador'), transporteController.eliminarTransporte);
+router.delete('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa'), transporteController.eliminarTransporte);
 
 /**
  * @swagger

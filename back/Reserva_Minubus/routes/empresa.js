@@ -28,7 +28,7 @@ const { autenticarToken, permitirPerfiles } = require("../middlewares/authMiddle
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
  */
-router.get("/", autenticarToken, permitirPerfiles("usuarioAdministrador"), empresaController.obtenerEmpresas);
+router.get("/", autenticarToken, permitirPerfiles("usuarioAdministrador", "usuarioEmpresa", "usuarioMostrador"), empresaController.obtenerEmpresas);
 
 /**
  * @swagger

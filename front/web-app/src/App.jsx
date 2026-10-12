@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
 import { Bus, User, LogOut, Menu, X, ArrowRight, ShieldCheck } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster, toast } from 'react-hot-toast';
@@ -16,6 +16,16 @@ import { viajeService } from './services/api';
 import './index.css';
 
 const Home = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Si el usuario es Dueño (5), Administrador (1) o Mostrador (3), debe ir directo a su Panel
+  useEffect(() => {
+    if (user && (user.perfil_id === 5 || user.perfil_id === 1 || user.perfil_id === 3)) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
+
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -24,8 +34,6 @@ const Home = () => {
     destino: '',
     fecha: new Date().toISOString().split('T')[0]
   });
-  const { user } = useAuth();
-  const navigate = useNavigate();
 
   const ejecutarBusqueda = async (origen, destino, fecha) => {
     setLoading(true);

@@ -43,23 +43,48 @@ const DashboardPage = () => {
     if (!user) return;
     try {
       setLoading(true);
-      const empresaId = user.id_empresa || user.id;
-      const [vResponse, lResponse, tResponse, cResponse, eResponse] = await Promise.all([
-        viajeService.obtenerPorEmpresa(empresaId),
+      
+      // Determinar ID real de la empresa
+      let empresaId = user.id_empresa;
+      if (!empresaId) {
+        try {
+          const empRes = await empresaService.obtenerEmpresaDeUsuario(user.id);
+          empresaId = empRes.data?.data?.empresa_id || empRes.data?.empresa_id;
+        } catch (e) {
+          console.warn('No se pudo obtener empresa por usuario:', e);
+        }
+      }
+      // Fallback si no tiene empresa asignada aún
+      if (!empresaId && user.perfil_id === 5) {
+        empresaId = user.id;
+      }
+
+      // Traer viajes, localidades, flota y empleados
+      const [vRes, lRes, tRes, cRes, eRes] = await Promise.allSettled([
+        empresaId ? viajeService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } }),
         viajeService.obtenerLocalidades(),
-        transporteService.obtenerPorEmpresa(empresaId),
-        empresaService.obtenerUsuarios(empresaId),
-        empresaService.listarTodas()
+        empresaId ? transporteService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } }),
+        empresaId ? empresaService.obtenerUsuarios(empresaId) : Promise.resolve({ data: { data: [] } }),
+        empresaId ? empresaService.obtenerPorId(empresaId) : Promise.resolve({ data: { data: null } }),
       ]);
-      setViajes(vResponse.data.data || []);
-      setLocalidades(lResponse.data.data || []);
-      setVehiculos(tResponse.data.data || []);
-      setEmpresas(eResponse.data.data || []);
-      setMiEmpresa(eResponse.data.data?.find(e => e.id === empresaId) || null);
-      const todosLosUsuarios = cResponse.data.data || [];
-      setChoferes(todosLosUsuarios.filter(u => u.Usuario?.perfil_id === 4 || u.perfil_id === 4));
-    } catch (error) { toast.error('Error al cargar datos'); }
-    finally { setLoading(false); }
+
+      if (vRes.status === 'fulfilled') setViajes(vRes.value?.data?.data || vRes.value?.data || []);
+      if (lRes.status === 'fulfilled') setLocalidades(lRes.value?.data?.data || lRes.value?.data || []);
+      if (tRes.status === 'fulfilled') setVehiculos(tRes.value?.data?.data || tRes.value?.data || []);
+      if (eRes.status === 'fulfilled') {
+        const empData = eRes.value?.data?.data || eRes.value?.data;
+        if (empData) setMiEmpresa(empData);
+      }
+      if (cRes.status === 'fulfilled') {
+        const todosLosUsuarios = cRes.value?.data?.data || cRes.value?.data || [];
+        setChoferes(todosLosUsuarios.filter(u => u.Usuario?.perfil_id === 4 || u.perfil_id === 4));
+      }
+    } catch (error) {
+      console.error('Error al cargar datos del dashboard:', error);
+      toast.error('Error al cargar datos del panel');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -114,13 +139,9 @@ const DashboardPage = () => {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '12px' }} className="animate-fade-in">
-            {isOwner && <button style={primaryBtn} onClick={() => setShowEmployeeModal(true)}><UserPlus size={20} /> Contratar</button>}
-            {isSecretary && (
-              <>
-                <button style={primaryBtn} onClick={() => setShowTripModal(true)}><Plus size={20} /> Nuevo Viaje</button>
-                <button style={secondaryBtn} onClick={() => setShowVehicleModal(true)}><Truck size={20} /> Flota</button>
-              </>
-            )}
+            <button style={primaryBtn} onClick={() => setShowTripModal(true)}><Plus size={20} /> Nuevo Viaje</button>
+            <button style={secondaryBtn} onClick={() => setShowVehicleModal(true)}><Truck size={20} /> Nueva Unidad</button>
+            {isOwner && <button style={{...primaryBtn, background: '#10b981'}} onClick={() => setShowEmployeeModal(true)}><UserPlus size={20} /> Contratar Personal</button>}
           </div>
         </header>
 
@@ -145,48 +166,204 @@ const DashboardPage = () => {
             <table style={tableStyle}>
               <thead><tr style={thRow}><th style={thStyle}>Detalle</th><th style={thStyle}>Estado / Info</th><th style={thStyle}>Acciones</th></tr></thead>
               <tbody>
-                {activeTab === 'viajes' && viajes.map(v => (
-                  <tr key={v.id} className="table-row" style={trStyle}>
-                    <td style={tdStyle}><div><b style={{fontSize:'1.1rem'}}>{v.origenLocalidad} → {v.destinoLocalidad}</b><p style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>{v.fechaViaje} • {v.horarioSalida}hs</p></div></td>
-                    <td style={tdStyle}><button onClick={() => { setSelectedTrip(v); setShowPassengersModal(true); reservaService.obtenerPasajerosPorViaje(v.id).then(r => setPassengers(r.data.data)); }} style={passengerBadge}><Users size={14} /> Ver Pasajeros</button></td>
-                    <td style={tdStyle}><button style={iconBtn}><Edit size={18}/></button></td>
-                  </tr>
-                ))}
-                {activeTab === 'flota' && vehiculos.map(veh => (
-                  <tr key={veh.id} className="table-row" style={trStyle}>
-                    <td style={tdStyle}><b>{veh.nombre}</b><p style={{fontSize:'0.8rem'}}>{veh.marca}</p></td>
-                    <td style={tdStyle}><span style={statusBadge}>{veh.patente}</span></td>
-                    <td style={tdStyle}><button style={iconBtn}><Edit size={18}/></button></td>
-                  </tr>
-                ))}
-                {activeTab === 'choferes' && choferes.map(ch => (
-                  <tr key={ch.id} className="table-row" style={trStyle}>
-                    <td style={tdStyle}><b>{ch.Usuario?.nombre || ch.nombre} {ch.Usuario?.apellido || ch.apellido}</b></td>
-                    <td style={tdStyle}><span style={{...statusBadge, background:'#dcfce7', color:'#166534'}}>Activo</span></td>
-                    <td style={tdStyle}><button style={iconBtn}><Edit size={18}/></button></td>
-                  </tr>
-                ))}
+                {activeTab === 'viajes' && (
+                  viajes.length === 0 ? (
+                    <tr><td colSpan="3" style={{...tdStyle, textAlign: 'center', color: 'var(--text-muted)'}}>No hay viajes registrados en esta empresa todavía.</td></tr>
+                  ) : viajes.map(v => (
+                    <tr key={v.id} className="table-row" style={trStyle}>
+                      <td style={tdStyle}><div><b style={{fontSize:'1.1rem'}}>{v.origenLocalidad} → {v.destinoLocalidad}</b><p style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>{v.fechaViaje} • {v.horarioSalida?.substring(0, 5)}hs - ${v.precio}</p></div></td>
+                      <td style={tdStyle}><button onClick={() => { setSelectedTrip(v); setShowPassengersModal(true); reservaService.obtenerPasajerosPorViaje(v.id).then(r => setPassengers(r.data?.data || [])); }} style={passengerBadge}><Users size={14} /> Ver Pasajeros</button></td>
+                      <td style={tdStyle}><button style={iconBtn}><Edit size={18}/></button></td>
+                    </tr>
+                  ))
+                )}
+                {activeTab === 'flota' && (
+                  vehiculos.length === 0 ? (
+                    <tr><td colSpan="3" style={{...tdStyle, textAlign: 'center', color: 'var(--text-muted)'}}>No hay unidades registradas en la flota.</td></tr>
+                  ) : vehiculos.map(veh => (
+                    <tr key={veh.id} className="table-row" style={trStyle}>
+                      <td style={tdStyle}><b>{veh.nombre}</b><p style={{fontSize:'0.8rem'}}>{veh.marca} ({veh.cantLugares} asientos)</p></td>
+                      <td style={tdStyle}><span style={statusBadge}>{veh.patente}</span></td>
+                      <td style={tdStyle}><button style={iconBtn}><Edit size={18}/></button></td>
+                    </tr>
+                  ))
+                )}
+                {activeTab === 'choferes' && (
+                  choferes.length === 0 ? (
+                    <tr><td colSpan="3" style={{...tdStyle, textAlign: 'center', color: 'var(--text-muted)'}}>No hay personal registrado. Haz clic en "Contratar Personal" arriba.</td></tr>
+                  ) : choferes.map(ch => (
+                    <tr key={ch.id} className="table-row" style={trStyle}>
+                      <td style={tdStyle}><b>{ch.Usuario?.nombre || ch.nombre} {ch.Usuario?.apellido || ch.apellido}</b><p style={{fontSize:'0.8rem', color: 'var(--text-muted)'}}>DNI: {ch.Usuario?.dni || ch.dni} • Rol: {ch.perfil_id === 4 || ch.Usuario?.perfil_id === 4 ? 'Chofer' : 'Mostrador'}</p></td>
+                      <td style={tdStyle}><span style={{...statusBadge, background:'#dcfce7', color:'#166534'}}>Activo</span></td>
+                      <td style={tdStyle}><button style={iconBtn}><Edit size={18}/></button></td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         )}
       </main>
 
-      {/* Reutilización de Modales con Estilo Moderno */}
+      {/* Modal Contratar Personal */}
       {showEmployeeModal && (
         <div style={modalOverlay} className="animate-fade-in">
           <div style={modalContent}>
-            <div style={modalHeader}><h2 style={{fontWeight:'900', fontSize:'1.8rem'}}>Contratar Staff</h2><button onClick={() => setShowEmployeeModal(false)} style={closeBtn}><X /></button></div>
-            <form onSubmit={async (e) => { e.preventDefault(); try { await usuarioService.registrarEmpleado({ ...nuevoEmpleado, empresa_id: user.id_empresa || user.id }); toast.success('Empleado contratado'); setShowEmployeeModal(false); fetchData(); } catch(e){toast.error('Error')} }} style={modalForm}>
+            <div style={modalHeader}><h2 style={{fontWeight:'900', fontSize:'1.8rem'}}>Contratar Personal</h2><button onClick={() => setShowEmployeeModal(false)} style={closeBtn}><X /></button></div>
+            <form onSubmit={async (e) => { 
+              e.preventDefault(); 
+              try { 
+                const empId = user.id_empresa || (miEmpresa?.id) || user.id;
+                await usuarioService.registrarEmpleado({ ...nuevoEmpleado, empresa_id: empId }); 
+                toast.success('¡Empleado contratado y registrado!'); 
+                setShowEmployeeModal(false); 
+                fetchData(); 
+              } catch(err) {
+                toast.error(err.response?.data?.message || 'Error al registrar empleado');
+              } 
+            }} style={modalForm}>
               <div style={formGrid}>
                 <div style={field}><label style={label}>Nombre</label><input style={input} onChange={e => setNuevoEmpleado({...nuevoEmpleado, nombre: e.target.value})} required /></div>
                 <div style={field}><label style={label}>Apellido</label><input style={input} onChange={e => setNuevoEmpleado({...nuevoEmpleado, apellido: e.target.value})} required /></div>
-                <div style={field}><label style={label}>DNI</label><input style={input} onChange={e => setNuevoEmpleado({...nuevoEmpleado, dni: e.target.value})} required /></div>
+                <div style={field}><label style={label}>DNI</label><input type="number" style={input} onChange={e => setNuevoEmpleado({...nuevoEmpleado, dni: e.target.value})} required /></div>
                 <div style={field}><label style={label}>Email</label><input type="email" style={input} onChange={e => setNuevoEmpleado({...nuevoEmpleado, email: e.target.value})} required /></div>
+                <div style={field}><label style={label}>Usuario (Acceso)</label><input style={input} placeholder="Opcional (se autogenera)" onChange={e => setNuevoEmpleado({...nuevoEmpleado, usuario: e.target.value})} /></div>
+                <div style={field}><label style={label}>Contraseña</label><input type="password" style={input} placeholder="Por defecto 123456" onChange={e => setNuevoEmpleado({...nuevoEmpleado, contrasenia: e.target.value})} /></div>
                 <div style={{...field, gridColumn:'span 2'}}><label style={label}>Rol</label><select style={input} onChange={e => setNuevoEmpleado({...nuevoEmpleado, perfil_id: e.target.value})} required><option value="">Elegir puesto...</option><option value="4">Chofer de Unidad</option><option value="3">Secretario de Mostrador</option></select></div>
               </div>
               <div style={modalActions}><button type="submit" style={primaryBtn}>Confirmar Contratación</button></div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Nuevo Viaje */}
+      {showTripModal && (
+        <div style={modalOverlay} className="animate-fade-in">
+          <div style={modalContent}>
+            <div style={modalHeader}><h2 style={{fontWeight:'900', fontSize:'1.8rem'}}>Crear Nuevo Viaje</h2><button onClick={() => setShowTripModal(false)} style={closeBtn}><X /></button></div>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                const choferId = nuevoViaje.usuarioEmpresa_id || choferes[0]?.id || user.id;
+                const vehiculoId = nuevoViaje.medioTransporte_id || vehiculos[0]?.id;
+                if (!vehiculoId) {
+                  toast.error('Primero debes registrar un minibús en la flota');
+                  return;
+                }
+                await viajeService.crear({
+                  ...nuevoViaje,
+                  usuarioEmpresa_id: parseInt(choferId, 10),
+                  medioTransporte_id: parseInt(vehiculoId, 10),
+                  precio: parseFloat(nuevoViaje.precio)
+                });
+                toast.success('¡Viaje creado con éxito!');
+                setShowTripModal(false);
+                fetchData();
+              } catch(err) {
+                toast.error(err.response?.data?.message || 'Error al crear el viaje');
+              }
+            }} style={modalForm}>
+              <div style={formGrid}>
+                <div style={field}>
+                  <label style={label}>Origen</label>
+                  <input style={input} placeholder="Ej: San Roque" onChange={e => setNuevoViaje({...nuevoViaje, origenLocalidad: e.target.value})} required />
+                </div>
+                <div style={field}>
+                  <label style={label}>Destino</label>
+                  <input style={input} placeholder="Ej: Corrientes" onChange={e => setNuevoViaje({...nuevoViaje, destinoLocalidad: e.target.value})} required />
+                </div>
+                <div style={field}>
+                  <label style={label}>Fecha</label>
+                  <input type="date" style={input} onChange={e => setNuevoViaje({...nuevoViaje, fechaViaje: e.target.value})} required />
+                </div>
+                <div style={field}>
+                  <label style={label}>Horario de Salida</label>
+                  <input type="time" style={input} onChange={e => setNuevoViaje({...nuevoViaje, horarioSalida: e.target.value})} required />
+                </div>
+                <div style={field}>
+                  <label style={label}>Precio ($)</label>
+                  <input type="number" step="0.01" style={input} placeholder="Ej: 8500" onChange={e => setNuevoViaje({...nuevoViaje, precio: e.target.value})} required />
+                </div>
+                <div style={field}>
+                  <label style={label}>Minibús / Vehículo</label>
+                  <select style={input} onChange={e => setNuevoViaje({...nuevoViaje, medioTransporte_id: e.target.value})} required>
+                    <option value="">Seleccionar unidad...</option>
+                    {vehiculos.map(veh => <option key={veh.id} value={veh.id}>{veh.nombre} - {veh.patente}</option>)}
+                  </select>
+                </div>
+                <div style={{...field, gridColumn:'span 2'}}>
+                  <label style={label}>Chofer asignado</label>
+                  <select style={input} onChange={e => setNuevoViaje({...nuevoViaje, usuarioEmpresa_id: e.target.value})} required>
+                    <option value="">Seleccionar chofer...</option>
+                    {choferes.map(ch => <option key={ch.id} value={ch.id}>{ch.Usuario?.nombre || ch.nombre} {ch.Usuario?.apellido || ch.apellido}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={modalActions}><button type="submit" style={primaryBtn}>Publicar Viaje</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Nueva Unidad Flota */}
+      {showVehicleModal && (
+        <div style={modalOverlay} className="animate-fade-in">
+          <div style={modalContent}>
+            <div style={modalHeader}><h2 style={{fontWeight:'900', fontSize:'1.8rem'}}>Añadir a la Flota</h2><button onClick={() => setShowVehicleModal(false)} style={closeBtn}><X /></button></div>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                const empId = user.id_empresa || (miEmpresa?.id) || user.id;
+                await transporteService.crear({
+                  ...nuevoVehiculo,
+                  empresa_id: parseInt(empId, 10),
+                  cantLugares: parseInt(nuevoVehiculo.cantLugares, 10)
+                });
+                toast.success('¡Vehículo agregado a la flota!');
+                setShowVehicleModal(false);
+                fetchData();
+              } catch(err) {
+                toast.error(err.response?.data?.message || 'Error al agregar vehículo');
+              }
+            }} style={modalForm}>
+              <div style={formGrid}>
+                <div style={field}><label style={label}>Nombre / Unidad</label><input style={input} placeholder="Ej: Minibús Sprinter #01" onChange={e => setNuevoVehiculo({...nuevoVehiculo, nombre: e.target.value})} required /></div>
+                <div style={field}><label style={label}>Marca / Modelo</label><input style={input} placeholder="Ej: Mercedes-Benz Sprinter" onChange={e => setNuevoVehiculo({...nuevoVehiculo, marca: e.target.value})} required /></div>
+                <div style={field}><label style={label}>Patente</label><input style={input} placeholder="Ej: AF-123-VY" onChange={e => setNuevoVehiculo({...nuevoVehiculo, patente: e.target.value})} required /></div>
+                <div style={field}><label style={label}>Capacidad de Asientos</label><input type="number" defaultValue="19" style={input} onChange={e => setNuevoVehiculo({...nuevoVehiculo, cantLugares: e.target.value})} required /></div>
+              </div>
+              <div style={modalActions}><button type="submit" style={primaryBtn}>Guardar Vehículo</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Ver Pasajeros */}
+      {showPassengersModal && (
+        <div style={modalOverlay} className="animate-fade-in">
+          <div style={modalContent}>
+            <div style={modalHeader}>
+              <h2 style={{fontWeight:'900', fontSize:'1.8rem'}}>Pasajeros - {selectedTrip?.origenLocalidad} ➔ {selectedTrip?.destinoLocalidad}</h2>
+              <button onClick={() => setShowPassengersModal(false)} style={closeBtn}><X /></button>
+            </div>
+            <div style={{ padding: '30px' }}>
+              {passengers.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No hay pasajeros anotados en este viaje.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {passengers.map((p, i) => (
+                    <div key={i} style={{ padding: '15px', background: '#f8fafc', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <b>{p.nombre} {p.apellido}</b>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>DNI: {p.dni} • Subida: {p.ubicacionOrigen} ➔ Bajada: {p.ubicacionDestino}</p>
+                      </div>
+                      <span style={{...statusBadge, background: '#e0f2fe', color: '#0369a1'}}>Confirmado</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

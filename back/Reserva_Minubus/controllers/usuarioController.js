@@ -40,7 +40,8 @@ exports.registrarEmpleado = async (req, res) => {
     await usuarioService.createEmployee(req.body, empresa_id);
     sendSuccess(res, null, "Empleado registrado con éxito", 201);
   } catch (error) {
-    sendError(res, "Error al registrar el empleado", 500, error);
+    console.error("Error al registrar empleado:", error);
+    sendError(res, error.message || "Error al registrar el empleado", 500, error);
   }
 };
 
