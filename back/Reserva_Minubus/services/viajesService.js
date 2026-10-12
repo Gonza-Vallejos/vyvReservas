@@ -16,23 +16,33 @@ class ViajesService {
     });
   }
 
-  async getAvailable(origen, destino) {
+  async getAvailable(origen, destino, fecha) {
     const ahora = new Date();
+    const hoyStr = ahora.toISOString().split("T")[0];
+
     const where = {
       eliminado: "no",
-      cantPasajeros: { [Op.gt]: 0 },
-      fechaViaje: { [Op.gte]: ahora.toISOString().split("T")[0] }
+      cantPasajeros: { [Op.gt]: 0 }
     };
 
+    if (fecha) {
+      // Filtrar por la fecha exacta seleccionada
+      where.fechaViaje = fecha;
+    } else {
+      // Por defecto desde hoy en adelante
+      where.fechaViaje = { [Op.gte]: hoyStr };
+    }
+
     if (origen) {
-      where.origenLocalidad = { [Op.like]: `%${origen}%` };
+      where.origenLocalidad = { [Op.iLike || Op.like]: `%${origen}%` };
     }
     if (destino) {
-      where.destinoLocalidad = { [Op.like]: `%${destino}%` };
+      where.destinoLocalidad = { [Op.iLike || Op.like]: `%${destino}%` };
     }
 
     return await Viajes.findAll({
       where,
+      order: [['fechaViaje', 'ASC'], ['horarioSalida', 'ASC']],
       include: [
         {
           model: MedioTransporte,

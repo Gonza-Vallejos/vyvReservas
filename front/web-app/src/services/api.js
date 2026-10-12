@@ -20,7 +20,7 @@ export const authService = {
 };
 
 export const viajeService = {
-  listarDisponibles: (origen, destino) => api.get('/viajes/disponibles', { params: { origen, destino } }),
+  listarDisponibles: (origen, destino, fecha) => api.get('/viajes/disponibles', { params: { origen, destino, fecha } }),
   obtenerLocalidades: () => api.get('/ubicacion/localidades'),
   obtenerPorId: (id) => api.get(`/viajes/${id}`),
   obtenerPorEmpresa: (id) => api.get(`/viajes/empresa/${id}`),

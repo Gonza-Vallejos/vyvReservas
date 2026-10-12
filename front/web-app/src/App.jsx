@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster, toast } from 'react-hot-toast';
 import SearchForm from './components/SearchForm';
 import TripCard from './components/TripCard';
+import DateSelectorBar from './components/DateSelectorBar';
 import BookingPage from './pages/BookingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -18,23 +19,26 @@ const Home = () => {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [searchParams, setSearchParams] = useState({
+    origen: '',
+    destino: '',
+    fecha: new Date().toISOString().split('T')[0]
+  });
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const handleSearch = async (criteria) => {
+  const ejecutarBusqueda = async (origen, destino, fecha) => {
     setLoading(true);
     setSearched(true);
     try {
-      const response = await viajeService.listarDisponibles(criteria.origen, criteria.destino);
+      const response = await viajeService.listarDisponibles(origen, destino, fecha);
       const result = response.data;
       const tripsArray = result.data || result;
       
-      if (Array.isArray(tripsArray) && tripsArray.length > 0) {
+      if (Array.isArray(tripsArray)) {
         setTrips(tripsArray);
-        toast.success(`Encontramos ${tripsArray.length} viajes`);
       } else {
         setTrips([]);
-        toast.error('No se encontraron viajes');
       }
     } catch (error) {
       toast.error('Error al conectar con el servidor');
@@ -42,6 +46,22 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = async (criteria) => {
+    const fechaSeleccionada = criteria.fecha || new Date().toISOString().split('T')[0];
+    const nuevosParams = {
+      origen: criteria.origen,
+      destino: criteria.destino,
+      fecha: fechaSeleccionada
+    };
+    setSearchParams(nuevosParams);
+    ejecutarBusqueda(nuevosParams.origen, nuevosParams.destino, nuevosParams.fecha);
+  };
+
+  const handleDateChange = (nuevaFecha) => {
+    setSearchParams(prev => ({ ...prev, fecha: nuevaFecha }));
+    ejecutarBusqueda(searchParams.origen, searchParams.destino, nuevaFecha);
   };
 
   return (
@@ -58,31 +78,59 @@ const Home = () => {
       </section>
 
       {searched && (
-        <section className="container animate-fade-in" style={{ padding: '80px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '40px' }}>
-            <h2 style={{ fontSize: '2rem', fontWeight: '800' }}>
-              {loading ? 'Analizando rutas...' : `${trips.length} resultados disponibles`}
-            </h2>
-            {!loading && <div style={statusDot} />}
+        <section className="container animate-fade-in" style={{ padding: '60px 20px' }}>
+          {/* Barra de Fechas (Estilo Plataforma 10) */}
+          <DateSelectorBar 
+            selectedDate={searchParams.fecha} 
+            onSelectDate={handleDateChange} 
+          />
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '30px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <h2 style={{ fontSize: '1.8rem', fontWeight: '800' }}>
+                {loading ? 'Consultando salidas...' : `${trips.length} ${trips.length === 1 ? 'servicio encontrado' : 'servicios encontrados'}`}
+              </h2>
+              {!loading && trips.length > 0 && <div style={statusDot} />}
+            </div>
+            <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>
+              {searchParams.origen} ➔ {searchParams.destino}
+            </span>
           </div>
-          <div style={resultsGrid}>
-            {trips.map(trip => (
-              <TripCard 
-                key={trip.id} 
-                trip={trip} 
-                onSelect={(t) => {
-                  if (!user) {
-                    toast.error('Inicia sesión para reservar');
-                    navigate('/login');
-                  } else if (user.perfil_id === 5) {
-                    toast.info('Las empresas no realizan reservas.');
-                  } else {
-                    navigate('/booking', { state: { trip: t } });
-                  }
-                }} 
-              />
-            ))}
-          </div>
+
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '1.2rem', fontWeight: '700' }}>Buscando salidas disponibles...</div>
+            </div>
+          ) : trips.length === 0 ? (
+            <div style={emptyStateBox} className="animate-fade-in">
+              <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🚐</div>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e3a8a', marginBottom: '10px' }}>
+                No disponemos de servicios para la fecha indicada
+              </h3>
+              <p style={{ color: 'var(--text-muted)', maxWidth: '500px', margin: '0 auto 20px auto', fontSize: '0.95rem' }}>
+                Para más alternativas, te sugerimos buscar en las fechas anteriores o posteriores desde la barra superior.
+              </p>
+            </div>
+          ) : (
+            <div style={resultsGrid}>
+              {trips.map(trip => (
+                <TripCard 
+                  key={trip.id} 
+                  trip={trip} 
+                  onSelect={(t) => {
+                    if (!user) {
+                      toast.error('Inicia sesión para reservar');
+                      navigate('/login');
+                    } else if (user.perfil_id === 5) {
+                      toast.info('Las empresas no realizan reservas.');
+                    } else {
+                      navigate('/booking', { state: { trip: t } });
+                    }
+                  }} 
+                />
+              ))}
+            </div>
+          )}
         </section>
       )}
     </div>
@@ -197,5 +245,15 @@ const logoutButtonStyle = { background: '#fee2e2', border: 'none', color: '#ef44
 
 const mobileMenu = { position: 'fixed', top: '75px', left: 0, right: 0, bottom: 0, background: 'white', zIndex: 999, padding: '40px', display: 'flex', flexDirection: 'column', gap: '25px' };
 const mobileNavLink = { textDecoration: 'none', color: 'var(--text-dark)', fontWeight: '800', fontSize: '1.8rem', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' };
+
+const emptyStateBox = {
+  textAlign: 'center',
+  padding: '60px 20px',
+  background: '#f8fafc',
+  borderRadius: '24px',
+  border: '1.5px dashed #cbd5e1',
+  maxWidth: '650px',
+  margin: '0 auto',
+};
 
 export default App;

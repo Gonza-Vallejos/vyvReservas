@@ -22,8 +22,8 @@ exports.obtenerViajePorId = async (req, res) => {
 
 exports.obtenerViajesDisponibles = async (req, res) => {
   try {
-    const { origen, destino } = req.query;
-    const viajes = await viajesService.getAvailable(origen, destino);
+    const { origen, destino, fecha } = req.query;
+    const viajes = await viajesService.getAvailable(origen, destino, fecha);
     sendSuccess(res, viajes);
   } catch (error) {
     console.error('Error en búsqueda de viajes:', error);
