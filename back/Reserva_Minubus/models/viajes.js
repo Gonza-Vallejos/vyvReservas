@@ -26,6 +26,11 @@ module.exports = (sequelize, DataTypes) => {
 
   Viajes.init(
     {
+      id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
       origenLocalidad: {
         type: DataTypes.STRING,
         allowNull: false,

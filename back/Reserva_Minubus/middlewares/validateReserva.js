@@ -6,10 +6,12 @@ const validarReserva = [
   body("usuarios_id")
     .notEmpty()
     .withMessage("El ID del usuario es requerido.")
+    .toInt()
     .isInt()
     .withMessage("El ID del usuario debe ser un número entero.")
     .custom(async (usuarios_id, { req }) => {
-      const usuario = await Usuario.findByPk(usuarios_id);
+      const uId = parseInt(usuarios_id, 10);
+      const usuario = await Usuario.findByPk(uId);
       if (!usuario) {
         throw new Error("El usuario especificado no existe.");
       }
@@ -21,20 +23,20 @@ const validarReserva = [
   body("viajes_id")
     .notEmpty()
     .withMessage("El ID del viaje es requerido.")
+    .toInt()
     .isInt()
     .withMessage("El ID del viaje debe ser un número entero.")
     .custom(async (viajes_id, { req }) => {
-      const viaje = await Viajes.findByPk(viajes_id);
+      const vId = parseInt(viajes_id, 10);
+      const viaje = await Viajes.findOne({
+        where: { id: vId, eliminado: "no" }
+      });
       if (!viaje) {
-        throw new Error("El viaje especificado no existe.");
+        throw new Error("El viaje especificado no existe o fue cancelado.");
       }
 
-      // Validar unicidad del viaje para la reserva
-      const reservaExistente = await Reserva.findOne({
-        where: { viajes_id, id: { $ne: req.params.id } },
-      });
-      if (reservaExistente) {
-        throw new Error("Este viaje ya tiene una reserva.");
+      if (viaje.cantPasajeros <= 0) {
+        throw new Error("No quedan asientos disponibles para este viaje.");
       }
 
       return true;
