@@ -37,11 +37,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "56b0edc3-ba17-403e-b11d-8dfc2ca3b693"
-      }
-    },
-    "owner": "carlosvargas"
+      "router": {}
+    }
   }
 }
