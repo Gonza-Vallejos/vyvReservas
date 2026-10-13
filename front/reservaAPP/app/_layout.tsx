@@ -86,9 +86,9 @@ export default function RootLayout() {
           {!esPrincipal && (
             <>
               <LinearGradient
-                colors={["rgba(76, 104, 215, 0.85)", "rgba(76, 104, 215, 0.3)"]}
+                colors={["#1e3a8a", "#2563eb"]}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
+                end={{ x: 1, y: 0 }}
                 style={styles.header}
               >
                 <View style={styles.side} />
@@ -104,11 +104,11 @@ export default function RootLayout() {
                 <View style={styles.side}>
                   <Pressable
                     onPress={() => router.push("/perfil")}
-                    style={{ padding: 5 }}
+                    style={styles.profileBtn}
                   >
                     <Ionicons
                       name="person-circle-outline"
-                      size={30}
+                      size={28}
                       color="#fff"
                     />
                   </Pressable>
@@ -134,7 +134,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#1e3a8a",
   },
   background: {
     flex: 1,
@@ -145,19 +145,30 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.3)", // oscurece el fondo para mejor contraste
+    backgroundColor: "rgba(15, 23, 42, 0.65)", // elegante tinte oscuro slate
   },
   header: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.12)",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
   },
   side: {
     width: 40,
     alignItems: "center",
     justifyContent: "center",
+  },
+  profileBtn: {
+    padding: 4,
+    borderRadius: 20,
   },
   center: {
     flex: 1,
@@ -166,15 +177,9 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#ffffff",
-    fontSize: 20,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 1.2,
-    textShadowColor: "#000",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 4,
-    fontStyle: "italic",
-    fontFamily: "System",
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
   content: {
     flex: 1,

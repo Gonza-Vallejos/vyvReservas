@@ -116,9 +116,10 @@ export default function DetalleReserva() {
   };
 
   useEffect(() => {
-    if (!isLoading && userInfo?.perfil !== "usuarioCliente") {
-      logout();
-      router.replace("/login");
+    if (!isLoading) {
+      if (!userInfo) {
+        router.replace("/login");
+      }
     }
   }, [isLoading, userInfo]);
 

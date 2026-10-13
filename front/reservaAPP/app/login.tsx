@@ -250,12 +250,7 @@ export default function LoginScreen({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 50 : 0}
     >
-      <ImageBackground
-        source={require("../assets/images/fondo3.jpg")}
-        style={styles.backgroundImage}
-      >
-        <View style={styles.overlay} />
-
+      <View style={styles.backgroundImage}>
         {Platform.OS === "web" ? (
           <View style={styles.containerWeb}>
             {/*Texto animado en lugar de la imagen */}
@@ -372,6 +367,22 @@ export default function LoginScreen({
             contentContainerStyle={styles.wrapper}
             keyboardShouldPersistTaps="handled"
           >
+            <View style={{ alignItems: "center", marginBottom: 16 }}>
+              <Animatable.Image
+                animation="pulse"
+                iterationCount="infinite"
+                duration={2500}
+                source={require("../assets/images/bus-icon.png")}
+                style={{ width: 64, height: 64, tintColor: "#38bdf8", marginBottom: 8 }}
+              />
+              <Text style={{ fontSize: 26, fontWeight: "800", color: "#ffffff", letterSpacing: 0.5 }}>
+                V&V Reservas
+              </Text>
+              <Text style={{ fontSize: 13, color: "#94a3b8", marginTop: 2 }}>
+                Viajes y traslados seguros
+              </Text>
+            </View>
+
             <View style={styles.formContainer}>
               <Text style={styles.title}>Iniciar sesión</Text>
 
@@ -453,7 +464,7 @@ export default function LoginScreen({
             </View>
           </ScrollView>
         )}
-      </ImageBackground>
+      </View>
     </KeyboardAvoidingView>
   );
 }

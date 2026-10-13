@@ -20,9 +20,15 @@ export default function CrearVenta() {
   const { isLoading, logout, userInfo } = useAuth();
 
   useEffect(() => {
-    if (!isLoading && userInfo?.perfil !== "usuarioChofer") {
-      logout();
-      router.replace("/login");
+    if (!isLoading) {
+      if (!userInfo) {
+        router.replace("/login");
+      } else if (
+        userInfo.perfil !== "usuarioChofer" &&
+        userInfo.perfil !== "usuarioMostrador"
+      ) {
+        router.replace("/(tabs)");
+      }
     }
   }, [isLoading, userInfo]);
 

@@ -10,7 +10,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ImageBackground,
+  Image,
   Modal,
   ActivityIndicator,
 } from "react-native";
@@ -221,16 +221,25 @@ export default function RegistroScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
     >
-      <ImageBackground
-        source={require("../assets/images/fondo3.jpg")}
-        style={styles.backgroundImage}
-      >
+      <View style={styles.backgroundImage}>
         <ScrollView
           contentContainerStyle={[styles.scrollContent]}
           keyboardShouldPersistTaps="handled"
         >
+          <View style={{ alignItems: "center", marginBottom: 14 }}>
+            <Image
+              source={require("../assets/images/bus-icon.png")}
+              style={{ width: 56, height: 56, tintColor: "#38bdf8", marginBottom: 6 }}
+            />
+            <Text style={{ fontSize: 24, fontWeight: "800", color: "#ffffff", letterSpacing: 0.5 }}>
+              Crear Cuenta
+            </Text>
+            <Text style={{ fontSize: 13, color: "#94a3b8" }}>
+              Registrate para comenzar a viajar
+            </Text>
+          </View>
+
           <View style={styles.formContainer}>
-            <Text style={styles.title}>Registrarse</Text>
 
             {errores.nombre && (
               <Text style={styles.errorText}>{errores.nombre}</Text>
@@ -454,7 +463,7 @@ export default function RegistroScreen() {
             </Text>
           </View>
         </ScrollView>
-      </ImageBackground>
+      </View>
     </KeyboardAvoidingView>
   );
 }

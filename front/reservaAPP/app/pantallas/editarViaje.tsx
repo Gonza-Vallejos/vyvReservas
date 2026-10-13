@@ -200,9 +200,15 @@ const EditarViaje = () => {
   }, [userInfo?.empresa_id]);
 
   useEffect(() => {
-    if (!isLoading && userInfo?.perfil !== "usuarioMostrador") {
-      logout();
-      router.replace("/login");
+    if (!isLoading) {
+      if (!userInfo) {
+        router.replace("/login");
+      } else if (
+        userInfo.perfil !== "usuarioMostrador" &&
+        userInfo.perfil !== "usuarioEmpresa"
+      ) {
+        router.replace("/(tabs)");
+      }
     }
   }, [isLoading, userInfo]);
 

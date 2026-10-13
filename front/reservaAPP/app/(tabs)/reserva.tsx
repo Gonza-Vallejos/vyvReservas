@@ -48,8 +48,7 @@ const MisReservas = () => {
   const { logout, userInfo } = useAuth();
 
   if (userInfo?.perfil !== "usuarioCliente") {
-    logout();
-    return <Redirect href="/login" />;
+    return <Redirect href="/(tabs)" />;
   }
   useEffect(() => {
     const fetchReservas = async () => {
@@ -352,34 +351,38 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
   },
   sectionTitle: {
-    fontSize: 21,
+    fontSize: 18,
     fontWeight: "700",
-    color: "#34495e",
+    color: "#f8fafc",
     marginBottom: 14,
     textAlign: "left",
-    borderBottomWidth: 2,
-    borderBottomColor: "#4c68d7",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(56, 189, 248, 0.4)",
     paddingBottom: 6,
+    letterSpacing: 0.5,
   },
   card: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "rgba(30, 41, 59, 0.9)",
     borderRadius: 16,
-    padding: 18,
-    marginBottom: 16,
+    padding: 16,
+    marginBottom: 14,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 6,
-    elevation: 5,
-    borderLeftWidth: 6,
-    borderLeftColor: "#4c68d7",
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderLeftWidth: 5,
+    borderLeftColor: "#38bdf8",
   },
   viajeRuta: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "700",
+    color: "#ffffff",
     marginBottom: 8,
   },
   fila: {
@@ -388,54 +391,58 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   filaTexto: {
-    fontSize: 14,
-    color: "#555",
+    fontSize: 13,
+    color: "#cbd5e1",
+    fontWeight: "500",
   },
   filaBottom: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 12,
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.06)",
+    paddingTop: 10,
   },
   precio: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#38bdf8",
   },
   btnSeleccionar: {
-    backgroundColor: "#4c68d7",
-    paddingVertical: 6,
+    backgroundColor: "#2563eb",
+    paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   btnSeleccionarText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 14,
+    fontSize: 13,
   },
   detail: {
-    fontSize: 14,
+    fontSize: 13,
     marginTop: 4,
-    color: "#666",
+    color: "#94a3b8",
   },
   botonesContainer: {
     flexDirection: "row",
-    marginTop: 10,
+    marginTop: 12,
     gap: 8,
     flexWrap: "wrap",
   },
   botonDetalle: {
-    backgroundColor: "#4c68d7",
+    backgroundColor: "#2563eb",
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: "center",
   },
   botonEliminar: {
-    backgroundColor: "#F44336",
+    backgroundColor: "#ef4444",
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: "center",
   },
 });

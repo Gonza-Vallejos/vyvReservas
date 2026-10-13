@@ -29,8 +29,7 @@ export default function TopClientesScreen() {
   const [error, setError] = useState<string | null>(null);
 
   if (userInfo?.perfil !== "usuarioEmpresa") {
-    logout();
-    return <Redirect href="/login" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   useEffect(() => {

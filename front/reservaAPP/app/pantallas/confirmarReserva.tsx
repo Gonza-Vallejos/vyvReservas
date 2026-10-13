@@ -75,9 +75,12 @@ export default function ReservasYPasajerosScreen() {
   }, [id]);
 
   useEffect(() => {
-    if (!isLoading && userInfo?.perfil !== "usuarioChofer") {
-      logout();
-      router.replace("/login");
+    if (!isLoading) {
+      if (!userInfo) {
+        router.replace("/login");
+      } else if (userInfo.perfil !== "usuarioChofer") {
+        router.replace("/(tabs)");
+      }
     }
   }, [isLoading, userInfo]);
 

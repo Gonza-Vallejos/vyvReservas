@@ -44,8 +44,7 @@ export default function ViajesPorTransporteScreen() {
   const [showHasta, setShowHasta] = useState(false);
 
   if (userInfo?.perfil !== "usuarioEmpresa") {
-    logout();
-    return <Redirect href="/login" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   useEffect(() => {

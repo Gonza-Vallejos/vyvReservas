@@ -89,9 +89,10 @@ export default function DetalleVenta() {
   }, [id, userInfo]);
 
   useEffect(() => {
-    if (!isLoading && userInfo?.perfil !== "usuarioCliente") {
-      logout();
-      router.replace("/login");
+    if (!isLoading) {
+      if (!userInfo) {
+        router.replace("/login");
+      }
     }
   }, [isLoading, userInfo]);
 

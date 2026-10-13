@@ -17,9 +17,12 @@ export default function ReportesScreen() {
   const { isLoading, logout, userInfo } = useAuth();
 
   useEffect(() => {
-    if (!isLoading && userInfo?.perfil !== "usuarioEmpresa") {
-      logout();
-      router.replace("/login");
+    if (!isLoading) {
+      if (!userInfo) {
+        router.replace("/login");
+      } else if (userInfo.perfil !== "usuarioEmpresa") {
+        router.replace("/(tabs)");
+      }
     }
   }, [isLoading, userInfo]);
 

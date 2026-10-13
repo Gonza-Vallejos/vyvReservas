@@ -36,8 +36,7 @@ export default function EmpresaScreen() {
   const { logout, userInfo } = useAuth();
 
   if (userInfo?.perfil !== "usuarioAdministrador") {
-    logout();
-    return <Redirect href="/login" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   const [empresas, setEmpresas] = useState<Empresa[]>([]);

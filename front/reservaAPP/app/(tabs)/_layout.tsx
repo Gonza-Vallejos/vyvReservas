@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { Tabs, Redirect } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,36 +14,36 @@ export default function TabLayout() {
     <Tabs
       screenOptions={({ route }) => ({
         tabBarShowLabel: true,
-        headerStyle: { backgroundColor: "#000" },
-        headerTintColor: "#007AFF",
-        tabBarActiveTintColor: "#007AFF",
-        tabBarInactiveTintColor: "#888",
+        headerStyle: { backgroundColor: "#0f172a" },
+        headerTintColor: "#38bdf8",
+        tabBarActiveTintColor: "#38bdf8",
+        tabBarInactiveTintColor: "#94a3b8",
         headerShown: false,
         tabBarHideOnKeyboard: false,
         tabBarStyle: {
-          position: "relative", // antes 'relative'
-          bottom: 0, // antes 20
+          position: "relative",
+          bottom: 0,
           left: 0,
-          right: 0, // antes 20
-          backgroundColor: "#000",
-          borderTopColor: "#000",
-          height: 75,
-          paddingBottom: 4,
-          paddingTop: 4,
-          borderRadius: 0,
-          elevation: 10,
+          right: 0,
+          backgroundColor: "#0f172a",
+          borderTopColor: "#1e293b",
+          borderTopWidth: 1,
+          height: Platform.OS === "ios" ? 82 : 64,
+          paddingBottom: Platform.OS === "ios" ? 22 : 6,
+          paddingTop: 6,
+          elevation: 8,
           shadowColor: "#000",
-          shadowOpacity: 0.3,
-          shadowOffset: { width: 0, height: -1 },
-          shadowRadius: 2,
+          shadowOpacity: 0.25,
+          shadowOffset: { width: 0, height: -2 },
+          shadowRadius: 4,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: "600",
-          marginBottom: 1,
+          marginTop: 2,
         },
         tabBarIconStyle: {
-          marginTop: 4,
+          marginTop: 2,
         },
         tabBarIcon: ({ color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = "home-outline";

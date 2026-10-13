@@ -55,8 +55,7 @@ export default function UsuariosScreen() {
   const { logout, userInfo } = useAuth();
 
   if (userInfo?.perfil !== "usuarioAdministrador") {
-    logout();
-    return <Redirect href="/login" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);

@@ -1,7 +1,8 @@
-import { Redirect, useRouter } from 'expo-router';
+import React from 'react';
+import { useRouter } from 'expo-router';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, ScrollView } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import Storage from '../../utils/storage';
 
 export default function PerfilesScreen() {
@@ -9,149 +10,240 @@ export default function PerfilesScreen() {
   const { logout, userInfo } = useAuth();
 
   const handleLogout = async () => {
-  await logout();
-  router.replace('/login');
-  const allKeys = await Storage.getAllKeys();
-  const allData = await Storage.multiGet(allKeys);
-  console.log('Contenido de Storage perfil:', allData);
-}
-  return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Hola {userInfo?.nombre}!</Text>
+    await logout();
+    router.replace('/login');
+    const allKeys = await Storage.getAllKeys();
+    const allData = await Storage.multiGet(allKeys);
+    console.log('Contenido de Storage perfil:', allData);
+  };
 
-        <View style={styles.profileBox}>
-          <Text style={styles.label}>Usuario:</Text>
-          <Text style={styles.value}>{userInfo?.usuario}</Text>
+  const getPerfilTitle = (perfil?: string) => {
+    switch (perfil) {
+      case "usuarioEmpresa":
+        return "Empresa";
+      case "usuarioChofer":
+        return "Chofer";
+      case "usuarioMostrador":
+        return "Boletería / Mostrador";
+      case "usuarioAdministrador":
+        return "Administrador";
+      default:
+        return "Pasajero";
+    }
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <View style={styles.container}>
+        {/* Avatar & Header */}
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatarCircle}>
+            <Ionicons name="person" size={40} color="#38bdf8" />
+          </View>
+          <Text style={styles.userName}>{userInfo?.nombre || "Usuario"}</Text>
+          <Text style={styles.userUsername}>@{userInfo?.usuario}</Text>
+          
+          <View style={styles.roleBadge}>
+            <Text style={styles.roleText}>{getPerfilTitle(userInfo?.perfil)}</Text>
+          </View>
         </View>
 
+        {/* Info Box */}
+        {userInfo?.email && (
+          <View style={styles.infoRow}>
+            <Ionicons name="mail-outline" size={18} color="#94a3b8" />
+            <Text style={styles.infoValue}>{userInfo.email}</Text>
+          </View>
+        )}
+
+        {/* Action Buttons */}
         <View style={styles.buttonGroup}>
           <TouchableOpacity
-            style={styles.button}
+            style={styles.actionBtn}
+            activeOpacity={0.8}
             onPress={() =>
               router.push({
                 pathname: "/pantallas/modificarUsuario",
-                params: { id: userInfo.id },
+                params: { id: userInfo?.id },
               })
             }
           >
-            <Text style={styles.buttonText}>Editar Perfil</Text>
+            <View style={styles.btnLeft}>
+              <Ionicons name="create-outline" size={20} color="#38bdf8" />
+              <Text style={styles.btnText}>Editar Perfil</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#64748b" />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.button}
+            style={styles.actionBtn}
+            activeOpacity={0.8}
             onPress={() =>
               router.push({
                 pathname: "/pantallas/actualizarContrasenia",
-                params: { id: userInfo.id },
+                params: { id: userInfo?.id },
               })
             }
           >
-            <Text style={styles.buttonText}>Cambiar Contraseña</Text>
+            <View style={styles.btnLeft}>
+              <Ionicons name="key-outline" size={20} color="#38bdf8" />
+              <Text style={styles.btnText}>Cambiar Contraseña</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#64748b" />
           </TouchableOpacity>
-           {userInfo?.perfil === "usuarioCliente" && (
+
+          {userInfo?.perfil === "usuarioCliente" && (
             <TouchableOpacity
-              style={styles.button}
-              onPress={() =>
-                router.push({
-                  pathname: "/(tabs)/reserva",
-                })
-              }
+              style={styles.actionBtn}
+              activeOpacity={0.8}
+              onPress={() => router.push("/(tabs)/reserva")}
             >
-              <Text style={styles.buttonText}>Mis Reservas</Text>
+              <View style={styles.btnLeft}>
+                <Ionicons name="ticket-outline" size={20} color="#34d399" />
+                <Text style={styles.btnText}>Mis Reservas</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#64748b" />
             </TouchableOpacity>
           )}
+
           {userInfo?.perfil === "usuarioEmpresa" && (
             <TouchableOpacity
-              style={styles.button}
+              style={styles.actionBtn}
+              activeOpacity={0.8}
               onPress={() =>
                 router.push({
                   pathname: "/pantallas/modificarEmpresa",
-                  params: { id: userInfo.empresa_id },
+                  params: { id: userInfo?.empresa_id },
                 })
               }
             >
-              <Text style={styles.buttonText}>Editar Empresa</Text>
+              <View style={styles.btnLeft}>
+                <Ionicons name="business-outline" size={20} color="#fbbf24" />
+                <Text style={styles.btnText}>Editar Datos de Empresa</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#64748b" />
             </TouchableOpacity>
           )}
 
           <TouchableOpacity
-            style={[styles.button, styles.logoutButton]}
+            style={[styles.actionBtn, styles.logoutBtn]}
+            activeOpacity={0.8}
             onPress={handleLogout}
           >
-            <Text style={styles.buttonText}>Cerrar Sesión</Text>
+            <View style={styles.btnLeft}>
+              <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+              <Text style={[styles.btnText, { color: "#ef4444" }]}>Cerrar Sesión</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#ef4444" />
           </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
   );
 }
+
 const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: "#f4f4f4",
-    paddingVertical: 30,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
     alignItems: "center",
-    justifyContent: "center",
   },
   container: {
-    width: Platform.OS === "web" ? "50%" : "90%",
-    maxWidth: 600,
-    backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 16,
-    elevation: 3,
+    width: "100%",
+    maxWidth: 500,
+    backgroundColor: "rgba(30, 41, 59, 0.9)",
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 4,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#34495e",
+  avatarContainer: {
+    alignItems: "center",
     marginBottom: 20,
-    textAlign: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#4c68d7",
-    paddingBottom: 10,
   },
-  profileBox: {
-    marginBottom: 30,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#555",
-    marginBottom: 4,
-  },
-  value: {
-    fontSize: 18,
-    fontWeight: "500",
-    color: "#222",
-  },
-  buttonGroup: {
-    gap: 12,
-  },
-  button: {
-    backgroundColor: "#4c68d7",
-    paddingVertical: 14,
-    borderRadius: 10,
+  avatarCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(56, 189, 248, 0.15)",
+    borderWidth: 2,
+    borderColor: "#38bdf8",
     alignItems: "center",
     justifyContent: "center",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    marginBottom: 12,
   },
-  logoutButton: {
-    backgroundColor: "#dc3545",
+  userName: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#ffffff",
   },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-    letterSpacing: 0.5,
+  userUsername: {
+    fontSize: 14,
+    color: "#94a3b8",
+    marginTop: 2,
+  },
+  roleBadge: {
+    marginTop: 8,
+    backgroundColor: "rgba(56, 189, 248, 0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(56, 189, 248, 0.4)",
+  },
+  roleText: {
+    color: "#38bdf8",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "rgba(15, 23, 42, 0.5)",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  infoValue: {
+    color: "#cbd5e1",
+    fontSize: 14,
+  },
+  buttonGroup: {
+    gap: 10,
+  },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(15, 23, 42, 0.6)",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.06)",
+  },
+  btnLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  btnText: {
+    color: "#f8fafc",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  logoutBtn: {
+    borderColor: "rgba(239, 68, 68, 0.3)",
+    backgroundColor: "rgba(239, 68, 68, 0.08)",
+    marginTop: 8,
   },
 });

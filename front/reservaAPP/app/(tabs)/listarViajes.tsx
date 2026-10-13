@@ -68,8 +68,7 @@ const ViajesEmpresa = () => {
     !userInfo ||
     !["usuarioEmpresa", "usuarioMostrador"].includes(userInfo.perfil)
   ) {
-    logout();
-    return <Redirect href="/login" />;
+    return <Redirect href="/(tabs)" />;
   }
   console.log("ver userinfo listar viajes", userInfo);
   useEffect(() => {

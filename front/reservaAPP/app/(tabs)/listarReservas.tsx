@@ -93,8 +93,7 @@ const ListarReservas = () => {
     !userInfo ||
     !["usuarioEmpresa", "usuarioMostrador"].includes(userInfo.perfil)
   ) {
-    logout();
-    return <Redirect href="/login" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   useEffect(() => {

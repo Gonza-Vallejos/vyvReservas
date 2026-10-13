@@ -42,8 +42,7 @@ export default function PasajerosPorViajeScreen() {
   const { logout, userInfo } = useAuth();
 
   if (userInfo?.perfil !== "usuarioEmpresa") {
-    logout();
-    return <Redirect href="/login" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   useEffect(() => {

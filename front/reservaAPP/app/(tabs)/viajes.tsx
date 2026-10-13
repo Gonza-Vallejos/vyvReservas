@@ -54,8 +54,7 @@ export default function ViajesScreen() {
 
   console.log("ver user info viajes: ", userInfo?.perfil);
   if (userInfo?.perfil !== "usuarioCliente") {
-    logout();
-    return <Redirect href="/login" />;
+    return <Redirect href="/(tabs)" />;
   }
   useEffect(() => {
     const cargarLocalidades = async () => {
@@ -460,63 +459,65 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 16,
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
   },
   searchSection: {
     marginBottom: 16,
   },
 
   title: {
-    fontSize: 22,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: "700",
     marginBottom: 16,
     textAlign: "center",
-    color: "#007AFF",
+    color: "#f8fafc",
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
+    borderColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: 12,
     paddingHorizontal: 12,
     marginBottom: 12,
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(15, 23, 42, 0.75)",
   },
   input: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
+    color: "#fff",
+    fontSize: 15,
   },
   clearIcon: {
     marginLeft: 8,
   },
   suggestionBox: {
-    backgroundColor: "#f0f0f0",
-    borderRadius: 8,
+    backgroundColor: "rgba(15, 23, 42, 0.95)",
+    borderRadius: 10,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
   },
   suggestion: {
-    padding: 10,
+    padding: 12,
     borderBottomWidth: 1,
-    borderColor: "#ddd",
-    color: "black",
-    fontWeight: "bold",
+    borderColor: "rgba(255, 255, 255, 0.08)",
+    color: "#fff",
+    fontWeight: "600",
   },
   button: {
-    padding: 14,
-    marginBottom: 16,
-    backgroundColor: "#4c68d7",
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 20,
+    marginBottom: 16,
+    backgroundColor: "#2563eb",
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: "#2563eb",
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-    transform: [{ scale: 1 }],
+    shadowRadius: 6,
+    elevation: 4,
   },
   buttonText: {
     color: "#fff",
@@ -526,38 +527,44 @@ const styles = StyleSheet.create({
   },
   mensaje: {
     textAlign: "center",
-    color: "#ff3333",
+    color: "#f87171",
     marginBottom: 16,
   },
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 12,
+    backgroundColor: "rgba(30, 41, 59, 0.9)",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 5,
-    elevation: 3,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderLeftWidth: 5,
+    borderLeftColor: "#38bdf8",
   },
   detail: {
     fontSize: 14,
     fontWeight: "normal",
     marginBottom: 2,
+    color: "#cbd5e1",
   },
   label: {
     fontSize: 14,
     fontWeight: "bold",
+    color: "#f8fafc",
   },
   cardTitle: {
     fontWeight: "bold",
     marginBottom: 6,
-    color: "#007AFF",
+    color: "#38bdf8",
   },
   nombreEmpresa: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#4c68d7",
+    fontWeight: "700",
+    color: "#38bdf8",
     marginBottom: 4,
   },
   filaPasajeros: {
@@ -567,11 +574,12 @@ const styles = StyleSheet.create({
   cantPasajeros: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#333",
+    color: "#f8fafc",
   },
   viajeRuta: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "700",
+    color: "#ffffff",
     marginBottom: 8,
   },
 
@@ -582,39 +590,43 @@ const styles = StyleSheet.create({
   },
 
   filaTexto: {
-    fontSize: 14,
-    color: "#555",
+    fontSize: 13,
+    color: "#cbd5e1",
   },
 
   filaBottom: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 12,
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.06)",
+    paddingTop: 10,
   },
 
   precio: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#38bdf8",
   },
 
   btnSeleccionar: {
-    backgroundColor: "#4c68d7",
-    paddingVertical: 6,
+    backgroundColor: "#2563eb",
+    paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 10,
   },
 
   btnSeleccionarText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 14,
+    fontSize: 13,
   },
   iconoAsiento: {
     width: 18,
     height: 18,
     marginRight: 4,
+    tintColor: "#38bdf8",
   },
 });
 

@@ -71,9 +71,15 @@ export default function ModificarEmpresa() {
     }
   };
   useEffect(() => {
-    if (!isLoading && userInfo?.perfil !== "usuarioEmpresa") {
-      logout();
-      router.replace("/login");
+    if (!isLoading) {
+      if (!userInfo) {
+        router.replace("/login");
+      } else if (
+        userInfo.perfil !== "usuarioEmpresa" &&
+        userInfo.perfil !== "usuarioAdministrador"
+      ) {
+        router.replace("/(tabs)");
+      }
     }
   }, [isLoading, userInfo]);
 

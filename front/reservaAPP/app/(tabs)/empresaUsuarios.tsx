@@ -43,8 +43,7 @@ export default function UsuarioScreen() {
     !userInfo ||
     !["usuarioEmpresa", "usuarioMostrador"].includes(userInfo.perfil)
   ) {
-    logout();
-    return <Redirect href="/login" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);

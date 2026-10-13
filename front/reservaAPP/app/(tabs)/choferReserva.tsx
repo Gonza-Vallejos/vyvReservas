@@ -45,8 +45,7 @@ const ChoferReserva = () => {
   const router = useRouter();
 
   if (userInfo?.perfil !== "usuarioChofer") {
-    logout();
-    return <Redirect href="/login" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   useEffect(() => {

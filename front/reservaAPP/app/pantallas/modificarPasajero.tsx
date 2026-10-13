@@ -36,9 +36,12 @@ export default function ModificarPasajero() {
   }>({});
 
   useEffect(() => {
-    if (!isLoading && userInfo?.perfil !== "usuarioCliente") {
-      logout();
-      router.replace("/login");
+    if (!isLoading) {
+      if (!userInfo) {
+        router.replace("/login");
+      } else if (userInfo.perfil !== "usuarioCliente") {
+        router.replace("/(tabs)");
+      }
     }
   }, [isLoading, userInfo]);
 
