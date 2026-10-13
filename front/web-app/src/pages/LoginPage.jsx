@@ -37,7 +37,24 @@ const LoginPage = () => {
 
   return (
     <div style={pageContainer}>
-      <div className="animate-fade-in" style={loginCard}>
+      <style>{`
+        .login-card-responsive {
+          background: white;
+          padding: 50px 40px;
+          border-radius: 32px;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+          width: 100%;
+          max-width: 440px;
+          border: 1px solid #f1f5f9;
+        }
+        @media (max-width: 480px) {
+          .login-card-responsive {
+            padding: 30px 20px !important;
+            border-radius: 24px !important;
+          }
+        }
+      `}</style>
+      <div className="animate-fade-in login-card-responsive">
         <div style={headerSection}>
           <div style={logoCircle}><Lock size={24} color="white" /></div>
           <h2 style={titleStyle}>Hola de nuevo</h2>

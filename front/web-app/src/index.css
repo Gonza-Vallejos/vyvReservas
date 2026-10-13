@@ -54,6 +54,15 @@ h1, h2, h3, h4, .brand {
 .container {
   max-width: 1200px;
   margin: 0 auto;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
 }
 
 /* Glassmorphism Utility */
@@ -126,12 +135,54 @@ input:focus, select:focus, textarea:focus {
   outline: none;
 }
 
-/* Responsive Utilities */
+/* ============================================================
+   RESPONSIVE DESIGN SYSTEM (MOBILE & TABLET ADAPTATION)
+   ============================================================ */
 @media (max-width: 768px) {
   .desktop-only { display: none !important; }
 }
 
 @media (min-width: 769px) {
   .mobile-only { display: none !important; }
+}
+
+/* Tablas responsivas en móviles */
+.table-responsive-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Modales adaptados a pantallas pequeñas */
+@media (max-width: 768px) {
+  .modal-responsive-card {
+    width: 95% !important;
+    max-width: 95% !important;
+    padding: 20px 16px !important;
+    border-radius: 24px !important;
+    max-height: 92vh !important;
+    overflow-y: auto !important;
+  }
+  
+  .modal-responsive-grid {
+    grid-template-columns: 1fr !important;
+    gap: 15px !important;
+  }
+
+  .hero-responsive-title {
+    font-size: 2.3rem !important;
+    line-height: 1.15 !important;
+  }
+
+  .hero-responsive-section {
+    padding: 60px 16px 50px 16px !important;
+    border-bottom-left-radius: 36px !important;
+    border-bottom-right-radius: 36px !important;
+  }
+}
+
+/* Ajustes globales para evitar desbordes */
+img, svg {
+  max-width: 100%;
 }
 

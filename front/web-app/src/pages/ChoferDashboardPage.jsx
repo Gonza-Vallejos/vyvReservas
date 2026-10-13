@@ -73,6 +73,29 @@ const ChoferDashboardPage = () => {
 
   return (
     <div style={pageContainer} className="animate-fade-in">
+      <style>{`
+        .chofer-grid-layout {
+          display: grid;
+          grid-template-columns: 1fr 1.6fr;
+          gap: 25px;
+          align-items: flex-start;
+        }
+        @media (max-width: 860px) {
+          .chofer-grid-layout {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+          }
+          .chofer-passenger-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 14px !important;
+          }
+          .chofer-passenger-row button {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+        }
+      `}</style>
       {/* Top Banner Chofer */}
       <div style={topBanner}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
@@ -110,7 +133,7 @@ const ChoferDashboardPage = () => {
             </p>
           </div>
         ) : (
-          <div style={dashboardGrid}>
+          <div className="chofer-grid-layout" style={dashboardGrid}>
             {/* Lista de viajes del chofer */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '5px' }}>
@@ -201,6 +224,7 @@ const ChoferDashboardPage = () => {
                         return (
                           <div
                             key={p.id || idx}
+                            className="chofer-passenger-row"
                             style={{
                               ...passengerRow,
                               background: isBoarded ? '#f0fdf4' : '#f8fafc',

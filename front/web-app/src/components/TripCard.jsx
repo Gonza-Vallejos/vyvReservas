@@ -27,7 +27,7 @@ const TripCard = ({ trip, onSelect }) => {
         </div>
       </div>
 
-      <div style={routeContainer}>
+      <div style={routeContainer} className="trip-route-box">
         <div style={locationGroup}>
           <MapPin size={16} color="var(--primary)" />
           <div style={{display:'flex', flexDirection:'column'}}>
@@ -35,7 +35,7 @@ const TripCard = ({ trip, onSelect }) => {
             <span style={locationName}>{origenLocalidad}</span>
           </div>
         </div>
-        <div style={connector}>
+        <div style={connector} className="trip-connector">
           <div style={connectorLine} />
           <ChevronRight size={14} color="#cbd5e1" />
         </div>
@@ -65,7 +65,7 @@ const TripCard = ({ trip, onSelect }) => {
         </div>
       </div>
 
-      <button onClick={() => onSelect(trip)} style={bookButton}>
+      <button onClick={() => onSelect(trip)} style={bookButton} className="trip-book-btn">
         Reservar ahora <ChevronRight size={18} />
       </button>
 
@@ -77,6 +77,25 @@ const TripCard = ({ trip, onSelect }) => {
           transform: translateY(-8px);
           box-shadow: 0 30px 60px -12px rgba(50, 50, 93, 0.25), 0 18px 36px -18px rgba(0, 0, 0, 0.3);
           border-color: var(--primary);
+        }
+        @media (max-width: 640px) {
+          .trip-card {
+            padding: 18px 16px !important;
+            border-radius: 20px !important;
+            gap: 16px !important;
+          }
+          .trip-route-box {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+          }
+          .trip-connector {
+            display: none !important;
+          }
+          .trip-book-btn {
+            padding: 13px !important;
+            font-size: 0.95rem !important;
+          }
         }
       `}</style>
     </div>

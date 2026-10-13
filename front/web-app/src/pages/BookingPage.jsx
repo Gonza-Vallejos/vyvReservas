@@ -101,7 +101,7 @@ const BookingPage = () => {
         <span>Volver</span>
       </button>
 
-      <div style={layout}>
+      <div style={layout} className="booking-layout">
         {/* Left Column: Flow */}
         <div style={{ flex: 1 }}>
           {step === 1 ? (
@@ -142,7 +142,7 @@ const BookingPage = () => {
         </div>
 
         {/* Right Column: Summary */}
-        <div style={summaryCard}>
+        <div style={summaryCard} className="booking-summary-card">
           <h3 style={{ marginBottom: '20px', fontWeight: '700' }}>Resumen del Viaje</h3>
           <div style={summaryItem}>
             <span style={label}>Empresa</span>
@@ -169,6 +169,20 @@ const BookingPage = () => {
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 820px) {
+          .booking-layout {
+            flex-direction: column !important;
+            gap: 25px !important;
+          }
+          .booking-summary-card {
+            width: 100% !important;
+            position: static !important;
+            padding: 20px 16px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

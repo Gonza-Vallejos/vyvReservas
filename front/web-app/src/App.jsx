@@ -79,33 +79,33 @@ const Home = () => {
 
   return (
     <div className="animate-fade-in">
-      <section style={heroSection}>
+      <section style={heroSection} className="hero-responsive-section">
         <div className="container">
           <div style={heroBadge}>🚍 Viaja seguro, viaja feliz</div>
-          <h1 style={heroTitle}>Reserva tu Minubus <br/><span style={{color: 'var(--accent)'}}>en un clic.</span></h1>
+          <h1 style={heroTitle} className="hero-responsive-title">Reserva tu Minibus <br/><span style={{color: 'var(--accent)'}}>en un clic.</span></h1>
           <p style={heroSubtitle}>Conectamos ciudades con el mejor servicio de transporte de la región.</p>
-          <div style={searchContainer}>
+          <div style={searchContainer} className="search-container-box">
             <SearchForm onSearch={handleSearch} />
           </div>
         </div>
       </section>
 
       {searched && (
-        <section className="container animate-fade-in" style={{ padding: '60px 20px' }}>
+        <section className="container animate-fade-in" style={{ padding: '40px 16px' }}>
           {/* Barra de Fechas (Estilo Plataforma 10) */}
           <DateSelectorBar 
             selectedDate={searchParams.fecha} 
             onSelectDate={handleDateChange} 
           />
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '30px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <h2 style={{ fontSize: '1.8rem', fontWeight: '800' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '25px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: '800' }}>
                 {loading ? 'Consultando salidas...' : `${trips.length} ${trips.length === 1 ? 'servicio encontrado' : 'servicios encontrados'}`}
               </h2>
               {!loading && trips.length > 0 && <div style={statusDot} />}
             </div>
-            <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '600' }}>
               {searchParams.origen} ➔ {searchParams.destino}
             </span>
           </div>
@@ -201,12 +201,15 @@ const Navbar = () => {
           <Link to="/" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Inicio</Link>
           {user ? (
             <>
+              {(user?.perfil_id === 1 || user?.perfil_id === 5 || user?.perfil_id === 3) && (
+                <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} style={{ ...mobileNavLink, color: 'var(--primary)', fontWeight: '800' }}>Panel Empresa</Link>
+              )}
               {user.perfil_id === 4 ? (
-                <Link to="/chofer" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Panel Chofer</Link>
+                <Link to="/chofer" onClick={() => setIsMenuOpen(false)} style={{ ...mobileNavLink, color: 'var(--primary)', fontWeight: '800' }}>Panel Chofer</Link>
               ) : (
                 <Link to="/mis-reservas" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Mis Reservas</Link>
               )}
-              <button onClick={handleLogout} style={{ ...mobileNavLink, color: 'var(--error)', border: 'none', background: 'none', textAlign: 'left' }}>Cerrar Sesión</button>
+              <button onClick={handleLogout} style={{ ...mobileNavLink, color: 'var(--error)', border: 'none', background: 'none', textAlign: 'left' }}>Cerrar Sesión ({user?.nombre})</button>
             </>
           ) : (
             <Link to="/login" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Ingresar</Link>
@@ -251,21 +254,21 @@ const navLinkStyle = { textDecoration: 'none', color: 'var(--text-dark)', fontWe
 const primaryBtn = { background: 'var(--primary)', color: 'white', padding: '12px 25px', borderRadius: '14px', textDecoration: 'none', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.3)' };
 const panelBadge = { textDecoration: 'none', background: '#1e293b', color: 'white', padding: '8px 16px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700', fontSize: '0.9rem' };
 
-const heroSection = { background: 'radial-gradient(circle at top right, #2563eb, #1e3a8a)', padding: '140px 20px', color: 'white', textAlign: 'center', borderBottomLeftRadius: '60px', borderBottomRightRadius: '60px' };
-const heroBadge = { background: 'rgba(255,255,255,0.1)', display: 'inline-block', padding: '8px 20px', borderRadius: '50px', fontSize: '0.85rem', fontWeight: '800', marginBottom: '20px', border: '1px solid rgba(255,255,255,0.2)' };
-const heroTitle = { fontSize: '4.2rem', fontWeight: '800', lineHeight: 1.1, marginBottom: '25px', letterSpacing: '-2px' };
-const heroSubtitle = { fontSize: '1.3rem', opacity: '0.8', maxWidth: '600px', margin: '0 auto 50px auto' };
-const searchContainer = { maxWidth: '1150px', width: '100%', margin: '0 auto', background: 'white', padding: '12px', borderRadius: '32px', boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.35)' };
+const heroSection = { background: 'radial-gradient(circle at top right, #2563eb, #1e3a8a)', padding: '100px 20px 80px 20px', color: 'white', textAlign: 'center', borderBottomLeftRadius: '50px', borderBottomRightRadius: '50px' };
+const heroBadge = { background: 'rgba(255,255,255,0.15)', display: 'inline-block', padding: '6px 18px', borderRadius: '50px', fontSize: '0.85rem', fontWeight: '800', marginBottom: '20px', border: '1px solid rgba(255,255,255,0.2)' };
+const heroTitle = { fontSize: 'clamp(2.2rem, 6vw, 4.2rem)', fontWeight: '800', lineHeight: 1.15, marginBottom: '20px', letterSpacing: '-1.5px' };
+const heroSubtitle = { fontSize: 'clamp(0.95rem, 2.5vw, 1.25rem)', opacity: '0.85', maxWidth: '600px', margin: '0 auto 40px auto' };
+const searchContainer = { maxWidth: '1150px', width: '100%', margin: '0 auto', background: 'white', padding: '8px', borderRadius: '28px', boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.35)' };
 
-const resultsGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '30px' };
+const resultsGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: '20px' };
 const statusDot = { width: '12px', height: '12px', background: 'var(--success)', borderRadius: '50%', boxShadow: '0 0 0 4px rgba(16, 185, 129, 0.2)' };
 
 const userInfoStyle = { display: 'flex', alignItems: 'center', gap: '12px', background: 'white', padding: '6px 16px 6px 6px', borderRadius: '50px', border: '1px solid #e2e8f0' };
 const avatarStyle = { width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800' };
 const logoutButtonStyle = { background: '#fee2e2', border: 'none', color: '#ef4444', padding: '10px', borderRadius: '12px' };
 
-const mobileMenu = { position: 'fixed', top: '75px', left: 0, right: 0, bottom: 0, background: 'white', zIndex: 999, padding: '40px', display: 'flex', flexDirection: 'column', gap: '25px' };
-const mobileNavLink = { textDecoration: 'none', color: 'var(--text-dark)', fontWeight: '800', fontSize: '1.8rem', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' };
+const mobileMenu = { position: 'fixed', top: '70px', left: 0, right: 0, bottom: 0, background: 'white', zIndex: 99999, padding: '30px 24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' };
+const mobileNavLink = { textDecoration: 'none', color: 'var(--text-dark)', fontWeight: '800', fontSize: '1.4rem', borderBottom: '1.5px solid #f1f5f9', paddingBottom: '12px' };
 
 const emptyStateBox = {
   textAlign: 'center',

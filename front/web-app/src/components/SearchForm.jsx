@@ -104,9 +104,9 @@ const SearchForm = ({ onSearch }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={formStyle} className="glass-effect">
+    <form onSubmit={handleSubmit} style={formStyle} className="glass-effect search-form-card">
       {/* Campo Origen (Espacioso con flex: 1.3) */}
-      <div style={{ flex: 1.3, position: 'relative' }} ref={origenRef}>
+      <div style={{ flex: 1.3, position: 'relative' }} className="search-input-col" ref={origenRef}>
         <div style={inputGroupStyle} className="search-field-group">
           <div style={iconBox}>
             <MapPin size={22} color="var(--primary)" />
@@ -170,7 +170,7 @@ const SearchForm = ({ onSearch }) => {
       </button>
       
       {/* Campo Destino (Espacioso con flex: 1.3) */}
-      <div style={{ flex: 1.3, position: 'relative' }} ref={destinoRef}>
+      <div style={{ flex: 1.3, position: 'relative' }} className="search-input-col" ref={destinoRef}>
         <div style={inputGroupStyle} className="search-field-group">
           <div style={iconBox}>
             <MapPin size={22} color="var(--accent)" />
@@ -223,7 +223,7 @@ const SearchForm = ({ onSearch }) => {
       </div>
 
       {/* Campo Fecha */}
-      <div style={dateGroupStyle} className="search-field-group">
+      <div style={dateGroupStyle} className="search-field-group search-input-col">
         <div style={iconBox}>
           <Calendar size={22} color="var(--primary)" />
         </div>
@@ -264,23 +264,26 @@ const SearchForm = ({ onSearch }) => {
           transform: translateY(-2px);
           box-shadow: 0 15px 25px -5px rgba(37, 99, 235, 0.5) !important;
         }
-        @media (max-width: 900px) {
-          form { 
+        @media (max-width: 860px) {
+          .search-form-card { 
             flex-direction: column !important; 
-            padding: 24px !important; 
-            border-radius: 28px !important; 
-            gap: 14px !important; 
+            padding: 16px 12px !important; 
+            border-radius: 24px !important; 
+            gap: 12px !important; 
           }
-          div { width: 100% !important; }
+          .search-input-col { 
+            width: 100% !important; 
+            flex: unset !important;
+          }
           .swap-button { 
             transform: rotate(90deg) !important; 
             align-self: center !important; 
-            margin: -4px 0 !important;
+            margin: -2px 0 !important;
           }
           .search-submit-btn { 
             width: 100% !important; 
             justify-content: center !important; 
-            margin-top: 6px !important;
+            margin-top: 4px !important;
           }
         }
       `}</style>

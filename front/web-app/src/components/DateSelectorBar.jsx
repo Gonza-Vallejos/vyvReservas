@@ -65,12 +65,13 @@ const DateSelectorBar = ({ selectedDate, onSelectDate }) => {
   };
 
   return (
-    <div style={containerStyle} className="animate-fade-in">
+    <div style={containerStyle} className="animate-fade-in date-selector-container">
       <button 
         type="button" 
         onClick={() => shiftDays(-1)} 
         style={navBtn}
         title="Día anterior"
+        className="date-selector-nav-btn"
       >
         <ChevronLeft size={20} />
       </button>
@@ -106,6 +107,7 @@ const DateSelectorBar = ({ selectedDate, onSelectDate }) => {
         onClick={() => shiftDays(1)} 
         style={navBtn}
         title="Día siguiente"
+        className="date-selector-nav-btn"
       >
         <ChevronRight size={20} />
       </button>
@@ -121,8 +123,16 @@ const DateSelectorBar = ({ selectedDate, onSelectDate }) => {
         }
         @media (max-width: 640px) {
           .date-tab-card {
-            padding: 8px 12px !important;
-            min-width: 65px !important;
+            padding: 8px 8px !important;
+            min-width: 68px !important;
+          }
+          .date-selector-container {
+            gap: 6px !important;
+            margin-bottom: 24px !important;
+          }
+          .date-selector-nav-btn {
+            width: 34px !important;
+            height: 34px !important;
           }
         }
       `}</style>
@@ -134,21 +144,24 @@ const containerStyle = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  gap: '12px',
-  marginBottom: '35px',
+  gap: '10px',
+  marginBottom: '32px',
   width: '100%',
+  maxWidth: '100%',
 };
 
 const daysGrid = {
   display: 'flex',
-  gap: '10px',
+  gap: '8px',
   overflowX: 'auto',
   padding: '6px 2px',
+  scrollbarWidth: 'none',
+  WebkitOverflowScrolling: 'touch',
 };
 
 const dayCardStyle = {
   flex: 1,
-  minWidth: '95px',
+  minWidth: '85px',
   padding: '12px 18px',
   borderRadius: '16px',
   background: '#ffffff',

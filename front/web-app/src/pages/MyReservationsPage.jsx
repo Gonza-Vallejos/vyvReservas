@@ -117,19 +117,19 @@ const MyReservationsPage = () => {
 };
 
 const headerStyle = { display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '40px' };
-const emptyContainer = { textAlign: 'center', padding: '100px 20px', background: 'white', borderRadius: '24px', boxShadow: 'var(--shadow-sm)' };
-const listStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '25px' };
+const emptyContainer = { textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: '24px', boxShadow: 'var(--shadow-sm)' };
+const listStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: '20px' };
 const reservaCard = { background: 'white', borderRadius: '20px', boxShadow: 'var(--shadow-md)', overflow: 'hidden', position: 'relative', transition: '0.2s' };
 const statusBadge = { position: 'absolute', top: '15px', right: '15px', background: '#dcfce7', color: '#166534', padding: '4px 12px', borderRadius: '50px', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase' };
-const cardBody = { padding: '25px' };
-const routeInfo = { display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '20px' };
-const locationGroup = { flex: 1 };
+const cardBody = { padding: '20px 18px' };
+const routeInfo = { display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '16px', flexWrap: 'wrap' };
+const locationGroup = { flex: 1, minWidth: '120px' };
 const locationLabel = { fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700' };
-const locationName = { fontSize: '1.1rem', fontWeight: '800', marginTop: '4px' };
+const locationName = { fontSize: '1.05rem', fontWeight: '800', marginTop: '2px' };
 const divider = { width: '2px', height: '30px', background: '#f1f5f9' };
-const tripDetails = { display: 'flex', gap: '20px', color: 'var(--text-muted)', fontSize: '0.9rem' };
+const tripDetails = { display: 'flex', gap: '15px', color: 'var(--text-muted)', fontSize: '0.85rem', flexWrap: 'wrap' };
 const detailItem = { display: 'flex', alignItems: 'center', gap: '6px' };
-const cardFooter = { background: '#f8fafc', padding: '15px 25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9' };
+const cardFooter = { background: '#f8fafc', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: '8px' };
 const detailButton = { background: 'none', color: 'var(--primary)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.9rem' };
 const buttonStyle = { backgroundColor: 'var(--primary)', color: 'white', padding: '12px 30px', borderRadius: '12px', fontWeight: '700', fontSize: '1rem' };
 

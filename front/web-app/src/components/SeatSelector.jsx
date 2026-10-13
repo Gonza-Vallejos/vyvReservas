@@ -67,8 +67,8 @@ const SeatSelector = ({ totalSeats, selectedSeats, onToggleSeat }) => {
   );
 };
 
-const containerStyle = { background: 'white', padding: '30px', borderRadius: '24px', boxShadow: 'var(--shadow-md)' };
-const busFrame = { border: '4px solid #e2e8f0', borderRadius: '40px 40px 20px 20px', padding: '40px 20px', maxWidth: '300px', margin: '0 auto', background: '#f8fafc' };
+const containerStyle = { background: 'white', padding: '24px 16px', borderRadius: '24px', boxShadow: 'var(--shadow-md)', width: '100%', boxSizing: 'border-box', overflowX: 'auto' };
+const busFrame = { border: '4px solid #e2e8f0', borderRadius: '40px 40px 20px 20px', padding: '30px 16px', maxWidth: '300px', width: '100%', margin: '0 auto', background: '#f8fafc', boxSizing: 'border-box' };
 const frontPart = { borderBottom: '2px dashed #e2e8f0', marginBottom: '30px', paddingBottom: '15px', display: 'flex' };
 const steeringWrapper = { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' };
 const steeringDisk = { width: '40px', height: '40px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' };

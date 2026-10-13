@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Bus, Users, TrendingUp, Plus, Edit, Trash2, X, ChevronRight, 
   UserCheck, Truck, Building2, Settings, DollarSign, UserPlus, ShieldCheck, 
-  BookmarkCheck, Calendar, ArrowRight, Clock, AlertCircle
+  BookmarkCheck, Calendar, ArrowRight, Clock, AlertCircle, Menu
 } from 'lucide-react';
 import { viajeService, transporteService, empresaService, reservaService, usuarioService } from '../services/api';
 import InteractiveChart from '../components/InteractiveChart';
@@ -15,6 +15,7 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('resumen');
   const [loading, setLoading] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   
   // Estados de datos
   const [viajes, setViajes] = useState([]);
@@ -107,7 +108,7 @@ const DashboardPage = () => {
 
   const SidebarItem = ({ id, icon: Icon, label, badgeCount }) => (
     <div 
-      onClick={() => setActiveTab(id)} 
+      onClick={() => { setActiveTab(id); setMobileSidebarOpen(false); }} 
       style={{ 
         ...sidebarItemStyle, 
         backgroundColor: activeTab === id ? 'var(--primary)' : 'transparent', 
@@ -137,11 +138,104 @@ const DashboardPage = () => {
   );
 
   return (
-    <div style={dashboardContainer}>
-      <aside className="glass-effect" style={sidebarStyle}>
-        <div style={{ padding: '30px 20px', marginBottom: '10px' }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--primary)', letterSpacing: '-1px' }} className="brand">V&V ADMIN</h3>
-          <p style={{ fontSize: '0.7rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Sistema de Gestión</p>
+    <div style={dashboardContainer} className="dashboard-container-layout">
+      <style>{`
+        .dashboard-mobile-topbar {
+          display: none;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 20px;
+          padding-bottom: 12px;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .mobile-only {
+          display: none;
+        }
+
+        @media (max-width: 960px) {
+          .dashboard-mobile-topbar {
+            display: flex !important;
+          }
+          .mobile-only {
+            display: block !important;
+          }
+          .dashboard-sidebar {
+            position: fixed !important;
+            top: 0 !important;
+            left: -320px !important;
+            width: 290px !important;
+            height: 100vh !important;
+            z-index: 10000 !important;
+            background: white !important;
+            box-shadow: 10px 0 25px rgba(0,0,0,0.15) !important;
+            transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          }
+          .dashboard-sidebar.open {
+            left: 0 !important;
+          }
+          .dashboard-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+          }
+          .dashboard-main-content {
+            padding: 16px 12px !important;
+            width: 100% !important;
+            overflow-x: hidden !important;
+          }
+          .dashboard-header-responsive {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 16px !important;
+            margin-bottom: 24px !important;
+          }
+          .dashboard-btn-group {
+            width: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 10px !important;
+          }
+          .dashboard-btn-group button {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+          .dashboard-reserva-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .dashboard-pasajero-item {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+          }
+          .dashboard-pasajero-item > div:last-child {
+            text-align: left !important;
+            padding-left: 46px !important;
+          }
+        }
+      `}</style>
+      {/* Backdrop para cerrar sidebar en celular */}
+      {mobileSidebarOpen && (
+        <div 
+          onClick={() => setMobileSidebarOpen(false)} 
+          className="dashboard-backdrop"
+        />
+      )}
+
+      <aside className={`glass-effect dashboard-sidebar ${mobileSidebarOpen ? 'open' : ''}`} style={sidebarStyle}>
+        <div style={{ padding: '30px 20px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--primary)', letterSpacing: '-1px' }} className="brand">V&V ADMIN</h3>
+            <p style={{ fontSize: '0.7rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Sistema de Gestión</p>
+          </div>
+          <button 
+            onClick={() => setMobileSidebarOpen(false)} 
+            className="mobile-only" 
+            style={{ background: '#f1f5f9', border: 'none', padding: '8px', borderRadius: '50%' }}
+          >
+            <X size={20} />
+          </button>
         </div>
         <div style={{ padding: '0 10px' }}>
           <SidebarItem id="resumen" icon={LayoutDashboard} label="Resumen" />
@@ -157,8 +251,20 @@ const DashboardPage = () => {
         </div>
       </aside>
 
-      <main style={mainContentStyle}>
-        <header style={headerStyle}>
+      <main style={mainContentStyle} className="dashboard-main-content">
+        {/* Barra superior móvil con botón de menú hamburguesa */}
+        <div className="dashboard-mobile-topbar mobile-only">
+          <button 
+            onClick={() => setMobileSidebarOpen(true)} 
+            style={mobileToggleBtn}
+          >
+            <Menu size={20} />
+            <span>Pestañas / Menú</span>
+          </button>
+          <span style={activeTabBadge}>{activeTab.toUpperCase()}</span>
+        </div>
+
+        <header style={headerStyle} className="dashboard-header-responsive">
           <div className="animate-fade-in">
             <h1 style={{ fontSize: '2.2rem', fontWeight: '900', letterSpacing: '-1px' }}>{activeTab.toUpperCase()}</h1>
             <div style={roleBadge}>
@@ -166,11 +272,11 @@ const DashboardPage = () => {
               <span>{isOwner ? 'Dueño de Empresa' : 'Operador Mostrador'}</span>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }} className="animate-fade-in">
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }} className="animate-fade-in dashboard-btn-group">
             <button style={primaryBtn} onClick={() => setShowTripModal(true)}><Plus size={20} /> Nuevo Viaje</button>
             <button style={secondaryBtn} onClick={() => setShowVehicleModal(true)}><Truck size={20} /> Nueva Unidad</button>
-            {isOwner && <button style={{...primaryBtn, background: '#10b981'}} onClick={() => setShowEmployeeModal(true)}><UserPlus size={20} /> Contratar Personal</button>}
-            <button style={{...secondaryBtn, background: '#2563eb'}} onClick={() => navigate('/chofer')}><Bus size={20} /> Panel Chofer</button>
+            {isOwner && <button style={{...primaryBtn, background: '#10b981'}} onClick={() => setShowEmployeeModal(true)}><UserPlus size={20} /> Contratar</button>}
+            <button style={{...secondaryBtn, background: '#2563eb'}} onClick={() => navigate('/chofer')}><Bus size={20} /> Chofer</button>
           </div>
         </header>
 
@@ -379,7 +485,7 @@ const DashboardPage = () => {
                 <div style={field}><label style={label}>Email</label><input type="email" style={input} onChange={e => setNuevoEmpleado({...nuevoEmpleado, email: e.target.value})} required /></div>
                 <div style={field}><label style={label}>Usuario (Acceso)</label><input style={input} placeholder="Opcional (se autogenera)" onChange={e => setNuevoEmpleado({...nuevoEmpleado, usuario: e.target.value})} /></div>
                 <div style={field}><label style={label}>Contraseña</label><input type="password" style={input} placeholder="Por defecto 123456" onChange={e => setNuevoEmpleado({...nuevoEmpleado, contrasenia: e.target.value})} /></div>
-                <div style={{...field, gridColumn:'span 2'}}><label style={label}>Rol</label><select style={input} onChange={e => setNuevoEmpleado({...nuevoEmpleado, perfil_id: e.target.value})} required><option value="">Elegir puesto...</option><option value="4">Chofer de Unidad</option><option value="3">Secretario de Mostrador</option></select></div>
+                <div style={{...field, gridColumn:'1 / -1'}}><label style={label}>Rol</label><select style={input} onChange={e => setNuevoEmpleado({...nuevoEmpleado, perfil_id: e.target.value})} required><option value="">Elegir puesto...</option><option value="4">Chofer de Unidad</option><option value="3">Secretario de Mostrador</option></select></div>
               </div>
               <div style={modalActions}><button type="submit" style={primaryBtn}>Confirmar Contratación</button></div>
             </form>
@@ -442,7 +548,7 @@ const DashboardPage = () => {
                     {vehiculos.map(veh => <option key={veh.id} value={veh.id}>{veh.nombre} - {veh.patente}</option>)}
                   </select>
                 </div>
-                <div style={{...field, gridColumn:'span 2'}}>
+                <div style={{...field, gridColumn:'1 / -1'}}>
                   <label style={label}>Chofer asignado</label>
                   <select style={input} onChange={e => setNuevoViaje({...nuevoViaje, usuarioEmpresa_id: e.target.value})} required>
                     <option value="">Seleccionar chofer...</option>
@@ -611,7 +717,7 @@ const DashboardPage = () => {
                     {vehiculos.map(veh => <option key={veh.id} value={veh.id}>{veh.nombre} - {veh.patente}</option>)}
                   </select>
                 </div>
-                <div style={{...field, gridColumn:'span 2'}}>
+                <div style={{...field, gridColumn:'1 / -1'}}>
                   <label style={label}>Chofer asignado</label>
                   <select 
                     style={input} 
@@ -686,7 +792,7 @@ const DashboardPage = () => {
                   </span>
                 </div>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', fontSize: '0.85rem', color: '#475569', marginTop: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px', fontSize: '0.85rem', color: '#475569', marginTop: '10px' }} className="dashboard-reserva-grid">
                   <div>
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase' }}>Fecha y Hora</p>
                     <p style={{ fontWeight: '700', marginTop: '2px' }}>📅 {selectedReserva.Viaje?.fechaViaje} • {selectedReserva.Viaje?.horarioSalida?.substring(0, 5)}hs</p>
@@ -707,7 +813,7 @@ const DashboardPage = () => {
                 <h4 style={{ fontSize: '0.9rem', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>
                   Datos del Titular de Reserva
                 </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', background: 'white', padding: '18px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px', background: 'white', padding: '18px', borderRadius: '16px', border: '1px solid #e2e8f0' }} className="dashboard-reserva-grid">
                   <div>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '700' }}>CLIENTE</p>
                     <b style={{ fontSize: '0.95rem' }}>{selectedReserva.Usuario?.nombre} {selectedReserva.Usuario?.apellido}</b>
@@ -737,7 +843,7 @@ const DashboardPage = () => {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {selectedReserva.Pasajeros.map((pasajero, idx) => (
-                      <div key={pasajero.id || idx} style={{ background: '#f8fafc', padding: '16px 20px', borderRadius: '14px', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div key={pasajero.id || idx} className="dashboard-pasajero-item" style={{ background: '#f8fafc', padding: '16px 20px', borderRadius: '14px', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                           <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '0.8rem' }}>
                             {idx + 1}
@@ -779,39 +885,42 @@ const dashboardContainer = { display: 'flex', minHeight: '100vh', background: '#
 const sidebarStyle = { width: '280px', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh' };
 const sidebarItemStyle = { display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px', borderRadius: '16px', cursor: 'pointer', marginBottom: '8px', transition: '0.3s ease', margin: '0 10px' };
 const mainContentStyle = { flex: 1, padding: '50px', overflowY: 'auto' };
-const headerStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '50px' };
+const headerStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' };
 const roleBadge = { display: 'flex', alignItems: 'center', gap: '6px', background: '#f1f5f9', padding: '4px 12px', borderRadius: '50px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', marginTop: '8px' };
-const primaryBtn = { background: 'var(--primary)', color: 'white', padding: '14px 28px', borderRadius: '16px', fontWeight: '800', border: 'none', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.3)' };
-const secondaryBtn = { background: '#1e293b', color: 'white', padding: '14px 28px', borderRadius: '16px', fontWeight: '800', border: 'none', display: 'flex', alignItems: 'center', gap: '10px' };
+const primaryBtn = { background: 'var(--primary)', color: 'white', padding: '14px 28px', borderRadius: '16px', fontWeight: '800', border: 'none', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.3)', cursor: 'pointer' };
+const secondaryBtn = { background: '#1e293b', color: 'white', padding: '14px 28px', borderRadius: '16px', fontWeight: '800', border: 'none', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' };
 
-const statsGrid = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '25px', marginBottom: '40px' };
-const statCard = { background: 'white', padding: '30px', borderRadius: '32px', boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', gap: '20px', border: '1px solid #f1f5f9' };
-const statIcon = { width: '50px', height: '50px', borderRadius: '14px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const statValue = { fontSize: '2rem', fontWeight: '900', letterSpacing: '-1px', fontFamily: 'Outfit' };
+const mobileToggleBtn = { display: 'flex', alignItems: 'center', gap: '8px', background: 'white', border: '1px solid #e2e8f0', padding: '10px 16px', borderRadius: '12px', fontWeight: '700', color: 'var(--text-main)', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' };
+const activeTabBadge = { background: 'var(--primary)', color: 'white', padding: '6px 14px', borderRadius: '50px', fontSize: '0.75rem', fontWeight: '900', letterSpacing: '0.5px' };
+
+const statsGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '35px' };
+const statCard = { background: 'white', padding: '24px', borderRadius: '24px', boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', gap: '18px', border: '1px solid #f1f5f9' };
+const statIcon = { width: '50px', height: '50px', borderRadius: '14px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
+const statValue = { fontSize: '1.8rem', fontWeight: '900', letterSpacing: '-1px', fontFamily: 'Outfit' };
 const statLabel = { fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' };
 
-const chartRow = { display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '25px' };
-const chartContainer = { background: 'white', padding: '30px', borderRadius: '32px', boxShadow: 'var(--shadow-md)', border: '1px solid #f1f5f9' };
+const chartRow = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' };
+const chartContainer = { background: 'white', padding: '20px', borderRadius: '24px', boxShadow: 'var(--shadow-md)', border: '1px solid #f1f5f9' };
 
-const tableWrapper = { background: 'white', borderRadius: '32px', boxShadow: 'var(--shadow-md)', overflow: 'hidden', border: '1px solid #f1f5f9' };
-const tableStyle = { width: '100%', borderCollapse: 'collapse' };
+const tableWrapper = { background: 'white', borderRadius: '24px', boxShadow: 'var(--shadow-md)', overflowX: 'auto', border: '1px solid #f1f5f9', WebkitOverflowScrolling: 'touch' };
+const tableStyle = { width: '100%', minWidth: '600px', borderCollapse: 'collapse' };
 const thRow = { background: '#f8fafc', borderBottom: '1px solid #f1f5f9' };
-const thStyle = { padding: '20px 30px', textAlign: 'left', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' };
-const tdStyle = { padding: '25px 30px', borderBottom: '1px solid #f8fafc' };
+const thStyle = { padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' };
+const tdStyle = { padding: '18px 20px', borderBottom: '1px solid #f8fafc' };
 const trStyle = { transition: '0.2s' };
-const iconBtn = { background: '#f1f5f9', border: 'none', padding: '10px', borderRadius: '12px', color: 'var(--primary)' };
+const iconBtn = { background: '#f1f5f9', border: 'none', padding: '10px', borderRadius: '12px', color: 'var(--primary)', cursor: 'pointer' };
 const statusBadge = { background: '#f1f5f9', padding: '6px 14px', borderRadius: '100px', fontSize: '0.8rem', fontWeight: '800' };
-const passengerBadge = { background: '#dcfce7', color: '#166534', padding: '8px 16px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '800', border: 'none', display: 'flex', alignItems: 'center', gap: '8px' };
+const passengerBadge = { background: '#dcfce7', color: '#166534', padding: '8px 16px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '800', border: 'none', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' };
 
-const modalOverlay = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000 };
-const modalContent = { background: 'white', borderRadius: '40px', width: '100%', maxWidth: '700px', boxShadow: '0 30px 60px -12px rgba(0,0,0,0.25)' };
-const modalHeader = { padding: '40px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
-const closeBtn = { background: '#f1f5f9', border: 'none', padding: '10px', borderRadius: '50%' };
-const modalForm = { padding: '40px' };
-const formGrid = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' };
-const field = { display: 'flex', flexDirection: 'column', gap: '10px' };
+const modalOverlay = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000, padding: '16px' };
+const modalContent = { background: 'white', borderRadius: '28px', width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 30px 60px -12px rgba(0,0,0,0.25)' };
+const modalHeader = { padding: '24px 24px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
+const closeBtn = { background: '#f1f5f9', border: 'none', padding: '10px', borderRadius: '50%', cursor: 'pointer' };
+const modalForm = { padding: '24px' };
+const formGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' };
+const field = { display: 'flex', flexDirection: 'column', gap: '8px' };
 const label = { fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-muted)' };
-const input = { padding: '15px 20px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '1rem', fontWeight: '600' };
-const modalActions = { marginTop: '40px', display: 'flex', justifyContent: 'flex-end' };
+const input = { padding: '14px 18px', borderRadius: '14px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '0.95rem', fontWeight: '600', width: '100%', boxSizing: 'border-box' };
+const modalActions = { marginTop: '28px', display: 'flex', justifyContent: 'flex-end', gap: '10px' };
 
 export default DashboardPage;

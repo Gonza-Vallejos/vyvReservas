@@ -69,24 +69,24 @@ const PassengerForm = ({ passenger, onChange }) => {
 
 const formCard = {
   background: 'white',
-  padding: '24px',
+  padding: '20px 16px',
   borderRadius: '16px',
   border: '1px solid #e2e8f0',
   marginBottom: '20px',
-  animation: 'fadeIn 0.4s ease'
+  boxSizing: 'border-box'
 };
 
 const titleStyle = {
   fontSize: '1.1rem',
   fontWeight: '700',
-  marginBottom: '20px',
+  marginBottom: '18px',
   color: 'var(--primary)'
 };
 
 const inputGrid = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '20px'
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
+  gap: '16px'
 };
 
 const inputGroup = {
