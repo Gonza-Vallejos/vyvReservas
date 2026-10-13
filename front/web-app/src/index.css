@@ -1,35 +1,133 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+@import url('./components/ui/ui.css');
 
+/* ============================================================
+   DESIGN TOKENS — V&V Reservas
+   Basado en el brief de rediseño del pasajero.
+   ============================================================ */
 :root {
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
+  /* Colores semánticos del brief */
+  --color-primary: #2563EB;
+  --color-primary-dark: #1E40AF;
+  --color-accent: #F59E0B;
+  --color-success: #10B981;
+  --color-error: #EF4444;
+  --color-warning: #F97316;
+  --color-text: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-surface-elevated: #F1F5F9;
+  --color-border: #E2E8F0;
+
+  /* Alias hacia los tokens para compatibilidad con el código existente */
+  --primary: var(--color-primary);
+  --primary-hover: var(--color-primary-dark);
   --primary-light: #eff6ff;
   --secondary: #64748b;
-  --accent: #f59e0b;
+  --accent: var(--color-accent);
   --accent-hover: #d97706;
-  --background: #f8fafc;
-  --surface: #ffffff;
-  --surface-hover: #f1f5f9;
-  --text-dark: #0f172a;
-  --text-muted: #64748b;
-  --text-subtle: #94a3b8;
-  --success: #10b981;
+  --accent-bg: #fffbeb;
+  --accent-border: #fcd34d;
+  --background: var(--color-background);
+  --surface: var(--color-surface);
+  --surface-hover: var(--color-surface-elevated);
+  --text-dark: var(--color-text);
+  --text-muted: var(--color-text-secondary);
+  --text-subtle: var(--color-text-muted);
+  --success: var(--color-success);
   --success-bg: #ecfdf5;
-  --error: #ef4444;
+  --error: var(--color-error);
   --error-bg: #fef2f2;
-  --border: #e2e8f0;
+  --warning: var(--color-warning);
+  --border: var(--color-border);
   --border-light: #f1f5f9;
+
+  /* Tipografía */
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: 'Outfit', system-ui, -apple-system, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+
+  /* Espaciado (base 4px) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Radios */
+  --radius-1: 8px;
+  --radius-2: 12px;
+  --radius-3: 16px;
+  --radius-4: 20px;
+  --radius-5: 24px;
+  --radius-pill: 9999px;
+
+  /* Sombras */
   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 10px 20px -5px rgba(0, 0, 0, 0.07), 0 6px 12px -6px rgba(0, 0, 0, 0.05);
   --shadow-lg: 0 20px 30px -10px rgba(0, 0, 0, 0.1), 0 10px 15px -8px rgba(0, 0, 0, 0.06);
   --shadow-xl: 0 25px 50px -12px rgba(37, 99, 235, 0.25);
+  --shadow-focus: 0 0 0 4px rgba(37, 99, 235, 0.12);
+
+  /* Efectos */
   --glass: rgba(255, 255, 255, 0.85);
   --glass-border: rgba(255, 255, 255, 0.5);
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
+}
+
+/* Modo oscuro: preferencia del sistema o atributo data-theme="dark" */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #0F172A;
+    --color-surface: #1E293B;
+    --color-surface-elevated: #334155;
+    --color-text: #F8FAFC;
+    --color-text-secondary: #CBD5E1;
+    --color-text-muted: #94A3B8;
+    --color-border: #334155;
+    --background: var(--color-background);
+    --surface: var(--color-surface);
+    --surface-hover: var(--color-surface-elevated);
+    --text-dark: var(--color-text);
+    --text-muted: var(--color-text-secondary);
+    --text-subtle: var(--color-text-muted);
+    --border: var(--color-border);
+    --border-light: #334155;
+    --glass: rgba(15, 23, 42, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.08);
+  }
+}
+
+[data-theme='dark'] {
+  --color-background: #0F172A;
+  --color-surface: #1E293B;
+  --color-surface-elevated: #334155;
+  --color-text: #F8FAFC;
+  --color-text-secondary: #CBD5E1;
+  --color-text-muted: #94A3B8;
+  --color-border: #334155;
+  --background: var(--color-background);
+  --surface: var(--color-surface);
+  --surface-hover: var(--color-surface-elevated);
+  --text-dark: var(--color-text);
+  --text-muted: var(--color-text-secondary);
+  --text-subtle: var(--color-text-muted);
+  --border: var(--color-border);
+  --border-light: #334155;
+  --glass: rgba(15, 23, 42, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.08);
 }
 
 * {
@@ -39,7 +137,7 @@
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
   background-color: var(--background);
   color: var(--text-dark);
   line-height: 1.6;
@@ -47,21 +145,21 @@ body {
 }
 
 h1, h2, h3, h4, .brand {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-heading);
   letter-spacing: -0.02em;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding-left: 20px;
-  padding-right: 20px;
+  padding-left: var(--space-5);
+  padding-right: var(--space-5);
 }
 
 @media (max-width: 640px) {
   .container {
-    padding-left: 14px;
-    padding-right: 14px;
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
   }
 }
 
@@ -79,14 +177,14 @@ h1, h2, h3, h4, .brand {
   height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--surface-hover);
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 9999px;
+  background: var(--color-text-muted);
+  border-radius: var(--radius-pill);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--text-muted);
 }
 
 /* Animations */
@@ -105,13 +203,25 @@ h1, h2, h3, h4, .brand {
   animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Custom Interactive Controls */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Base controls */
 button {
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   border: none;
   outline: none;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 button:active {
@@ -126,12 +236,12 @@ button:disabled {
 
 input, select, textarea {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 input:focus, select:focus, textarea:focus {
   border-color: var(--primary) !important;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12) !important;
+  box-shadow: var(--shadow-focus) !important;
   outline: none;
 }
 
@@ -163,7 +273,7 @@ input:focus, select:focus, textarea:focus {
     max-height: 92vh !important;
     overflow-y: auto !important;
   }
-  
+
   .modal-responsive-grid {
     grid-template-columns: 1fr !important;
     gap: 15px !important;
@@ -186,3 +296,100 @@ img, svg {
   max-width: 100%;
 }
 
+/* ============================================================
+   HOME — pasajero rediseñado
+   ============================================================ */
+.home-hero {
+  position: relative;
+  background: radial-gradient(circle at top right, var(--color-primary), var(--color-primary-dark));
+  color: white;
+  text-align: center;
+  padding: 100px 20px 80px 20px;
+  border-bottom-left-radius: 48px;
+  border-bottom-right-radius: 48px;
+}
+
+@media (max-width: 768px) {
+  .home-hero {
+    padding: 72px 16px 64px 16px;
+    border-bottom-left-radius: 32px;
+    border-bottom-right-radius: 32px;
+  }
+}
+
+.home-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 6px 18px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  margin-bottom: var(--space-5);
+}
+
+.home-hero__title {
+  font-size: clamp(2.2rem, 6vw, 4rem);
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: var(--space-4);
+  letter-spacing: -1.5px;
+}
+
+.home-hero__title-accent {
+  color: var(--color-accent);
+}
+
+.home-hero__subtitle {
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  opacity: 0.9;
+  max-width: 600px;
+  margin: 0 auto var(--space-8) auto;
+  font-weight: 500;
+}
+
+.home-search-wrapper {
+  max-width: 1150px;
+  margin: 0 auto;
+}
+
+/* Resultados de la home */
+.home-results {
+  padding: 48px 0;
+}
+
+.home-results__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.home-results__title {
+  font-size: var(--text-xl);
+  font-weight: 800;
+}
+
+.home-results__route {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.home-results__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: var(--space-5);
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  background: var(--success);
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+}
