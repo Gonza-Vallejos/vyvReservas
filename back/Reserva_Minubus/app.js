@@ -56,6 +56,21 @@ app.use('/api/ubicacion', ubicacionRouter);
 app.use('/api/usuario-empresa', usuarioEmpresaRouter);
 app.use('/api/reportes', reportesRouter);
 
+// Compatibilidad directa para reservaAPP (rutas que llaman sin prefijo /api)
+app.use('/auth', authRoutes);
+app.use('/usuarios', usuariosRouter);
+app.use('/empresa', empresaRouter);
+app.use('/medioTransporte', medioTransporteRouter);
+app.use('/medio-transporte', medioTransporteRouter);
+app.use('/reserva', reservaRouter);
+app.use('/ventas', ventasRouter);
+app.use('/viajes', viajesRouter);
+app.use('/detalle-venta', detalleVentaRouter);
+app.use('/ubicacion', ubicacionRouter);
+app.use('/usuarioEmpresa', usuarioEmpresaRouter);
+app.use('/usuario-empresa', usuarioEmpresaRouter);
+app.use('/reportes', reportesRouter);
+
 // 404 Handler
 app.use((req, res) => {
   sendError(res, 'Recurso no encontrado', 404);

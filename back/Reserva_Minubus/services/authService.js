@@ -1,4 +1,5 @@
-const { Usuario, Perfil, UsuarioEmpresa } = require("../models");
+const { Usuario, Perfil, UsuarioEmpresa, Sequelize } = require("../models");
+const { Op } = require("sequelize");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -14,23 +15,33 @@ const transporter = nodemailer.createTransport({
 
 class AuthService {
   async login(usuario, contrasenia) {
+    const cleanUser = usuario ? usuario.trim() : '';
+    const cleanPass = contrasenia ? contrasenia.trim() : '';
+
     const user = await Usuario.findOne({
-      where: { usuario },
+      where: {
+        [Op.or]: [
+          Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('usuario')), cleanUser.toLowerCase()),
+          Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('email')), cleanUser.toLowerCase())
+        ]
+      },
       include: [Perfil, UsuarioEmpresa]
     });
 
     if (!user) throw new Error("USER_NOT_FOUND");
 
-    const valid = await bcrypt.compare(contrasenia, user.contrasenia);
+    const valid = await bcrypt.compare(cleanPass, user.contrasenia);
     if (!valid) throw new Error("INVALID_PASSWORD");
 
     const empresaId = user.UsuarioEmpresas?.[0]?.id_empresa || null;
+    const tipoPerfil = user.Perfil ? user.Perfil.tipo : 'usuarioCliente';
+
     const token = jwt.sign(
       {
         id: user.id,
         nombre: user.nombre,
         usuario: user.usuario,
-        perfil: user.Perfil.tipo,
+        perfil: tipoPerfil,
         empresa_id: empresaId,
       },
       process.env.JWT_SECRET,

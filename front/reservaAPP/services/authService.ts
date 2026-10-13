@@ -12,7 +12,7 @@ export const loginUsuario = async (usuario: string, contrasenia: string) => {
 export const registrarUsuario = async (usuarioData: any) => {
   try {
     const response = await axios.post(
-      `${API_URL}/usuarios/crearUsuario/`,
+      `${API_URL}/api/usuarios`,
       usuarioData
     );
     return response.data;

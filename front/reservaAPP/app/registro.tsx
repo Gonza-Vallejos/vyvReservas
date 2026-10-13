@@ -47,22 +47,23 @@ export default function RegistroScreen() {
   const isDark = colorScheme === "dark";
 
   const handleRegistro = async () => {
-    console.log("Registrando usuario:", {
-      nombre,
-      apellido,
-      dni,
-      telefono,
-      email,
-      usuario,
-      contrasenia,
-    });
+    const dniLimpio = parseInt(dni.toString().replace(/\D/g, ""), 10);
+    const telefonoLimpio = telefono.toString().replace(/\D/g, "");
+    const emailLimpio = email.trim().toLowerCase();
+    const usuarioLimpio = usuario.trim().toLowerCase();
+
+    if (!dniLimpio) {
+      setErrores({ dni: "El DNI es inválido o está vacío" });
+      return;
+    }
+
     const payload = {
-      nombre,
-      apellido,
-      dni,
-      telefono,
-      email,
-      usuario,
+      nombre: nombre.trim(),
+      apellido: apellido.trim(),
+      dni: dniLimpio,
+      telefono: telefonoLimpio,
+      email: emailLimpio,
+      usuario: usuarioLimpio,
       contrasenia,
     };
 
@@ -83,16 +84,21 @@ export default function RegistroScreen() {
       router.replace("/login");
     } catch (error: any) {
       if (Array.isArray(error.errors)) {
-        // Convertimos el array de errores en un objeto { campo: mensaje }
         const erroresFormateados: Errores = {};
         error.errors.forEach((err: any) => {
           erroresFormateados[err.path as keyof Errores] = err.msg;
         });
         setErrores(erroresFormateados);
-      } else if (error.mensaje) {
-        Alert.alert("Error", error.mensaje);
+      } else if (Array.isArray(error.errores)) {
+        const erroresFormateados: Errores = {};
+        error.errores.forEach((err: any) => {
+          erroresFormateados[err.path as keyof Errores] = err.msg;
+        });
+        setErrores(erroresFormateados);
+      } else if (error.message || error.mensaje) {
+        Alert.alert("Error", error.message || error.mensaje);
       } else {
-        Alert.alert("Error", "Ocurrió un error inesperado");
+        Alert.alert("Error", "Ocurrió un error inesperado al registrarse");
       }
     } finally {
       setCargando(false);
@@ -275,8 +281,9 @@ export default function RegistroScreen() {
                   backgroundColor: isDark ? "#1a1a1a" : "#fff",
                 },
               ]}
-              placeholder="DNI"
+              placeholder="DNI (solo números)"
               placeholderTextColor={isDark ? "#ccc" : "#888"}
+              keyboardType="numeric"
               value={dni}
               onChangeText={(text) => {
                 setDni(text);
@@ -295,8 +302,9 @@ export default function RegistroScreen() {
                   backgroundColor: isDark ? "#1a1a1a" : "#fff",
                 },
               ]}
-              placeholder="Telefono"
+              placeholder="Teléfono"
               placeholderTextColor={isDark ? "#ccc" : "#888"}
+              keyboardType="phone-pad"
               value={telefono}
               onChangeText={(text) => {
                 setTelefono(text);
@@ -317,6 +325,9 @@ export default function RegistroScreen() {
               ]}
               placeholder="Email"
               placeholderTextColor={isDark ? "#ccc" : "#888"}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
               value={email}
               onChangeText={(text) => {
                 setEmail(text);
@@ -337,6 +348,8 @@ export default function RegistroScreen() {
               ]}
               placeholder="Usuario"
               placeholderTextColor={isDark ? "#ccc" : "#888"}
+              autoCapitalize="none"
+              autoCorrect={false}
               value={usuario}
               onChangeText={(text) => {
                 setUsuario(text);

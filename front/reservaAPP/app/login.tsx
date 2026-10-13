@@ -72,7 +72,8 @@ export default function LoginScreen({
     setErrorMensaje("");
     try {
       const limpioUsuario = usuario.trim();
-      const res = await loginUsuario(limpioUsuario, contrasenia);
+      const limpiaContrasenia = contrasenia.trim();
+      const res = await loginUsuario(limpioUsuario, limpiaContrasenia);
       // El backend devuelve { success: true, data: { token, usuario } }
       const token = res?.data?.token || res?.token;
 
@@ -94,11 +95,12 @@ export default function LoginScreen({
         error.response?.data || error.message
       );
       const mensaje =
-        error.response?.data?.mensaje || "Usuario o contraseña incorrectos";
+        error.response?.data?.message ||
+        error.response?.data?.mensaje ||
+        (error.message?.includes("Network") ? "Error de conexión con el servidor. Verifica tu internet." : "Usuario o contraseña incorrectos");
       setErrorMensaje(mensaje);
-      setLoading(false);
     } finally {
-      setLoading(false); // ocultar spinner
+      setLoading(false);
     }
   };
 
@@ -283,8 +285,10 @@ export default function LoginScreen({
 
                 <TextInput
                   style={styles.input}
-                  placeholder="Usuario"
+                  placeholder="Usuario o Email"
                   placeholderTextColor={isDark ? "#ccc" : "#888"}
+                  autoCapitalize="none"
+                  autoCorrect={false}
                   value={usuario}
                   onChangeText={handleUsuarioChange}
                   returnKeyType="next"
@@ -373,8 +377,10 @@ export default function LoginScreen({
 
               <TextInput
                 style={styles.input}
-                placeholder="Usuario"
+                placeholder="Usuario o Email"
                 placeholderTextColor={isDark ? "#ccc" : "#888"}
+                autoCapitalize="none"
+                autoCorrect={false}
                 value={usuario}
                 onChangeText={handleUsuarioChange}
                 returnKeyType="next"

@@ -12,13 +12,13 @@ export const decodeToken = (token: any) => {
   try {
     const decoded = jwtDecode<TokenPayload>(token);
 
-    if (
-      !decoded ||
-      typeof decoded.perfil !== "string" ||
-      decoded.perfil.trim() === ""
-    ) {
-      console.warn("El token no contiene un perfil válido");
+    if (!decoded) {
+      console.warn("El token no contiene un payload válido");
       return null;
+    }
+
+    if (!decoded.perfil || typeof decoded.perfil !== "string" || decoded.perfil.trim() === "") {
+      decoded.perfil = "usuarioCliente";
     }
 
     return decoded;
