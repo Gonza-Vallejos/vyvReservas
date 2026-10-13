@@ -1,14 +1,14 @@
-import { Loader } from 'lucide-react';
+import { Loader } from "lucide-react";
 
 const Button = ({
   children,
-  variant = 'primary',
-  size = 'md',
+  variant = "primary",
+  size = "md",
   pill = false,
   loading = false,
   disabled = false,
-  type = 'button',
-  className = '',
+  type = "button",
+  className = "",
   ariaLabel,
   onClick,
   ...rest
@@ -16,13 +16,16 @@ const Button = ({
   const isDisabled = disabled || loading;
 
   const classes = [
-    'vv-button',
+    "vv-button",
     `vv-button--${variant}`,
     `vv-button--${size}`,
-    pill ? 'vv-button--pill' : '',
-    loading ? 'vv-button--loading' : '',
+
+    pill ? "vv-button--pill" : "",
+    loading ? "vv-button--loading" : "",
     className,
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <button
@@ -36,7 +39,7 @@ const Button = ({
     >
       {loading && (
         <span className="vv-button__spinner" aria-hidden="true">
-          <Loader size={size === 'sm' ? 14 : size === 'lg' ? 22 : 18} />
+          <Loader size={size === "sm" ? 14 : size === "lg" ? 22 : 18} />
         </span>
       )}
       {children}

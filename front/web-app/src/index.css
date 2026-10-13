@@ -339,7 +339,7 @@ img, svg {
 }
 
 .home-hero__title-accent {
-  color: var(--color-accent);
+  color: #FDE68A;
 }
 
 .home-hero__subtitle {
@@ -353,6 +353,13 @@ img, svg {
 .home-search-wrapper {
   max-width: 1150px;
   margin: 0 auto;
+}
+
+/* Atajos de fecha sobre fondo oscuro del hero */
+.home-hero .vv-search-form__shortcuts-label {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: var(--text-sm);
+  font-weight: 600;
 }
 
 /* Resultados de la home */
@@ -392,4 +399,309 @@ img, svg {
   background: var(--success);
   border-radius: 50%;
   box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+}
+
+/* ============================================================
+   TRIP CARD — resultados de búsqueda
+   ============================================================ */
+.trip-card {
+  padding: var(--space-6);
+}
+
+.trip-card__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.trip-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.trip-card__company {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: var(--text-sm);
+}
+
+.trip-card__company-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.trip-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  text-align: right;
+  color: var(--color-text);
+}
+
+.trip-card__currency {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.trip-card__price-value {
+  font-size: var(--text-2xl);
+  font-weight: 900;
+  letter-spacing: -1px;
+  color: var(--color-text);
+}
+
+.trip-card__route {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.trip-card__location {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+.trip-card__location-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.trip-card__location-icon--origin {
+  color: var(--color-primary);
+}
+
+.trip-card__location-icon--destination {
+  color: var(--color-accent);
+}
+
+.trip-card__location-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.trip-card__location-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: var(--color-text-secondary);
+  margin-bottom: 2px;
+}
+
+.trip-card__location-name {
+  font-weight: 700;
+  font-size: var(--text-base);
+  color: var(--color-text);
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.trip-card__connector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0.3;
+}
+
+.trip-card__connector-line {
+  height: 2px;
+  flex: 1;
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
+.trip-card__connector-icon {
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.trip-card__divider {
+  height: 1px;
+  border: none;
+  background: linear-gradient(to right, transparent, var(--color-border), transparent);
+  margin: 0;
+}
+
+.trip-card__details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.trip-card__detail {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-surface-elevated);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-2);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.trip-card__availability {
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 4px 10px;
+}
+
+.trip-card__availability svg {
+  flex-shrink: 0;
+}
+
+.trip-card__cta {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .trip-card {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .trip-card__route {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .trip-card__connector {
+    display: none;
+  }
+
+  .trip-card__price-value {
+    font-size: var(--text-xl);
+  }
+}
+
+/* ============================================================
+   DATE SELECTOR BAR — selector de fechas
+   ============================================================ */
+.date-selector-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+  width: 100%;
+}
+
+.date-selector-bar__nav {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.date-selector-bar__days {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding: var(--space-1) var(--space-1);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.date-selector-bar__days::-webkit-scrollbar {
+  display: none;
+}
+
+.date-selector-bar__day {
+  flex: 1;
+  min-width: 88px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-3);
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  font-family: var(--font-heading);
+}
+
+.date-selector-bar__day:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.date-selector-bar__day:not(:disabled):not(.date-selector-bar__day--active):hover {
+  border-color: var(--color-primary);
+  background: var(--color-surface-elevated);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.date-selector-bar__day--active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+  box-shadow: var(--shadow-md);
+}
+
+.date-selector-bar__day--active:not(:disabled):hover {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.date-selector-bar__day--past {
+  background: var(--color-surface-elevated);
+  border-color: var(--color-border);
+  opacity: 0.7;
+  cursor: not-allowed;
+  color: var(--color-text-secondary);
+}
+
+.date-selector-bar__day-name {
+  font-size: var(--text-base);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.date-selector-bar__day-sub {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.9;
+  line-height: 1.2;
+}
+
+.date-selector-bar__day--active .date-selector-bar__day-sub {
+  opacity: 1;
+}
+
+@media (max-width: 640px) {
+  .date-selector-bar {
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
+  }
+
+  .date-selector-bar__nav {
+    width: 38px;
+    height: 38px;
+    min-height: 38px;
+  }
+
+  .date-selector-bar__day {
+    min-width: 72px;
+    padding: var(--space-2) var(--space-2);
+  }
+
+  .date-selector-bar__day-name {
+    font-size: var(--text-sm);
+  }
 }

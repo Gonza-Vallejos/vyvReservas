@@ -260,7 +260,7 @@ const SearchForm = ({ onSearch, isLoading = false }) => {
       </form>
 
       <div className="vv-search-form__shortcuts" aria-label="Atajos de fecha">
-        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', fontWeight: 600 }}>
+        <span className="vv-search-form__shortcuts-label">
           Viajar:
         </span>
         <Button
