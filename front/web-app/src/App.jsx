@@ -15,6 +15,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import ChoferDashboardPage from './pages/ChoferDashboardPage';
 import MyReservationsPage from './pages/MyReservationsPage';
+import ProfilePage from './pages/ProfilePage';
 import MinibusLoader from './components/MinibusLoader';
 import { viajeService } from './services/api';
 import './index.css';
@@ -178,12 +179,12 @@ const Navbar = () => {
                 <Link to="/chofer" style={{ ...panelBadge, background: '#2563eb' }}><Bus size={18} /> Panel Chofer</Link>
               )}
 
-              <div style={userInfoStyle}>
+              <Link to="/perfil" style={userInfoStyle} aria-label="Mi perfil">
                 <div style={avatarStyle}>{user?.nombre?.charAt(0).toUpperCase()}</div>
                 <span style={{ fontWeight: '700' }}>{user?.nombre}</span>
-              </div>
+              </Link>
 
-              <button onClick={handleLogout} style={logoutButtonStyle}><LogOut size={20} /></button>
+              <button onClick={handleLogout} style={logoutButtonStyle} aria-label="Cerrar sesión"><LogOut size={20} /></button>
             </>
           ) : (
             <Link to="/login" style={primaryBtn}>Ingresar <ArrowRight size={18} /></Link>
@@ -203,9 +204,11 @@ const Navbar = () => {
               {(user?.perfil_id === 1 || user?.perfil_id === 5 || user?.perfil_id === 3) && (
                 <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} style={{ ...mobileNavLink, color: 'var(--primary)', fontWeight: '800' }}>Panel Empresa</Link>
               )}
-              {user.perfil_id === 4 ? (
+              {user.perfil_id === 4 && (
                 <Link to="/chofer" onClick={() => setIsMenuOpen(false)} style={{ ...mobileNavLink, color: 'var(--primary)', fontWeight: '800' }}>Panel Chofer</Link>
-              ) : (
+              )}
+              <Link to="/perfil" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Mi Perfil</Link>
+              {user.perfil_id !== 4 && (
                 <Link to="/mis-reservas" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Mis Reservas</Link>
               )}
               <button onClick={handleLogout} style={{ ...mobileNavLink, color: 'var(--error)', border: 'none', background: 'none', textAlign: 'left' }}>Cerrar Sesión ({user?.nombre})</button>
@@ -240,6 +243,7 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/chofer" element={<ChoferDashboardPage />} />
               <Route path="/mis-reservas" element={<MyReservationsPage />} />
+              <Route path="/perfil" element={<ProfilePage />} />
             </Routes>
           </main>
         </div>
@@ -255,7 +259,7 @@ const navLinkStyle = { textDecoration: 'none', color: 'var(--text-dark)', fontWe
 const primaryBtn = { background: 'var(--primary)', color: 'white', padding: '12px 25px', borderRadius: '14px', textDecoration: 'none', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.3)' };
 const panelBadge = { textDecoration: 'none', background: '#1e293b', color: 'white', padding: '8px 16px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700', fontSize: '0.9rem' };
 
-const userInfoStyle = { display: 'flex', alignItems: 'center', gap: '12px', background: 'white', padding: '6px 16px 6px 6px', borderRadius: '50px', border: '1px solid #e2e8f0' };
+const userInfoStyle = { display: 'flex', alignItems: 'center', gap: '12px', background: 'white', padding: '6px 16px 6px 6px', borderRadius: '50px', border: '1px solid #e2e8f0', textDecoration: 'none', color: 'inherit' };
 const avatarStyle = { width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800' };
 const logoutButtonStyle = { background: '#fee2e2', border: 'none', color: '#ef4444', padding: '10px', borderRadius: '12px' };
 
