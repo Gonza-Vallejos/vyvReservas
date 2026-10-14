@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Bus, ShieldCheck, Clock, CreditCard } from 'lucide-react';
+import { Bus, ShieldCheck, Clock, CreditCard, MapPin, ArrowRight } from 'lucide-react';
 
 const AuthLayout = ({ children }) => {
   return (
@@ -30,6 +30,18 @@ const AuthLayout = ({ children }) => {
               <span>Pagos seguros</span>
             </li>
           </ul>
+
+          <div className="auth-brand__scene" aria-hidden="true">
+            <div className="auth-brand__scene-label">Una plataforma, todos tus recorridos</div>
+            <div className="auth-brand__route">
+              <span><MapPin size={16} /> Origen</span>
+              <i />
+              <ArrowRight size={18} />
+              <i />
+              <span><MapPin size={16} /> Destino</span>
+            </div>
+            <div className="auth-brand__scene-meta">Reservas · Flota · Operación</div>
+          </div>
         </div>
 
         <div className="auth-brand__footer">

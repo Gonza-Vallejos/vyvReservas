@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/api';
-import { User, Mail, Phone, CreditCard, Lock, Sparkles, ArrowLeft, Check, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Phone, CreditCard, Lock, UserRound, ArrowLeft, Check, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import AuthLayout from '../components/auth/AuthLayout';
@@ -143,7 +143,7 @@ const RegisterPage = () => {
       <Card className="auth-card auth-card--wide animate-fade-in">
         <header className="auth-header">
           <div className="auth-logo">
-            <Sparkles size={24} aria-hidden="true" />
+            <UserRound size={24} aria-hidden="true" />
           </div>
           <h2 className="auth-title">Únete a V&V</h2>
           <p className="auth-subtitle">Tu seguridad es nuestra prioridad.</p>

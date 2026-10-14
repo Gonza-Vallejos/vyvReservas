@@ -13,6 +13,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import InputField from '../components/ui/InputField';
+import LocationAutocomplete from '../components/LocationAutocomplete';
 import EmptyState from '../components/ui/EmptyState';
 import SkeletonCard from '../components/ui/SkeletonCard';
 import toast from 'react-hot-toast';
@@ -1215,18 +1216,20 @@ const DashboardPage = () => {
             className="dashboard-modal-form"
           >
             <div className="dashboard-form-grid">
-              <InputField
+              <LocationAutocomplete
+                id="nuevo-viaje-origen"
                 label="Origen"
                 value={nuevoViaje.origenLocalidad}
                 placeholder="Ej: San Roque"
-                onChange={(e) => setNuevoViaje({ ...nuevoViaje, origenLocalidad: e.target.value })}
+                onChange={(value) => setNuevoViaje({ ...nuevoViaje, origenLocalidad: value })}
                 required
               />
-              <InputField
+              <LocationAutocomplete
+                id="nuevo-viaje-destino"
                 label="Destino"
                 value={nuevoViaje.destinoLocalidad}
                 placeholder="Ej: Corrientes"
-                onChange={(e) => setNuevoViaje({ ...nuevoViaje, destinoLocalidad: e.target.value })}
+                onChange={(value) => setNuevoViaje({ ...nuevoViaje, destinoLocalidad: value })}
                 required
               />
               <InputField
@@ -1419,16 +1422,18 @@ const DashboardPage = () => {
             className="dashboard-modal-form"
           >
             <div className="dashboard-form-grid">
-              <InputField
+              <LocationAutocomplete
+                id="editar-viaje-origen"
                 label="Origen"
                 value={editingTrip.origenLocalidad}
-                onChange={(e) => setEditingTrip({ ...editingTrip, origenLocalidad: e.target.value })}
+                onChange={(value) => setEditingTrip({ ...editingTrip, origenLocalidad: value })}
                 required
               />
-              <InputField
+              <LocationAutocomplete
+                id="editar-viaje-destino"
                 label="Destino"
                 value={editingTrip.destinoLocalidad}
-                onChange={(e) => setEditingTrip({ ...editingTrip, destinoLocalidad: e.target.value })}
+                onChange={(value) => setEditingTrip({ ...editingTrip, destinoLocalidad: value })}
                 required
               />
               <InputField

@@ -133,6 +133,7 @@
 /* ---------- InputField ---------- */
 .vv-input {
   width: 100%;
+  min-width: 0;
 }
 
 .vv-input__label {
@@ -155,6 +156,7 @@
   align-items: center;
   gap: var(--space-3);
   width: 100%;
+  box-sizing: border-box;
   background: var(--color-surface);
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-3);
@@ -195,6 +197,7 @@
   font-weight: 600;
   outline: none;
   padding: 0;
+  width: 0;
 }
 
 .vv-input__field::placeholder {
@@ -386,6 +389,13 @@
 }
 
 /* ---------- Search form helpers ---------- */
+.vv-location-autocomplete {
+  position: relative;
+  flex: 1 1 220px;
+  width: 100%;
+  min-width: 0;
+}
+
 .vv-search-form {
   display: flex;
   align-items: center;
