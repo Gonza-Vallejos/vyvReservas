@@ -1193,6 +1193,210 @@ img, svg {
   }
 }
 
+/* ---------- Site navbar ---------- */
+.site-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid #e7edf6;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+  backdrop-filter: blur(14px);
+}
+
+.site-navbar__inner {
+  width: min(100% - 40px, 1180px);
+  min-height: 70px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.site-navbar__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--color-primary);
+  font-size: 1.45rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  text-decoration: none;
+}
+
+.site-navbar__logo-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--color-primary), #4f46e5);
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.22);
+}
+
+.site-navbar__desktop {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.site-navbar__link,
+.site-navbar__panel,
+.site-navbar__user,
+.site-navbar__login {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.site-navbar__link {
+  padding: 0 14px;
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+  font-weight: 750;
+}
+
+.site-navbar__link:hover,
+.site-navbar__link:focus-visible {
+  color: var(--color-primary);
+  background: #eff6ff;
+}
+
+.site-navbar__panel {
+  padding: 0 14px;
+  color: #ffffff;
+  background: #172554;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.site-navbar__panel:hover,
+.site-navbar__panel:focus-visible {
+  background: #1e3a8a;
+  transform: translateY(-1px);
+}
+
+.site-navbar__panel--driver {
+  background: var(--color-primary);
+}
+
+.site-navbar__panel--driver:hover,
+.site-navbar__panel--driver:focus-visible {
+  background: var(--color-primary-dark);
+}
+
+.site-navbar__user {
+  padding: 3px 13px 3px 4px;
+  color: var(--color-text);
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.site-navbar__user:hover,
+.site-navbar__user:focus-visible {
+  border-color: #bfdbfe;
+  background: #f8fbff;
+}
+
+.site-navbar__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: #ffffff;
+  background: var(--color-primary);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.site-navbar__logout,
+.site-navbar__menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  color: #dc2626;
+  background: #fff7f7;
+  cursor: pointer;
+}
+
+.site-navbar__logout:hover,
+.site-navbar__logout:focus-visible {
+  background: #fee2e2;
+}
+
+.site-navbar__login {
+  padding: 0 20px;
+  color: #ffffff;
+  background: var(--color-primary);
+  box-shadow: 0 9px 18px rgba(37, 99, 235, 0.22);
+  font-size: 0.94rem;
+  font-weight: 850;
+}
+
+.site-navbar__login:hover,
+.site-navbar__login:focus-visible {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.site-navbar__mobile {
+  position: fixed;
+  top: 70px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 24px 20px;
+  overflow-y: auto;
+  background: #ffffff;
+}
+
+.site-navbar__mobile-link {
+  display: block;
+  padding: 16px 4px;
+  border: 0;
+  border-bottom: 1px solid #e8eef7;
+  color: var(--color-text);
+  background: transparent;
+  font-size: 1.08rem;
+  font-weight: 800;
+  text-align: left;
+  text-decoration: none;
+}
+
+.site-navbar__mobile-link--accent { color: var(--color-primary); }
+.site-navbar__mobile-link--danger { color: var(--color-error); cursor: pointer; }
+
+@media (max-width: 768px) {
+  .site-navbar__inner {
+    width: min(100% - 28px, 1180px);
+    min-height: 64px;
+  }
+
+  .site-navbar__logo { font-size: 1.3rem; }
+  .site-navbar__logo-mark { width: 32px; height: 32px; }
+}
+
 /* ============================================================
    TRIP DETAIL PAGE
    ============================================================ */

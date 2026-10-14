@@ -167,58 +167,61 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="glass-effect" style={navStyle}>
-      <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px' }}>
-        <Link to="/" style={logoStyle}><Bus size={32} /> <span className="brand">V&V</span></Link>
+    <nav className="site-navbar" aria-label="Navegación principal">
+      <div className="site-navbar__inner">
+        <Link to="/" className="site-navbar__logo" aria-label="V&V Reservas, ir al inicio">
+          <span className="site-navbar__logo-mark"><Bus size={22} /></span>
+          <span>V&V</span>
+        </Link>
 
-        <div className="desktop-only" style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
-          <Link to="/" style={navLinkStyle}>Inicio</Link>
+        <div className="site-navbar__desktop desktop-only">
+          <Link to="/" className="site-navbar__link">Inicio</Link>
           {user ? (
             <>
-              <Link to="/mis-reservas" style={navLinkStyle}>Mis Reservas</Link>
+              <Link to="/mis-reservas" className="site-navbar__link">Mis Reservas</Link>
               {(Number(user?.perfil_id) === PROFILES.ADMINISTRADOR || Number(user?.perfil_id) === PROFILES.EMPRESA || Number(user?.perfil_id) === PROFILES.MOSTRADOR) && (
-                <Link to="/dashboard" style={panelBadge}><ShieldCheck size={18} /> Panel</Link>
+                <Link to="/dashboard" className="site-navbar__panel"><ShieldCheck size={17} /> Panel</Link>
               )}
               {Number(user?.perfil_id) === PROFILES.CHOFER && (
-                <Link to="/chofer" style={{ ...panelBadge, background: '#2563eb' }}><Bus size={18} /> Panel Chofer</Link>
+                <Link to="/chofer" className="site-navbar__panel site-navbar__panel--driver"><Bus size={17} /> Panel Chofer</Link>
               )}
 
-              <Link to="/perfil" style={userInfoStyle} aria-label="Mi perfil">
-                <div style={avatarStyle}>{user?.nombre?.charAt(0).toUpperCase()}</div>
-                <span style={{ fontWeight: '700' }}>{user?.nombre}</span>
+              <Link to="/perfil" className="site-navbar__user" aria-label="Mi perfil">
+                <span className="site-navbar__avatar">{user?.nombre?.charAt(0).toUpperCase()}</span>
+                <span>{user?.nombre}</span>
               </Link>
 
-              <button onClick={handleLogout} style={logoutButtonStyle} aria-label="Cerrar sesión"><LogOut size={20} /></button>
+              <button onClick={handleLogout} className="site-navbar__logout" aria-label="Cerrar sesión"><LogOut size={18} /></button>
             </>
           ) : (
-            <Link to="/login" style={primaryBtn}>Ingresar <ArrowRight size={18} /></Link>
+            <Link to="/login" className="site-navbar__login">Ingresar <ArrowRight size={17} /></Link>
           )}
         </div>
 
-        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="mobile-only" style={{ background: 'none' }}>
+        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="site-navbar__menu mobile-only" aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'} aria-expanded={isMenuOpen}>
           {isMenuOpen ? <X size={32} /> : <Menu size={32} />}
         </button>
       </div>
 
       {isMenuOpen && (
-        <div className="animate-fade-in" style={mobileMenu}>
-          <Link to="/" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Inicio</Link>
+        <div className="site-navbar__mobile animate-fade-in">
+          <Link to="/" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link">Inicio</Link>
           {user ? (
             <>
               {(Number(user?.perfil_id) === PROFILES.ADMINISTRADOR || Number(user?.perfil_id) === PROFILES.EMPRESA || Number(user?.perfil_id) === PROFILES.MOSTRADOR) && (
-                <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} style={{ ...mobileNavLink, color: 'var(--primary)', fontWeight: '800' }}>Panel Empresa</Link>
+                <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link site-navbar__mobile-link--accent">Panel Empresa</Link>
               )}
               {Number(user.perfil_id) === PROFILES.CHOFER && (
-                <Link to="/chofer" onClick={() => setIsMenuOpen(false)} style={{ ...mobileNavLink, color: 'var(--primary)', fontWeight: '800' }}>Panel Chofer</Link>
+                <Link to="/chofer" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link site-navbar__mobile-link--accent">Panel Chofer</Link>
               )}
-              <Link to="/perfil" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Mi Perfil</Link>
+              <Link to="/perfil" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link">Mi Perfil</Link>
               {Number(user.perfil_id) !== PROFILES.CHOFER && (
-                <Link to="/mis-reservas" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Mis Reservas</Link>
+                <Link to="/mis-reservas" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link">Mis Reservas</Link>
               )}
-              <button onClick={handleLogout} style={{ ...mobileNavLink, color: 'var(--error)', border: 'none', background: 'none', textAlign: 'left' }}>Cerrar Sesión ({user?.nombre})</button>
+              <button onClick={handleLogout} className="site-navbar__mobile-link site-navbar__mobile-link--danger">Cerrar Sesión ({user?.nombre})</button>
             </>
           ) : (
-            <Link to="/login" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Ingresar</Link>
+            <Link to="/login" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link site-navbar__mobile-link--accent">Ingresar</Link>
           )}
         </div>
       )}
@@ -255,19 +258,5 @@ function App() {
     </AuthProvider>
   );
 }
-
-// Estilos de layout
-const navStyle = { position: 'sticky', top: 0, zIndex: 1000, padding: '15px 0', width: '100%' };
-const logoStyle = { display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'var(--primary)', fontWeight: '800', fontSize: '1.6rem' };
-const navLinkStyle = { textDecoration: 'none', color: 'var(--text-dark)', fontWeight: '700', fontSize: '0.95rem' };
-const primaryBtn = { background: 'var(--primary)', color: 'white', padding: '12px 25px', borderRadius: '14px', textDecoration: 'none', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.3)' };
-const panelBadge = { textDecoration: 'none', background: '#1e293b', color: 'white', padding: '8px 16px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700', fontSize: '0.9rem' };
-
-const userInfoStyle = { display: 'flex', alignItems: 'center', gap: '12px', background: 'white', padding: '6px 16px 6px 6px', borderRadius: '50px', border: '1px solid #e2e8f0', textDecoration: 'none', color: 'inherit' };
-const avatarStyle = { width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800' };
-const logoutButtonStyle = { background: '#fee2e2', border: 'none', color: '#ef4444', padding: '10px', borderRadius: '12px' };
-
-const mobileMenu = { position: 'fixed', top: '70px', left: 0, right: 0, bottom: 0, background: 'white', zIndex: 99999, padding: '30px 24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' };
-const mobileNavLink = { textDecoration: 'none', color: 'var(--text-dark)', fontWeight: '800', fontSize: '1.4rem', borderBottom: '1.5px solid #f1f5f9', paddingBottom: '12px' };
 
 export default App;
