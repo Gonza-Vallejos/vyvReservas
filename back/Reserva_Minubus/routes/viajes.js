@@ -45,7 +45,7 @@ router.get('/disponibles', viajesController.obtenerViajesDisponibles);
  *         name: id
  *         required: true
  */
-router.get('/:id/asientos', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa', 'usuarioChofer'), viajesController.obtenerAsientosOcupados);
+router.get('/:id/asientos', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa', 'usuarioChofer', 'usuarioCliente'), viajesController.obtenerAsientosOcupados);
 
 /**
  * @swagger
@@ -155,5 +155,7 @@ router.get('/existe-reserva/:id', autenticarToken, permitirPerfiles('usuarioAdmi
 // Rutas de compatibilidad para app móvil
 router.get('/viajesDisponible', viajesController.obtenerViajesDisponibles);
 router.get('/obtenerViajesId/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa', 'usuarioCliente'), viajesController.obtenerViajePorId);
+router.get('/asientos/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa', 'usuarioChofer', 'usuarioCliente'), viajesController.obtenerAsientosOcupados);
+router.get('/obtenerAsientosOcupados/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa', 'usuarioChofer', 'usuarioCliente'), viajesController.obtenerAsientosOcupados);
 
 module.exports = router;

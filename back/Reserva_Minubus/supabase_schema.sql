@@ -116,6 +116,7 @@ CREATE TABLE IF NOT EXISTS "Reservas" (
   "fechaReserva" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   usuarios_id INT NOT NULL REFERENCES "Usuarios"(id) ON UPDATE CASCADE ON DELETE RESTRICT,
   viajes_id INT NOT NULL REFERENCES "Viajes"(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+  "idempotencyKey" VARCHAR(255) UNIQUE,
   eliminado VARCHAR(10) DEFAULT 'no',
   deleted_at TIMESTAMPTZ,
   "createdAt" TIMESTAMPTZ DEFAULT NOW(),
@@ -131,6 +132,7 @@ CREATE TABLE IF NOT EXISTS "pasajeros" (
   "ubicacionOrigen" VARCHAR(150) NOT NULL,
   "ubicacionDestino" VARCHAR(150) NOT NULL,
   reserva_id INT NOT NULL REFERENCES "Reservas"(id) ON UPDATE CASCADE ON DELETE CASCADE,
+  "numeroAsiento" INT,
   eliminado VARCHAR(10) DEFAULT 'no',
   deleted_at TIMESTAMPTZ
 );
@@ -160,6 +162,33 @@ CREATE TABLE IF NOT EXISTS "DetalleVenta" (
   "createdAt" TIMESTAMPTZ DEFAULT NOW(),
   "updatedAt" TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- 11. Pagos (Mercado Pago / Checkout)
+CREATE TABLE IF NOT EXISTS "Pagos" (
+  id SERIAL PRIMARY KEY,
+  reserva_id INT NOT NULL REFERENCES "Reservas"(id) ON UPDATE CASCADE ON DELETE CASCADE,
+  monto FLOAT NOT NULL,
+  estado VARCHAR(50) NOT NULL DEFAULT 'pendiente',
+  mp_preference_id VARCHAR(255),
+  mp_payment_id VARCHAR(255),
+  mp_external_reference VARCHAR(255),
+  mp_init_point TEXT,
+  "fechaCreacion" TIMESTAMPTZ DEFAULT NOW(),
+  "fechaActualizacion" TIMESTAMPTZ DEFAULT NOW(),
+  eliminado VARCHAR(10) DEFAULT 'no'
+);
+
+-- 12. WebhookEvents
+CREATE TABLE IF NOT EXISTS "WebhookEvents" (
+  id SERIAL PRIMARY KEY,
+  topic VARCHAR(100) NOT NULL,
+  "resourceId" VARCHAR(255) NOT NULL,
+  payload JSONB,
+  "processedAt" TIMESTAMPTZ,
+  "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+  "updatedAt" TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS webhook_events_topic_resourceId_unique ON "WebhookEvents" (topic, "resourceId");
 
 -- Índices de alto rendimiento
 CREATE INDEX IF NOT EXISTS idx_viajes_busqueda ON "Viajes" ("fechaViaje", "origenLocalidad", "destinoLocalidad");

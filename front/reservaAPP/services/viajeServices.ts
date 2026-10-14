@@ -84,3 +84,8 @@ export const existeReservaViaje = async (id: number): Promise<boolean> => {
     return false;
   }
 };
+
+export const obtenerAsientosOcupados = async (id: number) => {
+  const response = await apiClient.get(`/viajes/${id}/asientos`);
+  return response.data;
+};

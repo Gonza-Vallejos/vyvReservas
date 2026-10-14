@@ -222,7 +222,7 @@ class ViajesService {
   /**
    * Devuelve el mapa de asientos de un viaje: total, ocupados, libres y detalle por número.
    */
-  async getAsientosOcupados(id) {
+  async getAsientosOcupados(id, esStaff = false) {
     const viaje = await Viajes.findOne({
       where: { id, eliminado: "no" },
       include: [{
@@ -254,7 +254,7 @@ class ViajesService {
       mapaAsientos.push({
         numero: i,
         ocupado: !!pasajero,
-        pasajero: pasajero
+        pasajero: (pasajero && esStaff)
           ? {
               id: pasajero.id,
               nombre: pasajero.nombre,

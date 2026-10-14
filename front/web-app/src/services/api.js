@@ -26,6 +26,7 @@ export const viajeService = {
   obtenerPorId: (id) => api.get(`/viajes/${id}`),
   obtenerPorEmpresa: (id) => api.get(`/viajes/empresa/${id}`),
   obtenerPorChofer: (id) => api.get(`/viajes/chofer/${id}`),
+  obtenerAsientosOcupados: (id) => api.get(`/viajes/${id}/asientos`),
   crear: (data) => api.post('/viajes', data),
   actualizar: (id, data) => api.put(`/viajes/${id}`, data),
   eliminar: (id) => api.delete(`/viajes/${id}`),

@@ -128,7 +128,8 @@ exports.existeReservaParaViaje = async (req, res) => {
 
 exports.obtenerAsientosOcupados = async (req, res) => {
   try {
-    const asientos = await viajesService.getAsientosOcupados(req.params.id);
+    const esStaff = ['usuarioAdministrador', 'usuarioEmpresa', 'usuarioMostrador', 'usuarioChofer'].includes(req.usuario?.perfil);
+    const asientos = await viajesService.getAsientosOcupados(req.params.id, esStaff);
     if (!asientos) return sendError(res, "Viaje no encontrado", 404);
     sendSuccess(res, asientos);
   } catch (error) {

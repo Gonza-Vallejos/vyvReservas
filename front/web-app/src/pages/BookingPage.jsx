@@ -78,13 +78,20 @@ const BookingPage = () => {
         const tripData = response.data?.data || response.data;
         if (!cancelled) setTrip(tripData);
 
-        // TODO: reemplazar por endpoint real de asientos ocupados cuando exista
         try {
-          await reservaService.obtenerPasajerosPorViaje(id);
+          const asientosRes = await viajeService.obtenerAsientosOcupados(id);
+          const asientosData = asientosRes.data?.data || asientosRes.data;
+          if (Array.isArray(asientosData?.mapaAsientos)) {
+            const ocupados = asientosData.mapaAsientos
+              .filter(a => a.ocupado)
+              .map(a => a.numero);
+            if (!cancelled) setOccupiedSeats(ocupados);
+          } else {
+            if (!cancelled) setOccupiedSeats(generateMockOccupiedSeats(id, tripData?.cantPasajeros));
+          }
         } catch {
-          // noop
+          if (!cancelled) setOccupiedSeats(generateMockOccupiedSeats(id, tripData?.cantPasajeros));
         }
-        if (!cancelled) setOccupiedSeats(generateMockOccupiedSeats(id, tripData?.cantPasajeros));
       } catch {
         if (!cancelled) {
           setTripError('No pudimos cargar el viaje seleccionado.');

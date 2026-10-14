@@ -42,13 +42,17 @@ const TripDetailPage = () => {
         const tripData = result.data || result;
         if (!cancelled) setTrip(tripData);
 
-        // TODO: reemplazar por endpoint real de asientos ocupados cuando exista
         try {
-          // TODO: usar respuesta real cuando el endpoint devuelva números de asiento
-          await reservaService.obtenerPasajerosPorViaje(id);
-          // El backend actual no devuelve número de asiento; generamos mock determinista
-          // para visualizar el mapa de asientos hasta que haya un endpoint específico.
-          setOccupiedSeats(generateMockOccupiedSeats(id, tripData?.cantPasajeros));
+          const asientosRes = await viajeService.obtenerAsientosOcupados(id);
+          const asientosData = asientosRes.data?.data || asientosRes.data;
+          if (Array.isArray(asientosData?.mapaAsientos)) {
+            const ocupados = asientosData.mapaAsientos
+              .filter(a => a.ocupado)
+              .map(a => a.numero);
+            setOccupiedSeats(ocupados);
+          } else {
+            setOccupiedSeats(generateMockOccupiedSeats(id, tripData?.cantPasajeros));
+          }
         } catch {
           setOccupiedSeats(generateMockOccupiedSeats(id, tripData?.cantPasajeros));
         }
