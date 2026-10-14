@@ -1598,6 +1598,17 @@ img, svg {
   .site-navbar {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    position: sticky;
+  }
+
+  .site-navbar__mobile {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    bottom: auto;
+    left: 0;
+    height: calc(100dvh - 64px);
+    min-height: calc(100vh - 64px);
   }
 
   .site-navbar__inner {
