@@ -1,8 +1,8 @@
 {
   "$schema": "https://opencode.ai/config.json",
   // Agente principal por defecto para este proyecto.
-  // "captain" es conciso y ejecuta directamente. "orchestrator" coordina tareas grandes.
-  "default_agent": "captain",
+  // "orchestrator" coordina el flujo: analyst → planner → builder → tester
+  "default_agent": "orchestrator",
   // Formatear archivos automáticamente después de editar/escribir
   "formatter": true,
   // Compresión automática de contexto
