@@ -883,7 +883,9 @@ img, svg {
 
 @media (min-width: 769px) {
   .auth-layout {
-    grid-template-columns: minmax(320px, 0.68fr) minmax(520px, 1.32fr);
+    grid-template-columns: minmax(360px, 0.76fr) minmax(560px, 1.24fr);
+    gap: clamp(1rem, 3vw, 3rem);
+    padding-right: clamp(1rem, 4vw, 5rem);
   }
 
   .auth-brand {
@@ -893,14 +895,15 @@ img, svg {
     position: relative;
     align-self: center;
     min-height: calc(100vh - 32px);
-    margin: 16px 0 16px 24px;
-    padding: clamp(var(--space-6), 4vw, var(--space-10));
+    margin: 24px 0 24px 24px;
+    padding: clamp(var(--space-7), 4vw, var(--space-10));
     color: #ffffff;
     border-radius: 0 var(--radius-5) var(--radius-5) 0;
     background:
-      radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.35), transparent 40%),
-      radial-gradient(circle at 80% 80%, rgba(245, 158, 11, 0.25), transparent 40%),
-      linear-gradient(135deg, var(--color-primary) 0%, #1e3a8a 100%);
+      radial-gradient(circle at 18% 12%, rgba(96, 165, 250, 0.34), transparent 34%),
+      radial-gradient(circle at 82% 92%, rgba(251, 191, 36, 0.15), transparent 32%),
+      linear-gradient(145deg, #2454d8 0%, #173786 58%, #10265c 100%);
+    box-shadow: 0 24px 60px rgba(15, 41, 102, 0.2);
     overflow: hidden;
   }
 
@@ -917,6 +920,9 @@ img, svg {
   .auth-brand__content {
     position: relative;
     z-index: 1;
+    width: 100%;
+    max-width: 430px;
+    margin: 0 auto;
   }
 
   .auth-brand__header {
@@ -968,11 +974,10 @@ img, svg {
     gap: var(--space-3);
     font-size: var(--text-base);
     font-weight: 600;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: var(--radius-3);
-    padding: var(--space-3) var(--space-4);
-    backdrop-filter: blur(8px);
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: var(--space-2) 0;
   }
 
   .auth-brand__values li svg {
@@ -981,12 +986,7 @@ img, svg {
   }
 
   .auth-brand__scene {
-    max-width: 360px;
-    margin-top: clamp(2rem, 6vh, 5rem);
-    padding: var(--space-5);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: var(--radius-4);
-    background: rgba(15, 23, 42, 0.16);
+    display: none;
   }
 
   .auth-brand__scene-label {
@@ -1030,8 +1030,8 @@ img, svg {
 
   .auth-vehicle {
     display: block;
-    width: min(100%, 330px);
-    margin-top: clamp(2rem, 5vh, 4rem);
+    width: min(100%, 360px);
+    margin: clamp(3rem, 10vh, 8rem) auto 0;
     color: #ffffff;
   }
 
@@ -1153,7 +1153,8 @@ img, svg {
   }
 
   .auth-card {
-    padding: var(--space-10) var(--space-8);
+    max-width: 500px;
+    padding: var(--space-10) clamp(var(--space-7), 4vw, var(--space-10));
   }
 
   .auth-form-grid {
