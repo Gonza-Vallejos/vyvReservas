@@ -36,7 +36,10 @@ class UsuarioEmpresaService {
         attributes: ["id", "nombre", "apellido", "email", "usuario", "telefono", "perfil_id"]
       }]
     });
-    return items.map(i => i.Usuario);
+    return items.map(i => ({
+      ...i.Usuario.toJSON(),
+      usuarioEmpresa_id: i.id,
+    }));
   }
 }
 

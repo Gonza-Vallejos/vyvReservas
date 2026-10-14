@@ -1,14 +1,13 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
+import React, { useCallback } from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { useAuth } from "../../../context/AuthContext";
 import { obtenerPasajerosPorEmpresa } from "../../../services/reportesService";
 import { Redirect } from "expo-router";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import ScreenContainer from "@/components/ui/ScreenContainer";
+import Card from "@/components/ui/Card";
+import DataTable, { DataTableColumn } from "@/components/ui/DataTable";
+import { formatDate, formatTime } from "@/utils/dateFormatter";
 
 interface ReservaViaje {
   reservaId: number;
@@ -30,131 +29,85 @@ interface PasajeroEmpresa {
 }
 
 export default function PasajerosPorEmpresaScreen() {
-  const { logout, userInfo } = useAuth();
-  const [pasajeros, setPasajeros] = useState<PasajeroEmpresa[]>([]);
-  const [cantidad, setCantidad] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { userInfo } = useAuth();
 
   if (userInfo?.perfil !== "usuarioEmpresa") {
     return <Redirect href="/(tabs)" />;
   }
 
-  useEffect(() => {
-    const cargarPasajeros = async () => {
-      try {
-        const respuesta = await obtenerPasajerosPorEmpresa(
-          userInfo?.empresa_id
-        );
-        setPasajeros(respuesta.pasajeros);
-        setCantidad(respuesta.cantidadPasajeros);
-      } catch (err: any) {
-        setError(err?.response?.data?.mensaje || "Error al obtener pasajeros");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = useCallback(
+    () => obtenerPasajerosPorEmpresa(userInfo?.empresa_id),
+    [userInfo?.empresa_id]
+  );
 
-    cargarPasajeros();
-  }, []);
+  const { data, loading, error, refetch } = useAsyncData<{
+    cantidad: number;
+    pasajeros: PasajeroEmpresa[];
+  }>({
+    fetchFn: fetchData,
+    dependencies: [userInfo?.empresa_id],
+  });
 
-  const formatDate = (fechaISO: string) => {
-    const [year, month, day] = fechaISO.split("T")[0].split("-").map(Number);
-    return `${String(day).padStart(2, "0")}/${String(month).padStart(
-      2,
-      "0"
-    )}/${year}`;
-  };
-
-  const formatTime = (timeString: string) => {
-    const [hours, minutes] = timeString.split(":");
-    return `${hours}:${minutes}`;
-  };
-  if (loading) {
-    return <ActivityIndicator size="large" style={{ marginTop: 50 }} />;
-  }
-
-  if (error) {
-    return <Text style={styles.error}>{error}</Text>;
-  }
+  const columns: DataTableColumn<PasajeroEmpresa>[] = [
+    { key: "nombre", label: "Nombre", width: 110 },
+    { key: "apellido", label: "Apellido", width: 110 },
+    { key: "dni", label: "DNI", width: 100 },
+    { key: "ubicacionOrigen", label: "Origen", width: 120 },
+    { key: "ubicacionDestino", label: "Destino", width: 120 },
+    {
+      key: "reserva",
+      label: "Viaje",
+      width: 180,
+      render: (item) =>
+        item.reserva ? (
+          <Text style={{ fontSize: 13 }}>
+            {item.reserva.origenLocalidad} ➜ {item.reserva.destinoLocalidad}{" "}
+            {"\n"}
+            {formatDate(item.reserva.fechaViaje)} -{" "}
+            {formatTime(item.reserva.horarioSalida)}
+          </Text>
+        ) : (
+          <Text style={{ fontSize: 13, color: "#888" }}>Sin viaje</Text>
+        ),
+    },
+  ];
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer
+      loading={loading}
+      error={error}
+      onRetry={refetch}
+      refreshing={loading}
+      onRefresh={refetch}
+      contentContainerStyle={styles.container}
+    >
       <Text style={styles.title}>Pasajeros de la Empresa</Text>
-      <Text style={styles.subTitle}>Cantidad total: {cantidad}</Text>
 
-      <FlatList
-        data={pasajeros}
+      <Card style={styles.card}>
+        <Text>
+          <Text style={styles.label}>Total de pasajeros:</Text>{" "}
+          {data?.cantidad ?? 0}
+        </Text>
+      </Card>
+
+      <DataTable
+        columns={columns}
+        data={data?.pasajeros || []}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.nombre}>
-              {item.nombre} {item.apellido}
-            </Text>
-            <Text>DNI: {item.dni}</Text>
-            <Text>Desde: {item.ubicacionOrigen}</Text>
-            <Text>Hasta: {item.ubicacionDestino}</Text>
-
-            {item.reserva && (
-              <View style={styles.viajeBox}>
-                <Text style={styles.label}>🚍 Viaje:</Text>
-                <Text>Origen: {item.reserva.origenLocalidad}</Text>
-                <Text>Destino: {item.reserva.destinoLocalidad}</Text>
-                <Text>Fecha: {formatDate(item.reserva.fechaViaje)}</Text>
-                <Text>Hora: {formatTime(item.reserva.horarioSalida)}</Text>
-              </View>
-            )}
-          </View>
-        )}
+        emptyMessage="No hay pasajeros registrados."
       />
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: "#f2f2f2",
-  },
+  container: { padding: 16, paddingBottom: 32 },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 12,
     textAlign: "center",
   },
-  subTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  card: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 16,
-    elevation: 2,
-  },
-  nombre: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  viajeBox: {
-    marginTop: 10,
-    backgroundColor: "#e6f2ff",
-    padding: 10,
-    borderRadius: 8,
-  },
-  label: {
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  error: {
-    color: "red",
-    marginTop: 20,
-    textAlign: "center",
-    fontSize: 16,
-  },
+  card: { marginBottom: 20 },
+  label: { fontWeight: "bold" },
 });

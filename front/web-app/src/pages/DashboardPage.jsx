@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useId } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { PROFILES } from '../constants/profiles';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Bus, Users, TrendingUp, Plus, Edit, Trash2, X,
@@ -61,17 +62,17 @@ const getFullName = (u) => {
 };
 
 const getRoleLabel = (perfilId) => {
-  if (perfilId === 4) return 'Chofer';
-  if (perfilId === 3) return 'Mostrador';
-  if (perfilId === 5) return 'Dueño';
-  if (perfilId === 1) return 'Administrador';
+  if (perfilId === PROFILES.CHOFER) return 'Chofer';
+  if (perfilId === PROFILES.MOSTRADOR) return 'Mostrador';
+  if (perfilId === PROFILES.EMPRESA) return 'Dueño';
+  if (perfilId === PROFILES.ADMINISTRADOR) return 'Administrador';
   return 'Usuario';
 };
 
 const getRoleBadgeVariant = (perfilId) => {
-  if (perfilId === 4) return 'primary';
-  if (perfilId === 3) return 'accent';
-  if (perfilId === 5 || perfilId === 1) return 'success';
+  if (perfilId === PROFILES.CHOFER) return 'primary';
+  if (perfilId === PROFILES.MOSTRADOR) return 'accent';
+  if (perfilId === PROFILES.EMPRESA || perfilId === PROFILES.ADMINISTRADOR) return 'success';
   return 'default';
 };
 
@@ -1175,7 +1176,7 @@ const DashboardPage = () => {
             onSubmit={async (e) => {
               e.preventDefault();
               try {
-                const choferId = nuevoViaje.usuarioEmpresa_id || choferes[0]?.id || user.id;
+                const choferId = nuevoViaje.usuarioEmpresa_id || choferes[0]?.usuarioEmpresa_id || user.id;
                 const vehiculoId = nuevoViaje.medioTransporte_id || vehiculos[0]?.id;
                 if (!vehiculoId) {
                   toast.error('Primero debés registrar un minibús en la flota');
@@ -1265,7 +1266,7 @@ const DashboardPage = () => {
                   placeholder="Seleccionar chofer..."
                 >
                   {choferes.map((ch) => (
-                    <option key={ch.id} value={ch.id}>
+                    <option key={ch.usuarioEmpresa_id} value={ch.usuarioEmpresa_id}>
                       {getFullName(ch)}
                     </option>
                   ))}
@@ -1388,7 +1389,7 @@ const DashboardPage = () => {
             onSubmit={async (e) => {
               e.preventDefault();
               try {
-                const choferId = editingTrip.usuarioEmpresa_id || choferes[0]?.id || user.id;
+                const choferId = editingTrip.usuarioEmpresa_id || choferes[0]?.usuarioEmpresa_id || user.id;
                 const vehiculoId = editingTrip.medioTransporte_id || vehiculos[0]?.id;
                 await viajeService.actualizar(editingTrip.id, {
                   ...editingTrip,
@@ -1462,7 +1463,7 @@ const DashboardPage = () => {
                   placeholder="Seleccionar chofer..."
                 >
                   {choferes.map((ch) => (
-                    <option key={ch.id} value={ch.id}>
+                    <option key={ch.usuarioEmpresa_id} value={ch.usuarioEmpresa_id}>
                       {getFullName(ch)}
                     </option>
                   ))}

@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
-  ActivityIndicator,
   TextInput,
   TouchableOpacity,
   Platform,
@@ -13,6 +11,10 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { obtenerViajesMasReservadosPorEmpresa } from "../../../services/reportesService";
 import { useAuth } from "../../../context/AuthContext";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import ScreenContainer from "@/components/ui/ScreenContainer";
+import Card from "@/components/ui/Card";
+import { formatDate, formatTime } from "@/utils/dateFormatter";
 
 interface ViajeMasReservado {
   id: number;
@@ -23,14 +25,14 @@ interface ViajeMasReservado {
   cantidadReservas: number;
 }
 
+interface RespuestaViajesMasReservados {
+  viajes: ViajeMasReservado[];
+  totalReservas: number;
+}
+
 export default function ViajesMasReservadosScreen() {
   const { id } = useLocalSearchParams();
-  const [viajes, setViajes] = useState<ViajeMasReservado[]>([]);
-  const [totalViajes, setTotalReservas] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { logout, userInfo } = useAuth();
-
+  const { userInfo } = useAuth();
   const [busqueda, setBusqueda] = useState("");
   const [fechaDesde, setFechaDesde] = useState<Date | null>(null);
   const [fechaHasta, setFechaHasta] = useState<Date | null>(null);
@@ -41,39 +43,15 @@ export default function ViajesMasReservadosScreen() {
     return <Redirect href="/(tabs)" />;
   }
 
-  useEffect(() => {
-    const cargarViajes = async () => {
-      try {
-        const respuesta = await obtenerViajesMasReservadosPorEmpresa(
-          userInfo?.empresa_id
-        );
-        setViajes(respuesta.viajes);
-        setTotalReservas(respuesta.totalReservas);
-      } catch (err: any) {
-        setError(
-          err?.response?.data?.error ||
-            "Error al obtener los viajes más reservados"
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = useCallback(
+    () => obtenerViajesMasReservadosPorEmpresa(userInfo?.empresa_id),
+    [userInfo?.empresa_id]
+  );
 
-    cargarViajes();
-  }, [userInfo?.empresa_id]);
-
-  const formatDate = (fechaISO: string) => {
-    const [year, month, day] = fechaISO.split("T")[0].split("-").map(Number);
-    return `${String(day).padStart(2, "0")}/${String(month).padStart(
-      2,
-      "0"
-    )}/${year}`;
-  };
-
-  const formatTime = (timeString: string) => {
-    const [hours, minutes] = timeString.split(":");
-    return `${hours}:${minutes}`;
-  };
+  const { data, loading, error, refetch } = useAsyncData<RespuestaViajesMasReservados>({
+    fetchFn: fetchData,
+    dependencies: [userInfo?.empresa_id],
+  });
 
   const hayFiltrosActivos =
     busqueda !== "" || fechaDesde !== null || fechaHasta !== null;
@@ -84,29 +62,35 @@ export default function ViajesMasReservadosScreen() {
     setFechaHasta(null);
   };
 
-  const viajesFiltrados = viajes.filter((viaje) => {
+  const viajesFiltrados = useMemo(() => {
+    if (!data) return [];
     const texto = busqueda.toLowerCase();
 
-    const coincideTexto =
-      viaje.origenLocalidad.toLowerCase().includes(texto) ||
-      viaje.destinoLocalidad.toLowerCase().includes(texto) ||
-      formatDate(viaje.fechaViaje).includes(texto);
+    return data.viajes.filter((viaje) => {
+      const coincideTexto =
+        viaje.origenLocalidad.toLowerCase().includes(texto) ||
+        viaje.destinoLocalidad.toLowerCase().includes(texto) ||
+        formatDate(viaje.fechaViaje).toLowerCase().includes(texto);
 
-    if (!coincideTexto) return false;
+      if (!coincideTexto) return false;
 
-    const fechaViajeDate = new Date(viaje.fechaViaje);
-    const dentroRangoDesde = fechaDesde ? fechaViajeDate >= fechaDesde : true;
-    const dentroRangoHasta = fechaHasta ? fechaViajeDate <= fechaHasta : true;
+      const fechaViajeDate = new Date(viaje.fechaViaje);
+      const dentroRangoDesde = fechaDesde ? fechaViajeDate >= fechaDesde : true;
+      const dentroRangoHasta = fechaHasta ? fechaViajeDate <= fechaHasta : true;
 
-    return dentroRangoDesde && dentroRangoHasta;
-  });
-
-  if (loading)
-    return <ActivityIndicator size="large" style={{ marginTop: 50 }} />;
-  if (error) return <Text style={styles.error}>{error}</Text>;
+      return dentroRangoDesde && dentroRangoHasta;
+    });
+  }, [data, busqueda, fechaDesde, fechaHasta]);
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer
+      loading={loading}
+      error={error}
+      onRetry={refetch}
+      refreshing={loading}
+      onRefresh={refetch}
+      contentContainerStyle={styles.container}
+    >
       <View style={styles.filaBotones}>
         {hayFiltrosActivos && (
           <TouchableOpacity
@@ -119,7 +103,9 @@ export default function ViajesMasReservadosScreen() {
       </View>
 
       <Text style={styles.title}>Viajes más Reservados</Text>
-      <Text style={styles.subtitle}>Total de viajes: {totalViajes}</Text>
+      <Text style={styles.subtitle}>
+        Total de viajes: {data?.totalReservas ?? 0}
+      </Text>
 
       <TextInput
         style={styles.input}
@@ -129,14 +115,7 @@ export default function ViajesMasReservadosScreen() {
         onChangeText={setBusqueda}
       />
 
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          marginBottom: 20,
-        }}
-      >
-        {/* Fecha Desde */}
+      <View style={styles.fechaRow}>
         <View style={{ flex: 1, marginRight: 8 }}>
           {Platform.OS === "web" ? (
             <>
@@ -175,7 +154,6 @@ export default function ViajesMasReservadosScreen() {
           )}
         </View>
 
-        {/* Fecha Hasta */}
         <View style={{ flex: 1, marginLeft: 8 }}>
           {Platform.OS === "web" ? (
             <>
@@ -220,70 +198,84 @@ export default function ViajesMasReservadosScreen() {
           No hay resultados que coincidan con los filtros.
         </Text>
       ) : (
-        <FlatList
-          data={viajesFiltrados}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text>
-                <Text style={styles.label}>Origen:</Text> {item.origenLocalidad}
-              </Text>
-              <Text>
-                <Text style={styles.label}>Destino:</Text>{" "}
-                {item.destinoLocalidad}
-              </Text>
-              <Text>
-                <Text style={styles.label}>Fecha:</Text>{" "}
-                {formatDate(item.fechaViaje)}
-              </Text>
-              <Text>
-                <Text style={styles.label}>Hora de salida:</Text>{" "}
-                {formatTime(item.horarioSalida)}
-              </Text>
-              <Text>
-                <Text style={styles.label}>Reservas:</Text>{" "}
-                {item.cantidadReservas}
-              </Text>
-            </View>
-          )}
-        />
+        viajesFiltrados.map((item) => (
+          <Card key={item.id} style={styles.card}>
+            <Text>
+              <Text style={styles.label}>Origen:</Text> {item.origenLocalidad}
+            </Text>
+            <Text>
+              <Text style={styles.label}>Destino:</Text>{" "}
+              {item.destinoLocalidad}
+            </Text>
+            <Text>
+              <Text style={styles.label}>Fecha:</Text>{" "}
+              {formatDate(item.fechaViaje)}
+            </Text>
+            <Text>
+              <Text style={styles.label}>Hora de salida:</Text>{" "}
+              {formatTime(item.horarioSalida)}
+            </Text>
+            <Text>
+              <Text style={styles.label}>Reservas:</Text>{" "}
+              {item.cantidadReservas}
+            </Text>
+          </Card>
+        ))
       )}
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#f2f2f2" },
+  container: {
+    padding: 16,
+    paddingBottom: 32,
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 8,
     textAlign: "center",
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    marginBottom: 16,
     textAlign: "center",
+    marginBottom: 16,
     color: "#555",
   },
   card: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 10,
     marginBottom: 16,
-    elevation: 2,
   },
-  label: { fontWeight: "bold" },
-  error: { color: "red", marginTop: 20, textAlign: "center", fontSize: 16 },
+  label: {
+    fontWeight: "bold",
+  },
+  empty: {
+    color: "gray",
+    marginTop: 20,
+    fontSize: 16,
+    textAlign: "center",
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 8,
-    padding: 8,
+    padding: 10,
     marginBottom: 12,
-    backgroundColor: "#fff",
   },
-  empty: { fontSize: 16, color: "gray", textAlign: "center", marginTop: 20 },
+  limpiarFiltrosButton: {
+    backgroundColor: "#999",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginBottom: 8,
+  },
+  limpiarFiltrosText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  filaBotones: {
+    flexDirection: "row-reverse",
+  },
   fechaButton: {
     backgroundColor: "#4c68d7",
     paddingVertical: 10,
@@ -291,18 +283,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-    marginBottom: 8,
   },
   fechaButtonText: {
     color: "#fff",
     fontWeight: "bold",
     fontSize: 14,
-    letterSpacing: 0.3,
   },
   fechaLabel: {
     fontSize: 14,
@@ -310,35 +295,18 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     color: "#333",
   },
-
-  limpiarFiltrosButton: {
-    backgroundColor: "#b2babb",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 4,
-  },
-  limpiarFiltrosText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
-  filaBotones: {
-    flexDirection: "row-reverse",
-    justifyContent: "flex-start",
-    gap: 8,
-    marginBottom: 12,
-  },
   dateInputWeb: {
     width: "100%",
     padding: 8,
     fontSize: 16,
     borderColor: "#ccc",
     borderWidth: 1,
-    borderRadius: 6,
+    borderRadius: 5,
     backgroundColor: "#fff",
-    boxSizing: "border-box",
+  },
+  fechaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
   },
 });

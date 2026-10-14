@@ -1,14 +1,12 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
+import React, { useCallback } from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { useAuth } from "../../../context/AuthContext";
 import { obtenerClientesConMasReservasPorEmpresa } from "../../../services/reportesService";
 import { Redirect } from "expo-router";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import ScreenContainer from "@/components/ui/ScreenContainer";
+import Card from "@/components/ui/Card";
+import DataTable, { DataTableColumn } from "@/components/ui/DataTable";
 
 interface Cliente {
   usuarios_id: number;
@@ -23,93 +21,66 @@ interface Cliente {
 }
 
 export default function TopClientesScreen() {
-  const { logout, userInfo } = useAuth();
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { userInfo } = useAuth();
 
   if (userInfo?.perfil !== "usuarioEmpresa") {
     return <Redirect href="/(tabs)" />;
   }
 
-  useEffect(() => {
-    const cargarClientes = async () => {
-      try {
-        const respuesta = await obtenerClientesConMasReservasPorEmpresa(
-          userInfo?.empresa_id
-        );
-        setClientes(respuesta.topClientes);
-      } catch (err: any) {
-        setError(
-          err?.response?.data?.error ||
-            "Error al obtener clientes con más reservas"
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = useCallback(
+    () => obtenerClientesConMasReservasPorEmpresa(userInfo?.empresa_id),
+    [userInfo?.empresa_id]
+  );
 
-    cargarClientes();
-  }, []);
+  const { data: clientes = [], loading, error, refetch } = useAsyncData<Cliente[]>({
+    fetchFn: fetchData,
+    dependencies: [userInfo?.empresa_id],
+  });
 
-  if (loading) {
-    return <ActivityIndicator size="large" style={{ marginTop: 50 }} />;
-  }
-
-  if (error) {
-    return <Text style={styles.error}>{error}</Text>;
-  }
+  const columns: DataTableColumn<Cliente>[] = [
+    { key: "nombre", label: "Nombre", width: 120, render: (item) => item.Usuario.nombre },
+    { key: "apellido", label: "Apellido", width: 120, render: (item) => item.Usuario.apellido },
+    { key: "email", label: "Email", width: 180, render: (item) => item.Usuario.email },
+    { key: "usuario", label: "Usuario", width: 120, render: (item) => item.Usuario.usuario },
+    { key: "cantidadReservas", label: "Reservas", width: 90 },
+  ];
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Clientes con Más Reservas</Text>
-      <FlatList
+    <ScreenContainer
+      loading={loading}
+      error={error}
+      onRetry={refetch}
+      refreshing={loading}
+      onRefresh={refetch}
+      contentContainerStyle={styles.container}
+    >
+      <Text style={styles.title}>Clientes con más reservas</Text>
+
+      <Card style={styles.card}>
+        <Text>
+          <Text style={styles.label}>Total de clientes:</Text>{" "}
+          {clientes.length}
+        </Text>
+      </Card>
+
+      <DataTable
+        columns={columns}
         data={clientes}
         keyExtractor={(item) => item.usuarios_id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.nombre}>
-              {item.Usuario.nombre} {item.Usuario.apellido}
-            </Text>
-            <Text>Email: {item.Usuario.email}</Text>
-            <Text>Usuario: {item.Usuario.usuario}</Text>
-            <Text>N° Usuario: {item.Usuario.id}</Text>
-            <Text>Cantidad de reservas: {item.cantidadReservas}</Text>
-          </View>
-        )}
+        emptyMessage="No hay clientes con reservas."
       />
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: "#f2f2f2",
-  },
+  container: { padding: 16, paddingBottom: 32 },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 16,
+    marginBottom: 12,
     textAlign: "center",
   },
-  card: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 16,
-    elevation: 2,
-  },
-  nombre: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  error: {
-    color: "red",
-    marginTop: 20,
-    textAlign: "center",
-    fontSize: 16,
-  },
+  card: { marginBottom: 20 },
+  label: { fontWeight: "bold" },
 });

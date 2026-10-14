@@ -1,19 +1,20 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
-  ActivityIndicator,
   TextInput,
   Platform,
   TouchableOpacity,
 } from "react-native";
 import { useAuth } from "../../../context/AuthContext";
 import { obtenerGananciaTotalPorEmpresa } from "../../../services/reportesService";
-//import { ViajeConVentas } from '../../interfaces/GananciaTotalInterface';
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Redirect } from "expo-router";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import ScreenContainer from "@/components/ui/ScreenContainer";
+import Card from "@/components/ui/Card";
+import { formatDate, formatTime, formatCurrency } from "@/utils/dateFormatter";
 
 export interface DetalleVenta {
   id: number;
@@ -61,12 +62,7 @@ export interface RespuestaGananciaTotal {
 }
 
 export default function GananciaTotalScreen() {
-  const { logout, userInfo } = useAuth();
-  const [viajes, setViajes] = useState<ViajeConVentas[]>([]);
-  const [totalGanancia, setTotalGanancia] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const { userInfo } = useAuth();
   const [busqueda, setBusqueda] = useState("");
   const [fechaDesde, setFechaDesde] = useState<Date | null>(null);
   const [fechaHasta, setFechaHasta] = useState<Date | null>(null);
@@ -77,37 +73,15 @@ export default function GananciaTotalScreen() {
     return <Redirect href="/(tabs)" />;
   }
 
-  useEffect(() => {
-    const cargarDatos = async () => {
-      try {
-        const data = await obtenerGananciaTotalPorEmpresa(userInfo.empresa_id);
-        setViajes(data.viajes);
-        setTotalGanancia(data.totalGanancia);
-      } catch (err: any) {
-        setError(
-          err?.response?.data?.error || "Error al obtener ganancia total"
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = useCallback(
+    () => obtenerGananciaTotalPorEmpresa(userInfo?.empresa_id),
+    [userInfo?.empresa_id]
+  );
 
-    cargarDatos();
-  }, []);
-  const formatDate = (fechaISO?: string) => {
-    if (!fechaISO || !fechaISO.includes("T")) return "Fecha inválida";
-    const [year, month, day] = fechaISO.split("T")[0].split("-").map(Number);
-    return `${String(day).padStart(2, "0")}/${String(month).padStart(
-      2,
-      "0"
-    )}/${year}`;
-  };
-
-  const formatTime = (timeString: string | undefined) => {
-    if (!timeString || !timeString.includes(":")) return "Hora inválida";
-    const [hours, minutes] = timeString.split(":");
-    return `${hours}:${minutes}`;
-  };
+  const { data, loading, error, refetch } = useAsyncData<RespuestaGananciaTotal>({
+    fetchFn: fetchData,
+    dependencies: [userInfo?.empresa_id],
+  });
 
   const limpiarFiltros = () => {
     setBusqueda("");
@@ -115,34 +89,37 @@ export default function GananciaTotalScreen() {
     setFechaHasta(null);
   };
 
-  const filtrarViajes = viajes.filter((item) => {
+  const filtrarViajes = useMemo(() => {
+    if (!data) return [];
     const texto = busqueda.toLowerCase();
-    const fechaViaje = new Date(item.fechaViaje);
 
-    const coincideTexto =
-      item.origenLocalidad.toLowerCase().includes(texto) ||
-      item.destinoLocalidad.toLowerCase().includes(texto) ||
-      item.MedioTransporte.nombre.toLowerCase().includes(texto) ||
-      item.MedioTransporte.patente.toLowerCase().includes(texto) ||
-      formatDate(item.fechaViaje).includes(texto);
+    return data.viajes.filter((item) => {
+      const fechaViaje = new Date(item.fechaViaje);
 
-    const dentroDesde = fechaDesde ? fechaViaje >= fechaDesde : true;
-    const dentroHasta = fechaHasta ? fechaViaje <= fechaHasta : true;
-    return coincideTexto && dentroDesde && dentroHasta;
-  });
+      const coincideTexto =
+        item.origenLocalidad.toLowerCase().includes(texto) ||
+        item.destinoLocalidad.toLowerCase().includes(texto) ||
+        item.MedioTransporte.nombre.toLowerCase().includes(texto) ||
+        item.MedioTransporte.patente.toLowerCase().includes(texto) ||
+        formatDate(item.fechaViaje).toLowerCase().includes(texto);
 
-  if (loading)
-    return <ActivityIndicator size="large" style={{ marginTop: 50 }} />;
-  if (error) return <Text style={styles.error}>{error}</Text>;
+      const dentroDesde = fechaDesde ? fechaViaje >= fechaDesde : true;
+      const dentroHasta = fechaHasta ? fechaViaje <= fechaHasta : true;
+      return coincideTexto && dentroDesde && dentroHasta;
+    });
+  }, [data, busqueda, fechaDesde, fechaHasta]);
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer
+      loading={loading}
+      error={error}
+      onRetry={refetch}
+      refreshing={loading}
+      onRefresh={refetch}
+      contentContainerStyle={styles.container}
+    >
       <Text style={styles.title}>
-        Ganancia Total: $
-        {totalGanancia.toLocaleString("es-AR", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}
+        Ganancia Total: {formatCurrency(data?.totalGanancia ?? 0)}
       </Text>
 
       <View style={styles.filtrosContainer}>
@@ -246,11 +223,11 @@ export default function GananciaTotalScreen() {
         )}
       </View>
 
-      <FlatList
-        data={filtrarViajes}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
+      {filtrarViajes.length === 0 ? (
+        <Text style={styles.empty}>No se encontraron resultados</Text>
+      ) : (
+        filtrarViajes.map((item) => (
+          <Card key={item.id} style={styles.card}>
             <Text style={styles.viajeTitulo}>
               {item.origenLocalidad} → {item.destinoLocalidad}
             </Text>
@@ -277,11 +254,7 @@ export default function GananciaTotalScreen() {
                       <View key={detalle.id} style={styles.detalleBox}>
                         <Text>Forma de pago: {detalle.formaPago}</Text>
                         <Text>
-                          Precio final: $
-                          {detalle.precioFinal.toLocaleString("es-AR", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
+                          Precio final: {formatCurrency(detalle.precioFinal)}
                         </Text>
                       </View>
                     ))}
@@ -289,15 +262,15 @@ export default function GananciaTotalScreen() {
                 ))}
               </View>
             ))}
-          </View>
-        )}
-      />
-    </View>
+          </Card>
+        ))
+      )}
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#f2f2f2" },
+  container: { padding: 16, paddingBottom: 32 },
   title: {
     fontSize: 24,
     fontWeight: "bold",
@@ -305,11 +278,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   card: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 10,
     marginBottom: 16,
-    elevation: 2,
   },
   viajeTitulo: { fontSize: 18, fontWeight: "bold" },
   sub: { fontStyle: "italic", marginBottom: 6 },
@@ -317,8 +286,7 @@ const styles = StyleSheet.create({
   ventaBox: { marginTop: 6, paddingLeft: 10 },
   detalleBox: { marginTop: 4, paddingLeft: 10 },
   label: { fontWeight: "600", marginTop: 6 },
-  error: { color: "red", marginTop: 20, textAlign: "center", fontSize: 16 },
-
+  empty: { color: "gray", marginTop: 20, textAlign: "center", fontSize: 16 },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -353,7 +321,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 6,
     backgroundColor: "#fff",
-    boxSizing: "border-box",
   },
   filtrosContainer: { marginBottom: 12 },
 });

@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
-  ScrollView,
   TextInput,
   TouchableOpacity,
   Platform,
@@ -13,6 +11,11 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAuth } from "../../../context/AuthContext";
 import { obtenerViajesPorTransporteDeEmpresa } from "../../../services/reportesService";
 import { Redirect } from "expo-router";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import ScreenContainer from "@/components/ui/ScreenContainer";
+import Card from "@/components/ui/Card";
+import DataTable, { DataTableColumn } from "@/components/ui/DataTable";
+import { formatDate, formatTime } from "@/utils/dateFormatter";
 
 interface Viaje {
   id: number;
@@ -32,11 +35,7 @@ interface TransporteConViajes {
 }
 
 export default function ViajesPorTransporteScreen() {
-  const { logout, userInfo } = useAuth();
-  const [data, setData] = useState<TransporteConViajes[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const { userInfo } = useAuth();
   const [busqueda, setBusqueda] = useState("");
   const [fechaDesde, setFechaDesde] = useState<Date | null>(null);
   const [fechaHasta, setFechaHasta] = useState<Date | null>(null);
@@ -47,35 +46,15 @@ export default function ViajesPorTransporteScreen() {
     return <Redirect href="/(tabs)" />;
   }
 
-  useEffect(() => {
-    const cargarDatos = async () => {
-      try {
-        const respuesta = await obtenerViajesPorTransporteDeEmpresa(
-          userInfo.empresa_id
-        );
-        setData(respuesta);
-      } catch (err: any) {
-        setError(err?.response?.data?.error || "Error al obtener los viajes");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = useCallback(
+    () => obtenerViajesPorTransporteDeEmpresa(userInfo?.empresa_id),
+    [userInfo?.empresa_id]
+  );
 
-    cargarDatos();
-  }, []);
-
-  const formatDate = (fechaISO: string) => {
-    const [year, month, day] = fechaISO.split("T")[0].split("-").map(Number);
-    return `${String(day).padStart(2, "0")}/${String(month).padStart(
-      2,
-      "0"
-    )}/${year}`;
-  };
-
-  const formatTime = (timeString: string) => {
-    const [hours, minutes] = timeString.split(":");
-    return `${hours}:${minutes}`;
-  };
+  const { data = [], loading, error, refetch } = useAsyncData<TransporteConViajes[]>({
+    fetchFn: fetchData,
+    dependencies: [userInfo?.empresa_id],
+  });
 
   const hayFiltros = busqueda !== "" || fechaDesde || fechaHasta;
 
@@ -85,7 +64,7 @@ export default function ViajesPorTransporteScreen() {
     setFechaHasta(null);
   };
 
-  const filtrarDatos = () => {
+  const datosFiltrados = useMemo(() => {
     const texto = busqueda.toLowerCase();
 
     return data
@@ -113,16 +92,25 @@ export default function ViajesPorTransporteScreen() {
         };
       })
       .filter((t) => t.viajes.length > 0);
-  };
+  }, [data, busqueda, fechaDesde, fechaHasta]);
 
-  const datosFiltrados = filtrarDatos();
-
-  if (loading)
-    return <ActivityIndicator size="large" style={{ marginTop: 50 }} />;
-  if (error) return <Text style={styles.error}>{error}</Text>;
+  const viajesColumns: DataTableColumn<Viaje>[] = [
+    { key: "origen", label: "Origen", width: 130 },
+    { key: "destino", label: "Destino", width: 130 },
+    { key: "fechaViaje", label: "Fecha", width: 100, render: (item) => formatDate(item.fechaViaje) },
+    { key: "horarioSalida", label: "Hora", width: 80, render: (item) => formatTime(item.horarioSalida) },
+  ];
 
   return (
-    <ScrollView style={styles.container}>
+    <ScreenContainer
+      loading={loading}
+      error={error}
+      onRetry={refetch}
+      refreshing={loading}
+      onRefresh={refetch}
+      scrollEnabled
+      contentContainerStyle={styles.container}
+    >
       <Text style={styles.title}>Viajes por Transporte</Text>
 
       {hayFiltros && (
@@ -139,13 +127,7 @@ export default function ViajesPorTransporteScreen() {
         onChangeText={setBusqueda}
       />
 
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          marginBottom: 16,
-        }}
-      >
+      <View style={styles.fechaRow}>
         <View style={{ flex: 1, marginRight: 8 }}>
           {Platform.OS === "web" ? (
             <>
@@ -224,36 +206,35 @@ export default function ViajesPorTransporteScreen() {
       </View>
 
       {datosFiltrados.length === 0 ? (
-        <Text style={styles.error}>No se encontraron resultados</Text>
+        <Text style={styles.empty}>No se encontraron resultados</Text>
       ) : (
         datosFiltrados.map((transporte) => (
-          <View key={transporte.transporteId} style={styles.transporteCard}>
+          <Card key={transporte.transporteId} style={styles.transporteCard}>
             <Text style={styles.subTitle}>
               🚍 {transporte.nombre} ({transporte.patente})
             </Text>
             <Text>Marca: {transporte.marca}</Text>
-            <Text>Total de viajes: {transporte.cantidadViajes}</Text>
+            <Text style={{ marginBottom: 10 }}>
+              Total de viajes: {transporte.cantidadViajes}
+            </Text>
 
-            {transporte.viajes.map((viaje) => (
-              <View key={viaje.id} style={styles.viajeCard}>
-                <Text>🧭 Origen: {viaje.origen}</Text>
-                <Text>🏁 Destino: {viaje.destino}</Text>
-                <Text>📅 Fecha: {formatDate(viaje.fechaViaje)}</Text>
-                <Text>🕒 Hora: {formatTime(viaje.horarioSalida)}</Text>
-              </View>
-            ))}
-          </View>
+            <DataTable
+              columns={viajesColumns}
+              data={transporte.viajes}
+              keyExtractor={(item) => item.id.toString()}
+              emptyMessage="No hay viajes para este transporte."
+            />
+          </Card>
         ))
       )}
-    </ScrollView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    backgroundColor: "#f4f4f4",
-    flex: 1,
+    paddingBottom: 32,
   },
   title: {
     fontSize: 24,
@@ -267,19 +248,9 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   transporteCard: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 10,
     marginBottom: 20,
-    elevation: 2,
   },
-  viajeCard: {
-    backgroundColor: "#e9ecef",
-    padding: 10,
-    borderRadius: 8,
-    marginTop: 10,
-  },
-  error: {
+  empty: {
     color: "gray",
     marginTop: 20,
     fontSize: 16,
@@ -332,5 +303,10 @@ const styles = StyleSheet.create({
   limpiarTexto: {
     color: "#fff",
     fontWeight: "bold",
+  },
+  fechaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
   },
 });

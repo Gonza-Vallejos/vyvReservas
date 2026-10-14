@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
-  ActivityIndicator,
   TextInput,
   TouchableOpacity,
   Platform,
@@ -13,6 +11,10 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAuth } from "../../../context/AuthContext";
 import { obtenerGananciasPorViajePorEmpresa } from "../../../services/reportesService";
 import { Redirect } from "expo-router";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import ScreenContainer from "@/components/ui/ScreenContainer";
+import Card from "@/components/ui/Card";
+import { formatDate, formatTime, formatCurrency } from "@/utils/dateFormatter";
 
 export interface MedioTransporte {
   id: number;
@@ -43,25 +45,8 @@ export interface ResultadoGananciaViaje {
   totalGanancia: number;
 }
 
-const formatDate = (fechaISO: string) => {
-  const [year, month, day] = fechaISO.split("T")[0].split("-").map(Number);
-  return `${String(day).padStart(2, "0")}/${String(month).padStart(
-    2,
-    "0"
-  )}/${year}`;
-};
-
-const formatTime = (timeString: string) => {
-  const [hours, minutes] = timeString.split(":");
-  return `${hours}:${minutes}`;
-};
-
 export default function GananciasPorViajeScreen() {
-  const { logout, userInfo } = useAuth();
-  const [viajes, setViajes] = useState<ResultadoGananciaViaje[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const { userInfo } = useAuth();
   const [busqueda, setBusqueda] = useState("");
   const [fechaDesde, setFechaDesde] = useState<Date | null>(null);
   const [fechaHasta, setFechaHasta] = useState<Date | null>(null);
@@ -72,24 +57,17 @@ export default function GananciasPorViajeScreen() {
     return <Redirect href="/(tabs)" />;
   }
 
-  useEffect(() => {
-    const cargarDatos = async () => {
-      try {
-        const data = await obtenerGananciasPorViajePorEmpresa(
-          userInfo?.empresa_id
-        );
-        setViajes(data.resultados);
-      } catch (err: any) {
-        setError(
-          err?.response?.data?.error || "Error al obtener datos de ganancias"
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = useCallback(
+    () => obtenerGananciasPorViajePorEmpresa(userInfo?.empresa_id),
+    [userInfo?.empresa_id]
+  );
 
-    cargarDatos();
-  }, []);
+  const { data, loading, error, refetch } = useAsyncData<{
+    resultados: ResultadoGananciaViaje[];
+  }>({
+    fetchFn: fetchData,
+    dependencies: [userInfo?.empresa_id],
+  });
 
   const limpiarFiltros = () => {
     setBusqueda("");
@@ -97,29 +75,36 @@ export default function GananciasPorViajeScreen() {
     setFechaHasta(null);
   };
 
-  const filtrarViajes = viajes.filter((item) => {
+  const filtrarViajes = useMemo(() => {
+    if (!data) return [];
     const texto = busqueda.toLowerCase();
-    const fechaViaje = new Date(item.viaje.fechaViaje);
 
-    const coincideTexto =
-      item.viaje.origenLocalidad.toLowerCase().includes(texto) ||
-      item.viaje.destinoLocalidad.toLowerCase().includes(texto) ||
-      item.viaje.medioTransporte.nombre.toLowerCase().includes(texto) ||
-      item.viaje.medioTransporte.patente.toLowerCase().includes(texto) ||
-      formatDate(item.viaje.fechaViaje).includes(texto);
+    return data.resultados.filter((item) => {
+      const fechaViaje = new Date(item.viaje.fechaViaje);
 
-    const dentroDesde = fechaDesde ? fechaViaje >= fechaDesde : true;
-    const dentroHasta = fechaHasta ? fechaViaje <= fechaHasta : true;
+      const coincideTexto =
+        item.viaje.origenLocalidad.toLowerCase().includes(texto) ||
+        item.viaje.destinoLocalidad.toLowerCase().includes(texto) ||
+        item.viaje.medioTransporte.nombre.toLowerCase().includes(texto) ||
+        item.viaje.medioTransporte.patente.toLowerCase().includes(texto) ||
+        formatDate(item.viaje.fechaViaje).toLowerCase().includes(texto);
 
-    return coincideTexto && dentroDesde && dentroHasta;
-  });
+      const dentroDesde = fechaDesde ? fechaViaje >= fechaDesde : true;
+      const dentroHasta = fechaHasta ? fechaViaje <= fechaHasta : true;
 
-  if (loading)
-    return <ActivityIndicator size="large" style={{ marginTop: 50 }} />;
-  if (error) return <Text style={styles.error}>{error}</Text>;
+      return coincideTexto && dentroDesde && dentroHasta;
+    });
+  }, [data, busqueda, fechaDesde, fechaHasta]);
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer
+      loading={loading}
+      error={error}
+      onRetry={refetch}
+      refreshing={loading}
+      onRefresh={refetch}
+      contentContainerStyle={styles.container}
+    >
       <Text style={styles.title}>Ganancias por Viaje</Text>
 
       <View style={styles.filtrosContainer}>
@@ -223,26 +208,23 @@ export default function GananciasPorViajeScreen() {
         )}
       </View>
 
-      <FlatList
-        data={filtrarViajes}
-        keyExtractor={(item) => item.viaje.id.toString()}
-        ListEmptyComponent={
-          <Text style={styles.error}>No hay resultados.</Text>
-        }
-        renderItem={({ item }) => (
-          <View style={styles.card}>
+      {filtrarViajes.length === 0 ? (
+        <Text style={styles.empty}>No hay resultados.</Text>
+      ) : (
+        filtrarViajes.map((item) => (
+          <Card key={item.viaje.id} style={styles.card}>
             <Text style={styles.viajeTitulo}>
               {item.viaje.origenLocalidad} → {item.viaje.destinoLocalidad}
             </Text>
             <Text>Fecha: {formatDate(item.viaje.fechaViaje)}</Text>
             <Text>Hora: {formatTime(item.viaje.horarioSalida)}</Text>
-            <Text>Precio: ${item.viaje.precio.toFixed(2)}</Text>
+            <Text>Precio: {formatCurrency(item.viaje.precio)}</Text>
             <Text>
               Transporte: {item.viaje.medioTransporte.nombre} (
               {item.viaje.medioTransporte.patente})
             </Text>
             <Text style={styles.totalGanancia}>
-              Ganancia: ${item.totalGanancia.toFixed(2)}
+              Ganancia: {formatCurrency(item.totalGanancia)}
             </Text>
 
             <View style={styles.ventasBox}>
@@ -259,34 +241,30 @@ export default function GananciasPorViajeScreen() {
                 ))
               )}
             </View>
-          </View>
-        )}
-      />
-    </View>
+          </Card>
+        ))
+      )}
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#f2f2f2" },
+  container: { padding: 16, paddingBottom: 32 },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
-    marginVertical: 16,
+    marginBottom: 16,
   },
   card: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 10,
     marginBottom: 16,
-    elevation: 2,
   },
   viajeTitulo: { fontSize: 18, fontWeight: "bold", marginBottom: 4 },
   ventasBox: { marginTop: 10 },
   totalGanancia: { marginTop: 10, fontWeight: "bold", fontSize: 16 },
   label: { fontWeight: "600", marginTop: 6 },
   textoSecundario: { fontStyle: "italic", color: "#555" },
-  error: { color: "gray", marginTop: 20, textAlign: "center", fontSize: 16 },
+  empty: { color: "gray", marginTop: 20, textAlign: "center", fontSize: 16 },
   filtrosContainer: { marginBottom: 12 },
   input: {
     borderWidth: 1,
@@ -322,6 +300,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 6,
     backgroundColor: "#fff",
-    boxSizing: "border-box",
   },
 });
