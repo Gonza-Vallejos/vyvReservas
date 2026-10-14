@@ -78,6 +78,8 @@ const BookingConfirmationPage = () => {
   const handlePayment = async () => {
     try {
       setLoading(true);
+      // Guardar reservaId para las páginas de retorno de MP
+      sessionStorage.setItem('ultimaReservaId', reservaId);
       const response = await pagoService.crearPreferencia(reservaId);
       const { initPoint } = response.data?.data || response.data || {};
       if (initPoint) {

@@ -190,14 +190,35 @@
 .vv-input__field {
   flex: 1;
   min-width: 0;
-  border: none;
-  background: transparent;
+  border: none !important;
+  background: transparent !important;
   font-size: var(--text-base);
   color: var(--color-text);
   font-weight: 600;
-  outline: none;
+  outline: none !important;
+  box-shadow: none !important;
   padding: 0;
   width: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.vv-input__field:focus,
+.vv-input__field:focus-visible,
+.vv-input__field:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.vv-input__field:-webkit-autofill,
+.vv-input__field:-webkit-autofill:hover, 
+.vv-input__field:-webkit-autofill:focus, 
+.vv-input__field:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px var(--color-surface, #ffffff) inset !important;
+  -webkit-text-fill-color: var(--color-text, #0f172a) !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 .vv-input__field::placeholder {

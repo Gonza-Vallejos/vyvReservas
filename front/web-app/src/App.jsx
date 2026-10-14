@@ -9,6 +9,8 @@ import DateSelectorBar from './components/DateSelectorBar';
 import EmptyState from './components/ui/EmptyState';
 import BookingPage from './pages/BookingPage';
 import BookingConfirmationPage from './pages/BookingConfirmationPage';
+import PagoExitosoPage from './pages/PagoExitosoPage';
+import PagoFallidoPage from './pages/PagoFallidoPage';
 import TripDetailPage from './pages/TripDetailPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -293,6 +295,8 @@ function App() {
               <Route path="/viaje/:id" element={<TripDetailPage />} />
               <Route path="/reservar/:id" element={<BookingPage />} />
               <Route path="/confirmacion/:reservaId" element={<BookingConfirmationPage />} />
+              <Route path="/pagos/exitoso" element={<PagoExitosoPage />} />
+              <Route path="/pagos/fallido" element={<PagoFallidoPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/chofer" element={<ChoferDashboardPage />} />
               <Route path="/mis-reservas" element={<MyReservationsPage />} />

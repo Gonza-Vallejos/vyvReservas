@@ -13,6 +13,15 @@
     },
     "buffer": 20000
   },
+  // MCP servers disponibles
+  "mcp": {
+    "servers": {
+      "mercadopago": {
+        "type": "remote",
+        "url": "https://mcp.mercadopago.com/mcp"
+      }
+    }
+  },
   // Reglas generales de permisos
   "permissions": [
     {
