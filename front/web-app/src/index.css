@@ -1193,6 +1193,54 @@ img, svg {
   }
 }
 
+@media (max-width: 768px) {
+  .auth-layout {
+    width: 100%;
+    min-height: calc(100vh - 64px);
+    overflow-x: hidden;
+  }
+
+  .auth-form-panel {
+    width: 100%;
+    min-height: calc(100vh - 64px);
+    justify-content: flex-start;
+    padding: 28px 16px 40px;
+  }
+
+  .auth-card {
+    width: min(100%, 520px);
+    margin: 0 auto;
+    padding: 28px 20px;
+    border-radius: 20px;
+  }
+
+  .auth-title {
+    font-size: clamp(1.65rem, 7vw, 2rem);
+  }
+
+  .auth-subtitle {
+    max-width: 32ch;
+    margin: 0 auto;
+    font-size: 0.95rem;
+  }
+
+  .auth-role-guide {
+    margin-top: 20px;
+  }
+
+  .auth-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .auth-form-grid__full {
+    grid-column: auto;
+  }
+
+  .auth-back {
+    align-self: flex-start;
+  }
+}
+
 /* ---------- Site navbar ---------- */
 .site-navbar {
   position: sticky;
