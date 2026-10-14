@@ -1,12 +1,23 @@
 const authService = require("../services/authService");
 const { sendSuccess, sendError } = require("../utils/responseHandler");
+const appLogger = require("../utils/logger");
 
 exports.login = async (req, res) => {
   const { usuario, contrasenia } = req.body;
   try {
     const data = await authService.login(usuario, contrasenia);
+    appLogger.info("login_succeeded", {
+      requestId: req.requestId,
+      userId: data?.usuario?.id,
+      perfil: data?.usuario?.perfil_id,
+    });
     sendSuccess(res, data);
   } catch (error) {
+    appLogger.warn("login_failed", {
+      requestId: req.requestId,
+      usuario,
+      reason: error.message,
+    });
     if (error.message === "USER_NOT_FOUND" || error.message === "INVALID_PASSWORD") {
       return sendError(res, "Credenciales inválidas", 401);
     }

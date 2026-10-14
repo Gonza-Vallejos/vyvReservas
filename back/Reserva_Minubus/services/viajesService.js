@@ -1,5 +1,6 @@
 const { Viajes, MedioTransporte, UsuarioEmpresa, Usuario, Reserva, Empresa, Pasajeros } = require("../models");
 const { Op } = require("sequelize");
+const appLogger = require("../utils/logger");
 
 class ViajesService {
   async getAll() {
@@ -56,7 +57,13 @@ class ViajesService {
     const { medioTransporte_id, usuarioEmpresa_id } = viajeData;
 
     const transporte = await MedioTransporte.findByPk(medioTransporte_id);
-    if (!transporte) throw new Error("INVALID_TRANSPORTE");
+    if (!transporte) {
+      appLogger.warn("trip_validation_failed", {
+        reason: "INVALID_TRANSPORTE",
+        medioTransporteId: medioTransporte_id,
+      });
+      throw new Error("INVALID_TRANSPORTE");
+    }
 
     // El frontend debe enviar el ID de la asociación UsuarioEmpresa, no el
     // ID del usuario. La validación del perfil se hace en la consulta para no
@@ -65,9 +72,21 @@ class ViajesService {
       where: { id: Number(usuarioEmpresa_id) },
       include: [{ model: Usuario, where: { perfil_id: 4, eliminado: "no" } }]
     });
-    if (!usuarioEmpresa) throw new Error("INVALID_CHOFER");
+    if (!usuarioEmpresa) {
+      appLogger.warn("trip_validation_failed", {
+        reason: "INVALID_CHOFER",
+        usuarioEmpresaId: usuarioEmpresa_id,
+      });
+      throw new Error("INVALID_CHOFER");
+    }
 
     if (usuarioEmpresa.id_empresa !== transporte.empresa_id) {
+      appLogger.warn("trip_validation_failed", {
+        reason: "EMPRESA_MISMATCH",
+        usuarioEmpresaId: usuarioEmpresa_id,
+        transporteEmpresaId: transporte.empresa_id,
+        choferEmpresaId: usuarioEmpresa.id_empresa,
+      });
       throw new Error("EMPRESA_MISMATCH");
     }
 
@@ -97,10 +116,31 @@ class ViajesService {
         include: [{ model: Usuario, where: { perfil_id: 4, eliminado: "no" } }]
       });
 
-      if (!transporte) throw new Error("INVALID_TRANSPORTE");
-      if (!usuarioEmpresa) throw new Error("INVALID_CHOFER");
-      if (usuarioEmpresa.id_empresa !== transporte.empresa_id) {
-        throw new Error("EMPRESA_MISMATCH");
+       if (!transporte) {
+         appLogger.warn("trip_update_validation_failed", {
+           reason: "INVALID_TRANSPORTE",
+           viajeId: id,
+           medioTransporteId: transporteId,
+         });
+         throw new Error("INVALID_TRANSPORTE");
+       }
+       if (!usuarioEmpresa) {
+         appLogger.warn("trip_update_validation_failed", {
+           reason: "INVALID_CHOFER",
+           viajeId: id,
+           usuarioEmpresaId: choferAssociationId,
+         });
+         throw new Error("INVALID_CHOFER");
+       }
+       if (usuarioEmpresa.id_empresa !== transporte.empresa_id) {
+         appLogger.warn("trip_update_validation_failed", {
+           reason: "EMPRESA_MISMATCH",
+           viajeId: id,
+           usuarioEmpresaId: choferAssociationId,
+           transporteEmpresaId: transporte.empresa_id,
+           choferEmpresaId: usuarioEmpresa.id_empresa,
+         });
+         throw new Error("EMPRESA_MISMATCH");
       }
     }
 

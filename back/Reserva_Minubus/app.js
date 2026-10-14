@@ -6,6 +6,8 @@ const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./config/swagger');
 const { sendError } = require('./utils/responseHandler');
+const { randomUUID } = require('crypto');
+const appLogger = require('./utils/logger');
 
 require('dotenv').config();
 
@@ -35,6 +37,24 @@ db.sequelize.authenticate()
 // Middlewares
 app.use(cors());
 app.use(logger('dev'));
+app.use((req, res, next) => {
+  req.requestId = randomUUID();
+  const startedAt = Date.now();
+
+  res.on('finish', () => {
+    appLogger.info('http_request', {
+      requestId: req.requestId,
+      method: req.method,
+      path: req.originalUrl,
+      status: res.statusCode,
+      durationMs: Date.now() - startedAt,
+      userId: req.usuario?.id,
+      perfil: req.usuario?.perfil,
+    });
+  });
+
+  next();
+});
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
@@ -76,12 +96,20 @@ app.use('/pagos', pagosRouter);
 
 // 404 Handler
 app.use((req, res) => {
+  appLogger.warn('route_not_found', {
+    requestId: req.requestId,
+    method: req.method,
+    path: req.originalUrl,
+  });
   sendError(res, 'Recurso no encontrado', 404);
 });
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  appLogger.error('unhandled_error', {
+    requestId: req.requestId,
+    ...appLogger.errorDetails(err),
+  });
   sendError(res, err.message || 'Error interno del servidor', err.status || 500, err);
 });
 

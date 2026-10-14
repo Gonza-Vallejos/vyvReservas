@@ -1,12 +1,20 @@
 const ubicacionService = require("../services/ubicacionService");
 const { sendSuccess, sendError } = require("../utils/responseHandler");
+const appLogger = require("../utils/logger");
 
 exports.obtenerLocalidades = async (req, res) => {
   try {
     const localidades = await ubicacionService.getLocalidades();
+    appLogger.info("locations_listed", {
+      requestId: req.requestId,
+      count: localidades.length,
+    });
     sendSuccess(res, localidades);
   } catch (error) {
-    console.error('ERROR EN OBTENER LOCALIDADES:', error);
+    appLogger.error("locations_list_failed", {
+      requestId: req.requestId,
+      ...appLogger.errorDetails(error),
+    });
     sendError(res, "Error al obtener localidades", 500, error);
   }
 };

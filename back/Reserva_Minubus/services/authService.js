@@ -53,6 +53,10 @@ class AuthService {
       usuario: {
         id: user.id,
         nombre: user.nombre,
+        apellido: user.apellido,
+        dni: user.dni,
+        telefono: user.telefono,
+        email: user.email,
         usuario: user.usuario,
         perfil_id: user.perfil_id,
         perfil: user.Perfil.tipo,

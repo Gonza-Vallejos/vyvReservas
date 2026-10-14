@@ -84,7 +84,17 @@ class UsuarioService {
   }
 
   async update(id, updateData) {
-    const [rowsUpdated] = await Usuario.update(updateData, {
+    const allowedFields = ["nombre", "apellido", "dni", "telefono", "email", "usuario"];
+    const changes = Object.fromEntries(
+      Object.entries(updateData).filter(([key, value]) => allowedFields.includes(key) && value !== undefined)
+    );
+
+    if (changes.dni !== undefined) changes.dni = Number(changes.dni);
+    if (changes.nombre !== undefined) changes.nombre = String(changes.nombre).trim();
+    if (changes.apellido !== undefined) changes.apellido = String(changes.apellido).trim();
+    if (changes.telefono !== undefined) changes.telefono = String(changes.telefono).replace(/\D/g, "");
+
+    const [rowsUpdated] = await Usuario.update(changes, {
       where: { id, eliminado: "no" },
     });
     return rowsUpdated > 0;

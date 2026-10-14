@@ -1,5 +1,6 @@
 const reservaService = require("../services/reservaService");
 const { sendSuccess, sendError } = require("../utils/responseHandler");
+const appLogger = require("../utils/logger");
 
 exports.obtenerReservas = async (req, res) => {
   try {
@@ -31,12 +32,25 @@ exports.obtenerReservasPorUsuario = async (req, res) => {
 };
 
 exports.crearReserva = async (req, res) => {
+  appLogger.info("reservation_create_started", {
+    requestId: req.requestId,
+    userId: req.usuario?.id,
+    perfil: req.usuario?.perfil,
+    bodyUserId: req.body?.usuarios_id,
+    viajeId: req.body?.viajes_id,
+    pasajeros: req.body?.pasajeros?.length || req.body?.personas?.length,
+  });
   try {
     const { pasajeros, ...reservaData } = req.body;
     const nuevaReserva = await reservaService.create(reservaData, pasajeros);
     sendSuccess(res, nuevaReserva, "Reserva creada correctamente", 201);
   } catch (error) {
-    console.error("Error al crear reserva:", error);
+    appLogger.error("reservation_create_failed", {
+      requestId: req.requestId,
+      userId: req.usuario?.id,
+      viajeId: req.body?.viajes_id,
+      ...appLogger.errorDetails(error),
+    });
     if (error.message === "NO_AVAILABILITY") {
       return sendError(res, "No hay lugares disponibles para este viaje", 400);
     }

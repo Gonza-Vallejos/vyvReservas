@@ -1,5 +1,6 @@
 const viajesService = require("../services/viajesService");
 const { sendSuccess, sendError } = require("../utils/responseHandler");
+const appLogger = require("../utils/logger");
 
 exports.obtenerViajes = async (req, res) => {
   try {
@@ -32,10 +33,29 @@ exports.obtenerViajesDisponibles = async (req, res) => {
 };
 
 exports.crearViaje = async (req, res) => {
+  appLogger.info("trip_create_started", {
+    requestId: req.requestId,
+    userId: req.usuario?.id,
+    perfil: req.usuario?.perfil,
+    origen: req.body?.origenLocalidad,
+    destino: req.body?.destinoLocalidad,
+    usuarioEmpresaId: req.body?.usuarioEmpresa_id,
+    medioTransporteId: req.body?.medioTransporte_id,
+  });
   try {
     const nuevo = await viajesService.create(req.body);
+    appLogger.info("trip_create_succeeded", {
+      requestId: req.requestId,
+      userId: req.usuario?.id,
+      viajeId: nuevo.id,
+    });
     sendSuccess(res, nuevo, "Viaje creado exitosamente", 201);
   } catch (error) {
+    appLogger.error("trip_create_failed", {
+      requestId: req.requestId,
+      userId: req.usuario?.id,
+      ...appLogger.errorDetails(error),
+    });
     const messages = {
       "INVALID_TRANSPORTE": "El medio de transporte no es válido",
       "INVALID_CHOFER": "El usuario no es válido o no tiene perfil de chofer",
@@ -51,6 +71,12 @@ exports.actualizarViajes = async (req, res) => {
     if (!actualizado) return sendError(res, "Viaje no encontrado", 404);
     sendSuccess(res, null, "Viaje actualizado");
   } catch (error) {
+    appLogger.error("trip_update_failed", {
+      requestId: req.requestId,
+      userId: req.usuario?.id,
+      viajeId: req.params.id,
+      ...appLogger.errorDetails(error),
+    });
     const messages = {
       "INVALID_TRANSPORTE": "El medio de transporte no es válido",
       "INVALID_CHOFER": "El usuario seleccionado no tiene perfil de chofer",

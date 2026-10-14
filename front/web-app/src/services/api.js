@@ -45,6 +45,7 @@ export const empresaService = {
 
 export const usuarioService = {
   registrarEmpleado: (data) => api.post('/usuarios/registrar-empleado', data),
+  actualizar: (id, data) => api.put(`/usuarios/${id}`, data),
 };
 
 export const reservaService = {

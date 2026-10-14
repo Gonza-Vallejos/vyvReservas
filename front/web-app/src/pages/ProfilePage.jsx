@@ -22,6 +22,7 @@ import {
   Loader,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { usuarioService } from '../services/api';
 
 const roleLabel = (perfilId) => {
   switch (perfilId) {
@@ -105,7 +106,8 @@ const ProfilePage = () => {
     if (!form.apellido.trim()) nextErrors.apellido = 'Ingresá tu apellido';
     if (!form.dni.trim()) nextErrors.dni = 'Ingresá tu DNI';
     else if (form.dni.trim().length < 7) nextErrors.dni = 'DNI inválido';
-    if (form.telefono.trim() && form.telefono.trim().length < 7) {
+    if (!form.telefono.trim()) nextErrors.telefono = 'Ingresá tu teléfono';
+    else if (form.telefono.trim().replace(/\D/g, '').length < 10) {
       nextErrors.telefono = 'Teléfono inválido';
     }
     setErrors(nextErrors);
@@ -117,24 +119,27 @@ const ProfilePage = () => {
     setSaving(true);
 
     try {
-      // TODO: reemplazar por endpoint PUT /usuarios/:id cuando exista
-      // await usuarioService.actualizar(user.id, form);
-
-      const updatedUser = {
-        ...user,
+      const payload = {
         nombre: form.nombre.trim(),
         apellido: form.apellido.trim(),
-        dni: form.dni.trim(),
+        dni: parseInt(form.dni.trim(), 10),
         telefono: form.telefono.trim(),
       };
+      await usuarioService.actualizar(user.id, payload);
+
+      const updatedUser = { ...user, ...payload, dni: String(payload.dni) };
       const token = localStorage.getItem('token');
       if (token) {
         login(updatedUser, token);
       }
-      toast.success('Datos actualizados');
+      toast.success('Datos guardados correctamente');
       setIsEditing(false);
-    } catch {
-      toast.error('No se pudieron guardar los cambios');
+    } catch (error) {
+      const validationErrors = error.response?.data?.errores;
+      const message = validationErrors?.[0]?.msg
+        || error.response?.data?.message
+        || 'No se pudieron guardar los cambios';
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -270,7 +275,7 @@ const ProfilePage = () => {
 
             {isEditing && (
               <p className="profile-page__placeholder-note">
-                La actualización de datos se guarda localmente hasta que el endpoint de backend esté disponible.
+                Los cambios se guardan en tu cuenta y estarán disponibles en tu próximo inicio de sesión.
               </p>
             )}
           </Card>

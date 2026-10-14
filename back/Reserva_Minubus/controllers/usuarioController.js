@@ -52,11 +52,17 @@ exports.registrarEmpleado = async (req, res) => {
 // Actualizar un usuario existente
 exports.actualizarUsuario = async (req, res) => {
   try {
+    const requestedId = Number(req.params.id);
+    const isPrivileged = ['usuarioAdministrador', 'usuarioEmpresa'].includes(req.usuario?.perfil);
+    if (requestedId !== Number(req.usuario?.id) && !isPrivileged) {
+      return sendError(res, "No podés modificar los datos de otro usuario", 403);
+    }
+
     const actualizado = await usuarioService.update(req.params.id, req.body);
     if (!actualizado) {
       return sendError(res, "Usuario no encontrado o sin cambios", 404);
     }
-    sendSuccess(res, null, "Usuario actualizado");
+    sendSuccess(res, { id: requestedId, ...req.body }, "Usuario actualizado");
   } catch (error) {
     sendError(res, "Error al actualizar el usuario", 500, error);
   }
