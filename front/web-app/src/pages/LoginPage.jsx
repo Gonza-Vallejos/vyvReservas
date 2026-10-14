@@ -2,13 +2,23 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/api';
-import { User as UserIcon, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import {
+  User as UserIcon,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Building2,
+  BusFront,
+  Ticket,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import AuthLayout from '../components/auth/AuthLayout';
 import Card from '../components/ui/Card';
 import InputField from '../components/ui/InputField';
 import Button from '../components/ui/Button';
+import { PROFILES } from '../constants/profiles';
 
 const LoginPage = () => {
   const [form, setForm] = useState({ usuario: '', contrasenia: '' });
@@ -49,15 +59,15 @@ const LoginPage = () => {
       if (success && data) {
         login(data.usuario, data.token);
         toast.success('¡Bienvenido!');
-        const perfilId = data.usuario?.perfil_id;
-        if (perfilId === 1 || perfilId === 5 || perfilId === 3) navigate('/dashboard');
-        else if (perfilId === 4) navigate('/chofer');
+        const perfilId = Number(data.usuario?.perfil_id);
+        if ([PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR].includes(perfilId)) navigate('/dashboard');
+        else if (perfilId === PROFILES.CHOFER) navigate('/chofer');
         else navigate('/');
       } else {
-        toast.error(response.data.message || 'Error de credenciales');
+        toast.error(response.data.message || 'No pudimos iniciar sesión');
       }
-    } catch {
-      toast.error('Credenciales inválidas');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Usuario o contraseña incorrectos');
     } finally {
       setLoading(false);
     }
@@ -82,8 +92,8 @@ const LoginPage = () => {
           <div className="auth-logo">
             <Lock size={24} aria-hidden="true" />
           </div>
-          <h2 className="auth-title">Hola de nuevo</h2>
-          <p className="auth-subtitle">Gestiona tus viajes y reservas con facilidad.</p>
+            <h2 className="auth-title">Ingresá a tu espacio V&V</h2>
+            <p className="auth-subtitle">Reservá tu viaje o gestioná la operación de tu empresa.</p>
         </header>
 
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
@@ -132,7 +142,25 @@ const LoginPage = () => {
               </>
             )}
           </Button>
-        </form>
+          </form>
+
+          <div className="auth-role-guide" aria-label="Acciones según tu perfil">
+            <div className="auth-role-guide__title">Cada perfil tiene su espacio</div>
+            <div className="auth-role-guide__items">
+              <div className="auth-role-guide__item">
+                <Ticket size={16} aria-hidden="true" />
+                <span><strong>Pasajero</strong> · reserva y paga</span>
+              </div>
+              <div className="auth-role-guide__item">
+                <Building2 size={16} aria-hidden="true" />
+                <span><strong>Empresa</strong> · administra viajes y flota</span>
+              </div>
+              <div className="auth-role-guide__item">
+                <BusFront size={16} aria-hidden="true" />
+                <span><strong>Chofer</strong> · consulta su recorrido</span>
+              </div>
+            </div>
+          </div>
 
         <div className="auth-divider" aria-hidden="true">
           <span>o</span>

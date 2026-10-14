@@ -18,6 +18,7 @@ import MyReservationsPage from './pages/MyReservationsPage';
 import ProfilePage from './pages/ProfilePage';
 import MinibusLoader from './components/MinibusLoader';
 import { viajeService } from './services/api';
+import { PROFILES } from './constants/profiles';
 import './index.css';
 
 const Home = () => {
@@ -27,9 +28,12 @@ const Home = () => {
   // Si el usuario es Dueño (5), Administrador (1) o Mostrador (3), debe ir directo a su Panel
   useEffect(() => {
     if (user) {
-      if (user.perfil_id === 5 || user.perfil_id === 1 || user.perfil_id === 3) {
+      const perfilId = Number(user.perfil_id);
+      // La empresa puede administrar y también navegar el flujo público de
+      // reservas; no debe quedar atrapada en el dashboard.
+      if (perfilId === PROFILES.ADMINISTRADOR || perfilId === PROFILES.EMPRESA || perfilId === PROFILES.MOSTRADOR) {
         navigate('/dashboard', { replace: true });
-      } else if (user.perfil_id === 4) {
+      } else if (perfilId === PROFILES.CHOFER) {
         navigate('/chofer', { replace: true });
       }
     }
@@ -172,10 +176,10 @@ const Navbar = () => {
           {user ? (
             <>
               <Link to="/mis-reservas" style={navLinkStyle}>Mis Reservas</Link>
-              {(user?.perfil_id === 1 || user?.perfil_id === 5 || user?.perfil_id === 3) && (
+              {(Number(user?.perfil_id) === PROFILES.ADMINISTRADOR || Number(user?.perfil_id) === PROFILES.EMPRESA || Number(user?.perfil_id) === PROFILES.MOSTRADOR) && (
                 <Link to="/dashboard" style={panelBadge}><ShieldCheck size={18} /> Panel</Link>
               )}
-              {user?.perfil_id === 4 && (
+              {Number(user?.perfil_id) === PROFILES.CHOFER && (
                 <Link to="/chofer" style={{ ...panelBadge, background: '#2563eb' }}><Bus size={18} /> Panel Chofer</Link>
               )}
 
@@ -201,14 +205,14 @@ const Navbar = () => {
           <Link to="/" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Inicio</Link>
           {user ? (
             <>
-              {(user?.perfil_id === 1 || user?.perfil_id === 5 || user?.perfil_id === 3) && (
+              {(Number(user?.perfil_id) === PROFILES.ADMINISTRADOR || Number(user?.perfil_id) === PROFILES.EMPRESA || Number(user?.perfil_id) === PROFILES.MOSTRADOR) && (
                 <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} style={{ ...mobileNavLink, color: 'var(--primary)', fontWeight: '800' }}>Panel Empresa</Link>
               )}
-              {user.perfil_id === 4 && (
+              {Number(user.perfil_id) === PROFILES.CHOFER && (
                 <Link to="/chofer" onClick={() => setIsMenuOpen(false)} style={{ ...mobileNavLink, color: 'var(--primary)', fontWeight: '800' }}>Panel Chofer</Link>
               )}
               <Link to="/perfil" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Mi Perfil</Link>
-              {user.perfil_id !== 4 && (
+              {Number(user.perfil_id) !== PROFILES.CHOFER && (
                 <Link to="/mis-reservas" onClick={() => setIsMenuOpen(false)} style={mobileNavLink}>Mis Reservas</Link>
               )}
               <button onClick={handleLogout} style={{ ...mobileNavLink, color: 'var(--error)', border: 'none', background: 'none', textAlign: 'left' }}>Cerrar Sesión ({user?.nombre})</button>

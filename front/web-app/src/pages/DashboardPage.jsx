@@ -53,7 +53,10 @@ const formatCurrency = (value) =>
 
 const formatTime = (time) => (time ? time.substring(0, 5) : '--:--');
 
-const getProfileId = (u) => u?.Usuario?.perfil_id || u?.perfil_id || null;
+const getProfileId = (u) => {
+  const value = u?.Usuario?.perfil_id ?? u?.perfil_id;
+  return value == null ? null : Number(value);
+};
 
 const getFullName = (u) => {
   const nombre = u?.Usuario?.nombre || u?.nombre || '';
@@ -277,7 +280,8 @@ const DashboardPage = () => {
     perfil_id: '',
   });
 
-  const isOwner = user?.perfil_id === 5 || user?.perfil_id === 1;
+  const currentProfileId = Number(user?.perfil_id);
+  const isOwner = currentProfileId === PROFILES.EMPRESA || currentProfileId === PROFILES.ADMINISTRADOR;
 
   const viajesDelDia = useMemo(() => {
     return viajes.filter((v) => {
@@ -339,7 +343,7 @@ const DashboardPage = () => {
           console.warn('No se pudo obtener empresa por usuario:', e);
         }
       }
-      if (!empresaId && user.perfil_id === 5) {
+      if (!empresaId && Number(user.perfil_id) === PROFILES.EMPRESA) {
         empresaId = user.id;
       }
 
@@ -1176,8 +1180,12 @@ const DashboardPage = () => {
             onSubmit={async (e) => {
               e.preventDefault();
               try {
-                const choferId = nuevoViaje.usuarioEmpresa_id || choferes[0]?.usuarioEmpresa_id || user.id;
+                const choferId = nuevoViaje.usuarioEmpresa_id;
                 const vehiculoId = nuevoViaje.medioTransporte_id || vehiculos[0]?.id;
+                if (!choferId) {
+                  toast.error('Seleccioná un chofer con perfil de chofer');
+                  return;
+                }
                 if (!vehiculoId) {
                   toast.error('Primero debés registrar un minibús en la flota');
                   return;
@@ -1389,8 +1397,12 @@ const DashboardPage = () => {
             onSubmit={async (e) => {
               e.preventDefault();
               try {
-                const choferId = editingTrip.usuarioEmpresa_id || choferes[0]?.usuarioEmpresa_id || user.id;
+                const choferId = editingTrip.usuarioEmpresa_id;
                 const vehiculoId = editingTrip.medioTransporte_id || vehiculos[0]?.id;
+                if (!choferId) {
+                  toast.error('Seleccioná un chofer con perfil de chofer');
+                  return;
+                }
                 await viajeService.actualizar(editingTrip.id, {
                   ...editingTrip,
                   usuarioEmpresa_id: parseInt(choferId, 10),

@@ -39,6 +39,15 @@ class UsuarioService {
   }
 
   async createEmployee(userData, empresaId) {
+    const perfilId = Number(userData.perfil_id);
+    if (![PROFILES.CHOFER, PROFILES.MOSTRADOR].includes(perfilId)) {
+      throw new Error("INVALID_EMPLOYEE_PROFILE");
+    }
+
+    if (!empresaId) {
+      throw new Error("EMPRESA_REQUIRED");
+    }
+
     const rawPassword = userData.contrasenia || '123456';
     const hashedPassword = await bcrypt.hash(rawPassword, 10);
     
@@ -58,7 +67,7 @@ class UsuarioService {
       telefono,
       usuario: baseUsername,
       contrasenia: hashedPassword,
-      perfil_id: parseInt(userData.perfil_id, 10),
+      perfil_id: perfilId,
       verificado: true,
       eliminado: "no"
     });

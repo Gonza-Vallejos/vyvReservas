@@ -23,6 +23,7 @@ import {
   Flag,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { PROFILES } from '../constants/profiles';
 
 const STEPS = [
   { id: 1, label: 'Asientos' },
@@ -55,9 +56,14 @@ const BookingPage = () => {
       navigate('/login', { state: { from: `/reservar/${id}` } });
       return;
     }
-    if (user.perfil_id === 5) {
-      toast.info('Las empresas no realizan reservas.');
-      navigate('/');
+    if (Number(user.perfil_id) === PROFILES.EMPRESA) {
+      toast.info('El perfil empresa gestiona la operación. Las reservas se realizan desde una cuenta cliente o mostrador.');
+      navigate('/dashboard');
+      return;
+    }
+    if (Number(user.perfil_id) === PROFILES.CHOFER) {
+      toast.info('Los choferes gestionan sus viajes desde el panel de chofer.');
+      navigate('/chofer');
       return;
     }
   }, [user, navigate, id]);

@@ -58,9 +58,12 @@ class ViajesService {
     const transporte = await MedioTransporte.findByPk(medioTransporte_id);
     if (!transporte) throw new Error("INVALID_TRANSPORTE");
 
+    // El frontend debe enviar el ID de la asociación UsuarioEmpresa, no el
+    // ID del usuario. La validación del perfil se hace en la consulta para no
+    // depender de datos enviados por el cliente.
     const usuarioEmpresa = await UsuarioEmpresa.findOne({
-      where: { id: usuarioEmpresa_id },
-      include: [{ model: Usuario, where: { perfil_id: 4 } }]
+      where: { id: Number(usuarioEmpresa_id) },
+      include: [{ model: Usuario, where: { perfil_id: 4, eliminado: "no" } }]
     });
     if (!usuarioEmpresa) throw new Error("INVALID_CHOFER");
 
@@ -81,6 +84,26 @@ class ViajesService {
 
   async update(id, updateData) {
     const dataToUpdate = { ...updateData };
+
+    if (dataToUpdate.usuarioEmpresa_id || dataToUpdate.medioTransporte_id) {
+      const viaje = await Viajes.findByPk(id);
+      if (!viaje) return false;
+
+      const transporteId = dataToUpdate.medioTransporte_id || viaje.medioTransporte_id;
+      const choferAssociationId = dataToUpdate.usuarioEmpresa_id || viaje.usuarioEmpresa_id;
+      const transporte = await MedioTransporte.findByPk(transporteId);
+      const usuarioEmpresa = await UsuarioEmpresa.findOne({
+        where: { id: Number(choferAssociationId) },
+        include: [{ model: Usuario, where: { perfil_id: 4, eliminado: "no" } }]
+      });
+
+      if (!transporte) throw new Error("INVALID_TRANSPORTE");
+      if (!usuarioEmpresa) throw new Error("INVALID_CHOFER");
+      if (usuarioEmpresa.id_empresa !== transporte.empresa_id) {
+        throw new Error("EMPRESA_MISMATCH");
+      }
+    }
+
     if (dataToUpdate.horarioSalida && dataToUpdate.horarioSalida.length === 5) {
       dataToUpdate.horarioSalida = `${dataToUpdate.horarioSalida}:00`;
     }

@@ -87,7 +87,7 @@ router.get('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'us
  *                     dni:
  *                       type: integer
  */
-router.post('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioEmpresa', 'usuarioMostrador'), validateReserva, validatePasajero, reservaController.crearReserva);
+router.post('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioMostrador'), validateReserva, validatePasajero, reservaController.crearReserva);
 
 /**
  * @swagger

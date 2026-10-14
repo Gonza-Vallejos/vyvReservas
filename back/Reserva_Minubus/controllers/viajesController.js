@@ -51,7 +51,12 @@ exports.actualizarViajes = async (req, res) => {
     if (!actualizado) return sendError(res, "Viaje no encontrado", 404);
     sendSuccess(res, null, "Viaje actualizado");
   } catch (error) {
-    sendError(res, "Error al actualizar el viaje", 500, error);
+    const messages = {
+      "INVALID_TRANSPORTE": "El medio de transporte no es válido",
+      "INVALID_CHOFER": "El usuario seleccionado no tiene perfil de chofer",
+      "EMPRESA_MISMATCH": "El chofer y el medio de transporte deben pertenecer a la misma empresa"
+    };
+    sendError(res, messages[error.message] || "Error al actualizar el viaje", 400, error);
   }
 };
 

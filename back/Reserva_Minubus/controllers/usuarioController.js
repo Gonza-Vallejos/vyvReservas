@@ -41,7 +41,11 @@ exports.registrarEmpleado = async (req, res) => {
     sendSuccess(res, null, "Empleado registrado con éxito", 201);
   } catch (error) {
     console.error("Error al registrar empleado:", error);
-    sendError(res, error.message || "Error al registrar el empleado", 500, error);
+    const messages = {
+      INVALID_EMPLOYEE_PROFILE: "El perfil del empleado debe ser chofer o mostrador",
+      EMPRESA_REQUIRED: "La empresa es obligatoria para registrar un empleado"
+    };
+    sendError(res, messages[error.message] || "Error al registrar el empleado", 400, error);
   }
 };
 

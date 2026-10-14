@@ -13,7 +13,7 @@ const AuthLayout = ({ children }) => {
             <h1 className="auth-brand__title">V&V Reservas</h1>
           </div>
           <p className="auth-brand__lead">
-            Tu próximo viaje, a un clic de distancia.
+             Todo tu viaje, en un solo lugar.
           </p>
 
           <ul className="auth-brand__values">
@@ -33,7 +33,7 @@ const AuthLayout = ({ children }) => {
         </div>
 
         <div className="auth-brand__footer">
-          <span className="vv-badge vv-badge--default">Pasajeros</span>
+          <span className="vv-badge vv-badge--default">Pasajeros · Empresas · Choferes</span>
           <span className="auth-brand__copyright">© {new Date().getFullYear()} V&V Reservas</span>
         </div>
       </aside>
