@@ -86,7 +86,7 @@ const LoginPage = () => {
   );
 
   return (
-    <AuthLayout passwordVisible={showPassword}>
+    <AuthLayout>
       <Card className="auth-card animate-fade-in">
         <header className="auth-header">
           <div className="auth-logo">

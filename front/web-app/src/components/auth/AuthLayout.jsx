@@ -1,8 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Bus, ShieldCheck, Clock, CreditCard, MapPin, ArrowRight } from 'lucide-react';
-import AuthVehicle from './AuthVehicle';
 
-const AuthLayout = ({ children, passwordVisible = false }) => {
+const AuthLayout = ({ children }) => {
   return (
     <div className="auth-layout">
       <aside className="auth-brand desktop-only">
@@ -31,8 +30,6 @@ const AuthLayout = ({ children, passwordVisible = false }) => {
               <span>Pagos seguros</span>
             </li>
           </ul>
-
-          <AuthVehicle eyesClosed={passwordVisible} />
 
           <div className="auth-brand__scene" aria-hidden="true">
             <div className="auth-brand__scene-label">Una plataforma, todos tus recorridos</div>

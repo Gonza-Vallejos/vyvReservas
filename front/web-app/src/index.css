@@ -597,6 +597,8 @@ img, svg {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  min-height: 100vh;
+  overflow-y: auto;
   padding: var(--space-5);
   position: relative;
 }
@@ -621,7 +623,7 @@ img, svg {
 .auth-card {
   width: 100%;
   max-width: 440px;
-  padding: var(--space-8) var(--space-6);
+  padding: var(--space-7) clamp(var(--space-6), 4vw, var(--space-9));
   box-shadow: var(--shadow-xl);
   border-radius: var(--radius-5);
 }
@@ -729,7 +731,7 @@ img, svg {
 }
 
 .auth-vehicle {
-  display: none;
+  display: none !important;
 }
 
 .auth-divider {
@@ -1154,7 +1156,7 @@ img, svg {
 
   .auth-card {
     max-width: 500px;
-    padding: var(--space-10) clamp(var(--space-7), 4vw, var(--space-10));
+    padding: clamp(2rem, 4vh, 3rem) clamp(2.5rem, 4vw, 4rem);
   }
 
   .auth-form-grid {
