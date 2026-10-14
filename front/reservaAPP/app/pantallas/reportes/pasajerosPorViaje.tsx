@@ -1,14 +1,13 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
+import React, { useCallback } from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { obtenerPasajerosPorViaje } from "../../../services/reportesService";
 import { useAuth } from "../../../context/AuthContext";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import ScreenContainer from "@/components/ui/ScreenContainer";
+import Card from "@/components/ui/Card";
+import DataTable, { DataTableColumn } from "@/components/ui/DataTable";
+import { formatDate, formatTime } from "@/utils/dateFormatter";
 
 interface Viaje {
   origenLocalidad: string;
@@ -34,105 +33,78 @@ interface RespuestaPasajerosPorViaje {
 
 export default function PasajerosPorViajeScreen() {
   const { id } = useLocalSearchParams();
-  const [viaje, setViaje] = useState<Viaje | null>(null);
-  const [pasajeros, setPasajeros] = useState<Pasajero[]>([]);
-  const [cantidad, setCantidad] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { logout, userInfo } = useAuth();
+  const { userInfo } = useAuth();
 
   if (userInfo?.perfil !== "usuarioEmpresa") {
     return <Redirect href="/(tabs)" />;
   }
 
-  useEffect(() => {
-    const cargarPasajeros = async () => {
-      try {
-        const respuesta: RespuestaPasajerosPorViaje =
-          await obtenerPasajerosPorViaje(Number(id));
-        setViaje(respuesta.viaje);
-        setPasajeros(respuesta.pasajeros);
-        setCantidad(respuesta.cantidadPasajeros);
-      } catch (err: any) {
-        setError(err?.response?.data?.mensaje || "Error al obtener pasajeros");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = useCallback(
+    () => obtenerPasajerosPorViaje(Number(id)),
+    [id]
+  );
 
-    if (id) {
-      cargarPasajeros();
-    }
-  }, [id]);
+  const { data, loading, error, refetch } = useAsyncData<RespuestaPasajerosPorViaje>({
+    fetchFn: fetchData,
+    dependencies: [id],
+  });
 
-  const formatDate = (fechaISO: string) => {
-    const [year, month, day] = fechaISO.split("T")[0].split("-").map(Number);
-    return `${String(day).padStart(2, "0")}/${String(month).padStart(
-      2,
-      "0"
-    )}/${year}`;
-  };
-
-  const formatTime = (timeString: string) => {
-    const [hours, minutes] = timeString.split(":");
-    return `${hours}:${minutes}`;
-  };
-  if (loading) {
-    return <ActivityIndicator size="large" style={{ marginTop: 50 }} />;
-  }
-
-  if (error) {
-    return <Text style={styles.error}>{error}</Text>;
-  }
+  const columns: DataTableColumn<Pasajero>[] = [
+    { key: "nombre", label: "Nombre", width: 110 },
+    { key: "apellido", label: "Apellido", width: 110 },
+    { key: "dni", label: "DNI", width: 100 },
+    { key: "ubicacionOrigen", label: "Origen", width: 120 },
+    { key: "ubicacionDestino", label: "Destino", width: 120 },
+  ];
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer
+      loading={loading}
+      error={error}
+      onRetry={refetch}
+      refreshing={loading}
+      onRefresh={refetch}
+      contentContainerStyle={styles.container}
+    >
       <Text style={styles.title}>Pasajeros del Viaje</Text>
-      {viaje && (
-        <View style={styles.card}>
+
+      {data?.viaje && (
+        <Card style={styles.card}>
           <Text>
-            <Text style={styles.label}>Origen:</Text> {viaje.origenLocalidad}
+            <Text style={styles.label}>Origen:</Text> {data.viaje.origenLocalidad}
           </Text>
           <Text>
-            <Text style={styles.label}>Destino:</Text> {viaje.destinoLocalidad}
+            <Text style={styles.label}>Destino:</Text> {data.viaje.destinoLocalidad}
           </Text>
           <Text>
             <Text style={styles.label}>Fecha:</Text>{" "}
-            {formatDate(viaje.fechaViaje)}
+            {formatDate(data.viaje.fechaViaje)}
           </Text>
           <Text>
             <Text style={styles.label}>Hora de salida:</Text>{" "}
-            {formatTime(viaje.horarioSalida)}
+            {formatTime(data.viaje.horarioSalida)}
           </Text>
           <Text>
-            <Text style={styles.label}>Cantidad de pasajeros:</Text> {cantidad}
+            <Text style={styles.label}>Cantidad de pasajeros:</Text>{" "}
+            {data.cantidadPasajeros}
           </Text>
-        </View>
+        </Card>
       )}
 
-      <FlatList
-        data={pasajeros}
+      <DataTable
+        columns={columns}
+        data={data?.pasajeros || []}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.pasajeroCard}>
-            <Text style={styles.pasajeroNombre}>
-              {item.nombre} {item.apellido}
-            </Text>
-            <Text>DNI: {item.dni}</Text>
-            <Text>Desde: {item.ubicacionOrigen}</Text>
-            <Text>Hasta: {item.ubicacionDestino}</Text>
-          </View>
-        )}
+        emptyMessage="No hay pasajeros registrados."
       />
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 16,
-    backgroundColor: "#f2f2f2",
+    paddingBottom: 32,
   },
   title: {
     fontSize: 24,
@@ -141,30 +113,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   card: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 10,
     marginBottom: 20,
-    elevation: 2,
   },
   label: {
     fontWeight: "bold",
-  },
-  pasajeroCard: {
-    backgroundColor: "#ffffff",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 10,
-    elevation: 1,
-  },
-  pasajeroNombre: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  error: {
-    color: "red",
-    marginTop: 20,
-    textAlign: "center",
-    fontSize: 16,
   },
 });
