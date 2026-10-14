@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -9,6 +9,67 @@ import {
 import { viajeService, transporteService, empresaService, reservaService, usuarioService } from '../services/api';
 import InteractiveChart from '../components/InteractiveChart';
 import toast from 'react-hot-toast';
+
+const formatISODate = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+const getWeekDays = (anchorDate = new Date()) => {
+  const day = anchorDate.getDay();
+  const diffToMonday = (day === 0 ? -6 : 1) - day;
+  const monday = new Date(anchorDate);
+  monday.setDate(anchorDate.getDate() + diffToMonday);
+  monday.setHours(0, 0, 0, 0);
+
+  const labels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return {
+      label: labels[i],
+      date: d,
+      iso: formatISODate(d),
+      dayNumber: d.getDate(),
+    };
+  });
+};
+
+const WeekDayNav = ({ selected, onSelect }) => {
+  const weekDays = getWeekDays();
+  const todayIso = formatISODate(new Date());
+
+  return (
+    <div style={weekNavStyle} role="tablist" aria-label="Días de la semana">
+      {weekDays.map((day) => {
+        const isSelected = day.iso === selected;
+        const isToday = day.iso === todayIso;
+        return (
+          <button
+            key={day.iso}
+            type="button"
+            role="tab"
+            aria-selected={isSelected}
+            onClick={() => onSelect(day.iso)}
+            style={{
+              ...weekDayBtnStyle,
+              backgroundColor: isSelected ? 'var(--primary)' : isToday ? 'var(--primary-light)' : 'var(--color-surface)',
+              color: isSelected ? '#ffffff' : isToday ? 'var(--color-primary)' : 'var(--color-text)',
+              borderColor: isSelected ? 'var(--primary)' : isToday ? 'var(--color-primary)' : 'var(--color-border)',
+              boxShadow: isSelected ? '0 8px 16px -4px rgba(37, 99, 235, 0.3)' : 'var(--shadow-xs)',
+            }}
+          >
+            <span style={weekDayLabelStyle}>{day.label}</span>
+            <span style={weekDayNumberStyle}>{day.dayNumber}</span>
+            {isToday && <span style={weekDayTodayStyle}>Hoy</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
 
 const DashboardPage = () => {
   const { user } = useAuth();
@@ -36,6 +97,7 @@ const DashboardPage = () => {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [selectedReserva, setSelectedReserva] = useState(null);
   const [passengers, setPassengers] = useState([]);
+  const [selectedTripDate, setSelectedTripDate] = useState(() => formatISODate(new Date()));
 
   // Estados de formularios
   const [nuevoViaje, setNuevoViaje] = useState({ origenLocalidad: '', destinoLocalidad: '', fechaViaje: '', horarioSalida: '', precio: '', medioTransporte_id: '', usuarioEmpresa_id: '' });
@@ -45,6 +107,13 @@ const DashboardPage = () => {
 
   const isOwner = user?.perfil_id === 5 || user?.perfil_id === 1;
   const isSecretary = user?.perfil_id === 3;
+
+  const viajesDelDia = useMemo(() => {
+    return viajes.filter((v) => {
+      const tripDate = String(v.fechaViaje).split('T')[0];
+      return tripDate === selectedTripDate;
+    });
+  }, [viajes, selectedTripDate]);
 
   const fetchData = async () => {
     if (!user) return;
@@ -298,6 +367,12 @@ const DashboardPage = () => {
         {/* Tablas Modernizadas */}
         {(activeTab === 'viajes' || activeTab === 'reservas' || activeTab === 'flota' || activeTab === 'choferes') && (
           <div className="animate-fade-in" style={tableWrapper}>
+            {activeTab === 'viajes' && (
+              <WeekDayNav
+                selected={selectedTripDate}
+                onSelect={setSelectedTripDate}
+              />
+            )}
             <table style={tableStyle}>
               <thead>
                 <tr style={thRow}>
@@ -310,7 +385,9 @@ const DashboardPage = () => {
                 {activeTab === 'viajes' && (
                   viajes.length === 0 ? (
                     <tr><td colSpan="3" style={{...tdStyle, textAlign: 'center', color: 'var(--text-muted)'}}>No hay viajes registrados en esta empresa todavía.</td></tr>
-                  ) : viajes.map(v => (
+                  ) : viajesDelDia.length === 0 ? (
+                    <tr><td colSpan="3" style={{...tdStyle, textAlign: 'center', color: 'var(--text-muted)'}}>No hay viajes cargados para el día seleccionado.</td></tr>
+                  ) : viajesDelDia.map(v => (
                     <tr key={v.id} className="table-row" style={trStyle}>
                       <td style={tdStyle}>
                         <div>
@@ -911,6 +988,12 @@ const trStyle = { transition: '0.2s' };
 const iconBtn = { background: '#f1f5f9', border: 'none', padding: '10px', borderRadius: '12px', color: 'var(--primary)', cursor: 'pointer' };
 const statusBadge = { background: '#f1f5f9', padding: '6px 14px', borderRadius: '100px', fontSize: '0.8rem', fontWeight: '800' };
 const passengerBadge = { background: '#dcfce7', color: '#166534', padding: '8px 16px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '800', border: 'none', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' };
+
+const weekNavStyle = { display: 'flex', gap: '10px', padding: '20px 20px 0', overflowX: 'auto', WebkitOverflowScrolling: 'touch' };
+const weekDayBtnStyle = { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: '64px', padding: '10px 8px', borderRadius: '16px', border: '1.5px solid transparent', cursor: 'pointer', fontFamily: 'Outfit, sans-serif', transition: 'all 0.2s ease' };
+const weekDayLabelStyle = { fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' };
+const weekDayNumberStyle = { fontSize: '1.25rem', fontWeight: '900', lineHeight: 1 };
+const weekDayTodayStyle = { fontSize: '0.65rem', fontWeight: '800', marginTop: '2px' };
 
 const modalOverlay = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000, padding: '16px' };
 const modalContent = { background: 'white', borderRadius: '28px', width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 30px 60px -12px rgba(0,0,0,0.25)' };
