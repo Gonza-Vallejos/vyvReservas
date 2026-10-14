@@ -1,20 +1,8 @@
-import axios, { AxiosError } from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_URL } from "../environment/config";
+import { apiClient } from "./apiClient";
 
 export const crearReserva = async (reservaData: any) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.post(
-      `${API_URL}/reserva/crearReserva`,
-      reservaData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`, // Agregar token al encabezado
-        },
-      }
-    );
-
+    const response = await apiClient.post("/reserva/crearReserva", reservaData);
     return response.data;
   } catch (error: any) {
     console.error(
@@ -27,45 +15,24 @@ export const crearReserva = async (reservaData: any) => {
 
 export const obtenerReservas = async (id: number) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-
-    const response = await axios.get(
-      `${API_URL}/reserva/obtenerReservasPorUsuario`,
-      {
-        params: {
-          id,
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
+    const response = await apiClient.get("/reserva/obtenerReservasPorUsuario", {
+      params: { id },
+    });
     return response.data;
-  } catch (error: unknown) {
-    if (error instanceof AxiosError) {
-      console.error(
-        "Error al obtener las reservas",
-        error.response?.data || error.message
-      );
-    } else {
-      console.error("Error desconocido", error);
-    }
+  } catch (error: any) {
+    console.error(
+      "Error al obtener las reservas",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
 
 export const actualizarReserva = async (id: number, pasajeroData: any) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.put(
-      `${API_URL}/reserva/actualizarReserva/${id}`,
-      pasajeroData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await apiClient.put(
+      `/reserva/actualizarReserva/${id}`,
+      pasajeroData
     );
     return response.data;
   } catch (error: any) {
@@ -78,70 +45,32 @@ export const actualizarReserva = async (id: number, pasajeroData: any) => {
 };
 
 export const obtenerPasajeroPorId = async (id: number) => {
-  const token = await AsyncStorage.getItem("token");
-  const response = await axios.get(
-    `${API_URL}/reserva/listarPasajeroPorId/${id}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  const response = await apiClient.get(`/reserva/listarPasajeroPorId/${id}`);
   return response.data;
 };
 
 export const listarPasajeroPorViaje = async (id: number) => {
-  const token = await AsyncStorage.getItem("token");
-  const response = await axios.get(
-    `${API_URL}/reserva/listarPasajeroPorViaje/${id}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  const response = await apiClient.get(`/reserva/listarPasajeroPorViaje/${id}`);
   return response.data;
 };
 
 export const obtenerReservasPorEmpresa = async (id: number) => {
-  const token = await AsyncStorage.getItem("token");
-  const response = await axios.get(
-    `${API_URL}/reserva/obtenerReservasPorEmpresa/${id}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  const response = await apiClient.get(
+    `/reserva/obtenerReservasPorEmpresa/${id}`
   );
   return response.data;
 };
 
 export const listarReservasPorViaje = async (id: number) => {
-  const token = await AsyncStorage.getItem("token");
-
-  const response = await axios.get(
-    `${API_URL}/reserva/listarReservasPorViaje/${id}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  const response = await apiClient.get(
+    `/reserva/listarReservasPorViaje/${id}`
   );
   return response.data;
 };
 
 export const eliminarReserva = async (id: number) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.put(
-      `${API_URL}/reserva/eliminarReserva/${id}`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await apiClient.put(`/reserva/eliminarReserva/${id}`, {});
     return response.data;
   } catch (error: any) {
     console.error(
@@ -154,14 +83,8 @@ export const eliminarReserva = async (id: number) => {
 
 export const listarReservasYPasajerosPorViaje = async (id: number) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.get(
-      `${API_URL}/reserva/listarReservasYPasajerosPorViaje/${id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await apiClient.get(
+      `/reserva/listarReservasYPasajerosPorViaje/${id}`
     );
     return response.data;
   } catch (error: any) {
@@ -175,16 +98,7 @@ export const listarReservasYPasajerosPorViaje = async (id: number) => {
 
 export const eliminarPasajero = async (id: number) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.put(
-      `${API_URL}/reserva/eliminarPasajero/${id}`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await apiClient.put(`/reserva/eliminarPasajero/${id}`, {});
     return response.data;
   } catch (error: any) {
     console.error(

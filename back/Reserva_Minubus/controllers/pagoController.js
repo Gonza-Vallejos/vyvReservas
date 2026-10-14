@@ -32,7 +32,7 @@ exports.webhook = async (req, res) => {
     // Procesar en segundo plano
     if (notificationTopic && resourceId) {
       try {
-        await pagoService.procesarWebhook(notificationTopic, resourceId);
+        await pagoService.procesarWebhook(notificationTopic, resourceId, payload);
       } catch (bgError) {
         console.error("Error procesando notificación en segundo plano:", bgError);
       }

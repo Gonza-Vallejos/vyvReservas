@@ -88,14 +88,25 @@ class ReservaService {
   }
 
   /**
-   * Creación atómica de reserva con transacción y control de concurrencia
+   * Creación atómica de reserva con transacción, control de concurrencia e idempotencia.
    */
   async create(reservaData, pasajerosData = []) {
-    const { viajes_id } = reservaData;
+    const { viajes_id, idempotencyKey } = reservaData;
     const cantPasajerosSolicitados = pasajerosData && pasajerosData.length > 0 ? pasajerosData.length : 1;
 
     // Transacción gestionada por Sequelize
     return await sequelize.transaction(async (t) => {
+      // Idempotencia: si ya existe una reserva con la misma clave, devolverla
+      if (idempotencyKey) {
+        const existente = await Reserva.findOne({
+          where: { idempotencyKey, eliminado: "no" },
+          include: [Pasajeros],
+          transaction: t,
+          lock: t.LOCK.UPDATE,
+        });
+        if (existente) return existente;
+      }
+
       // Bloqueo de fila para evitar race conditions (FOR UPDATE)
       const viaje = await Viajes.findOne({
         where: { id: viajes_id, eliminado: "no" },
@@ -115,6 +126,9 @@ class ReservaService {
         fechaReserva: reservaData.fechaReserva || new Date(),
         eliminado: "no",
       };
+      if (idempotencyKey) {
+        datosParaCrear.idempotencyKey = idempotencyKey;
+      }
       const nuevaReserva = await Reserva.create(datosParaCrear, { transaction: t });
 
       // 2. Asignar números de asiento disponibles

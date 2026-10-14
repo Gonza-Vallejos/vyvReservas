@@ -1,46 +1,25 @@
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_URL } from "../environment/config";
+import { apiClient } from "./apiClient";
 
 export const obtenerTransportePorEmpresa = async (id: number) => {
-  const token = await AsyncStorage.getItem("token");
-  const response = await axios.get(
-    `${API_URL}/medioTransporte/obtenerTransportePorEmpresa/${id}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  const response = await apiClient.get(
+    `/medioTransporte/obtenerTransportePorEmpresa/${id}`
   );
   return response.data;
 };
 
 export const eliminarTransporte = async (id: number) => {
-  const token = await AsyncStorage.getItem("token");
-  const data = {};
-  const response = await axios.put(
-    `${API_URL}/medioTransporte/eliminarTransporte/${id}`,
-    data,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  const response = await apiClient.put(
+    `/medioTransporte/eliminarTransporte/${id}`,
+    {}
   );
   return response.data;
 };
 
 export const crearTransporte = async (transporteData: any) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.post(
-      `${API_URL}/medioTransporte/crearTransporte`,
-      transporteData,
-      {
-        headers: {
-          Authorization: ` Bearer ${token}`,
-        },
-      }
+    const response = await apiClient.post(
+      "/medioTransporte/crearTransporte",
+      transporteData
     );
     return response.data;
   } catch (error: any) {
@@ -50,17 +29,10 @@ export const crearTransporte = async (transporteData: any) => {
 
 export const editarTransporte = async (id: number, transporteData: any) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.put(
-      `${API_URL}/medioTransporte/actualizarTransporte/${id}`,
-      transporteData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await apiClient.put(
+      `/medioTransporte/actualizarTransporte/${id}`,
+      transporteData
     );
-
     return response.data;
   } catch (error: any) {
     console.error(
@@ -72,28 +44,16 @@ export const editarTransporte = async (id: number, transporteData: any) => {
 };
 
 export const obtenerTransporteId = async (id: number) => {
-  const token = await AsyncStorage.getItem("token");
-  const response = await axios.get(
-    `${API_URL}/medioTransporte/obtenerTransporteId/${id}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  const response = await apiClient.get(
+    `/medioTransporte/obtenerTransporteId/${id}`
   );
   return response.data;
 };
 
 export const obtenerViajesPorTransporte = async (id: number) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.get(
-      `${API_URL}/medioTransporte/obtenerViajesPorTransporte/${id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await apiClient.get(
+      `/medioTransporte/obtenerViajesPorTransporte/${id}`
     );
     return response.data;
   } catch (error: any) {
@@ -103,14 +63,8 @@ export const obtenerViajesPorTransporte = async (id: number) => {
 
 export const verificarTransporteSinReservas = async (id: any) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.get(
-      `${API_URL}/medioTransporte/verificarTransporteSinReservas/${id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await apiClient.get(
+      `/medioTransporte/verificarTransporteSinReservas/${id}`
     );
     return response.data;
   } catch (error: any) {

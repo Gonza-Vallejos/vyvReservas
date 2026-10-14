@@ -1,5 +1,5 @@
 const { MercadoPagoConfig, Preference } = require("mercadopago");
-const { Reserva, Pasajeros, Viajes, Pago } = require("../models");
+const { Reserva, Pasajeros, Viajes, Pago, WebhookEvent } = require("../models");
 
 const mpAccessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
 const client = mpAccessToken ? new MercadoPagoConfig({ accessToken: mpAccessToken }) : null;
@@ -7,6 +7,7 @@ const client = mpAccessToken ? new MercadoPagoConfig({ accessToken: mpAccessToke
 class PagoService {
   /**
    * Crea una preferencia de pago en Mercado Pago para una reserva.
+   * Si ya existe una preferencia pendiente reciente, la reutiliza.
    */
   async crearPreferencia(reservaId, baseUrl) {
     if (!client) {
@@ -27,6 +28,28 @@ class PagoService {
     const pasajeros = reserva.Pasajeros || [];
     const cantidad = pasajeros.length || 1;
     const monto = reserva.Viaje.precio * cantidad;
+
+    // Reutilizar preferencia pendiente reciente (idempotencia)
+    const preferenciaExistente = await Pago.findOne({
+      where: {
+        reserva_id: reservaId,
+        estado: "pendiente",
+        mp_init_point: { [require("sequelize").Op.ne]: null }
+      },
+      order: [["fechaCreacion", "DESC"]]
+    });
+
+    if (preferenciaExistente) {
+      return {
+        pagoId: preferenciaExistente.id,
+        initPoint: preferenciaExistente.mp_init_point,
+        sandboxInitPoint: preferenciaExistente.mp_init_point,
+        externalReference: preferenciaExistente.mp_external_reference,
+        monto: preferenciaExistente.monto,
+        reused: true
+      };
+    }
+
     const externalReference = `RESERVA-${reservaId}-${Date.now()}`;
 
     const preference = new Preference(client);
@@ -74,10 +97,30 @@ class PagoService {
   }
 
   /**
-   * Procesa la notificación (webhook) de Mercado Pago.
+   * Procesa la notificación (webhook/IPN) de Mercado Pago con idempotencia.
+   * Si el evento ya fue procesado, se ignora.
    */
-  async procesarWebhook(topic, resourceId) {
+  async procesarWebhook(topic, resourceId, rawPayload = null) {
     if (!client) throw new Error("MP_NOT_CONFIGURED");
+
+    const eventKey = `${topic}-${resourceId}`;
+
+    // Idempotencia: guardar evento con clave única; si ya existe, ignorar
+    const [evento, creado] = await WebhookEvent.findOrCreate({
+      where: { topic, resourceId },
+      defaults: {
+        topic,
+        resourceId,
+        payload: rawPayload,
+        processedAt: null
+      }
+    });
+
+    if (!creado && evento.processedAt) {
+      return { message: "Evento ya procesado", eventId: evento.id };
+    }
+
+    let resultado = { message: "Notificación ignorada" };
 
     // Para topic 'payment', resourceId es el payment id.
     if (topic === "payment") {
@@ -94,6 +137,12 @@ class PagoService {
 
       if (!pago) throw new Error("PAGO_NO_ENCONTRADO");
 
+      // Idempotencia por payment_id: si ya está aprobado con este payment_id, no actualizar
+      if (pago.mp_payment_id === String(resourceId) && pago.estado === "aprobado") {
+        await evento.update({ processedAt: new Date() });
+        return { pagoId: pago.id, estado: pago.estado, message: "Pago ya aprobado" };
+      }
+
       const nuevoEstado = this.mapearEstadoMP(estado);
       await Pago.update(
         {
@@ -104,10 +153,11 @@ class PagoService {
         { where: { id: pago.id } }
       );
 
-      return { pagoId: pago.id, estado: nuevoEstado };
+      resultado = { pagoId: pago.id, estado: nuevoEstado };
     }
 
-    return { message: "Notificación ignorada" };
+    await evento.update({ processedAt: new Date() });
+    return resultado;
   }
 
   mapearEstadoMP(estadoMP) {

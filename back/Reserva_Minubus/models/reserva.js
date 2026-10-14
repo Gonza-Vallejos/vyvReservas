@@ -44,6 +44,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
+      idempotencyKey: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true,
+      },
       eliminado: {
         type: DataTypes.STRING,
         allowNull: false,

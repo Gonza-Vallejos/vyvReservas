@@ -1,8 +1,7 @@
-import axios from "axios";
-import { API_URL } from "../environment/config";
+import { apiClient } from "./apiClient";
 
 export const loginUsuario = async (usuario: string, contrasenia: string) => {
-  const response = await axios.post(`${API_URL}/api/auth/login`, {
+  const response = await apiClient.post("/api/auth/login", {
     usuario,
     contrasenia,
   });
@@ -11,19 +10,13 @@ export const loginUsuario = async (usuario: string, contrasenia: string) => {
 
 export const registrarUsuario = async (usuarioData: any) => {
   try {
-    const response = await axios.post(
-      `${API_URL}/api/usuarios`,
-      usuarioData
-    );
+    const response = await apiClient.post("/api/usuarios", usuarioData);
     return response.data;
   } catch (error: any) {
-    // Mostrás el error por consola
     console.error(
       "Error al crear el usuario",
       error.response?.data || error.message
     );
-
-    // Lanzas solo la respuesta del backend para que el frontend la maneje mejor
     throw error.response?.data || { mensaje: "Error desconocido al registrar" };
   }
 };
@@ -33,7 +26,7 @@ export const enviarEmailRecuperacion = async (
   plataforma: string
 ) => {
   try {
-    const response = await axios.post(`${API_URL}/api/auth/recuperar`, {
+    const response = await apiClient.post("/api/auth/recuperar", {
       email,
       plataforma,
     });
@@ -52,7 +45,7 @@ export const resetearContrasenia = async (
   nuevaContrasenia: string
 ) => {
   try {
-    const response = await axios.post(`${API_URL}/api/auth/resetear/${token}`, {
+    const response = await apiClient.post(`/api/auth/resetear/${token}`, {
       nuevaContrasenia,
     });
     return response.data;

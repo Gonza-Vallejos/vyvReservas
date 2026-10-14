@@ -70,6 +70,9 @@ router.get('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'us
  *                 type: integer
  *               usuarios_id:
  *                 type: integer
+ *               idempotencyKey:
+ *                 type: string
+ *                 description: Clave única para evitar reservas duplicadas
  *               asientos_reservados:
  *                 type: integer
  *               pasajeros:

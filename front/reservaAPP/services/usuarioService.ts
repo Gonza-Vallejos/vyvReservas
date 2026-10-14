@@ -1,31 +1,15 @@
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_URL } from "../environment/config";
+import { apiClient } from "./apiClient";
 
 export const obtenerUsuarioPorId = async (id: number) => {
-  const token = await AsyncStorage.getItem("token");
-  const response = await axios.get(
-    `${API_URL}/usuarios/obtenerUsuarioId/${id}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  const response = await apiClient.get(`/usuarios/obtenerUsuarioId/${id}`);
   return response.data;
 };
 
 export const actualizarUsuario = async (id: number, usuarioData: any) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.put(
-      `${API_URL}/usuarios/actualizarUsuario/${id}`,
-      usuarioData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await apiClient.put(
+      `/usuarios/actualizarUsuario/${id}`,
+      usuarioData
     );
     return response.data;
   } catch (error: any) {
@@ -39,12 +23,7 @@ export const actualizarUsuario = async (id: number, usuarioData: any) => {
 
 export const obtenerUsuarios = async () => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.get(`${API_URL}/usuarios/obtenerUsuario`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await apiClient.get("/usuarios/obtenerUsuario");
     return response.data;
   } catch (error: any) {
     console.error(
@@ -57,16 +36,9 @@ export const obtenerUsuarios = async () => {
 
 export const actualizarPerfil = async (id: number, perfil_id: number) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.put(
-      `${API_URL}/usuarios/actualizarPerfil/${id}`,
-      { perfil_id },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await apiClient.put(`/usuarios/actualizarPerfil/${id}`, {
+      perfil_id,
+    });
     return response.data;
   } catch (error: any) {
     console.error(
@@ -83,15 +55,9 @@ export const actualizarPerfil = async (id: number, perfil_id: number) => {
 
 export const actualizarContraseña = async (id: number, data: any) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.put(
-      `${API_URL}/usuarios/actualizarContrasenia/${id}`,
-      data,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await apiClient.put(
+      `/usuarios/actualizarContrasenia/${id}`,
+      data
     );
     return response.data;
   } catch (error: any) {
@@ -109,14 +75,8 @@ export const actualizarContraseña = async (id: number, data: any) => {
 
 export const obtenerUsuariosPorEmpresa = async (id: number) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.get(
-      `${API_URL}/usuarioEmpresa/obtenerUsuariosPorEmpresa/${id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await apiClient.get(
+      `/usuarioEmpresa/obtenerUsuariosPorEmpresa/${id}`
     );
     return response.data;
   } catch (error: any) {
@@ -128,19 +88,9 @@ export const obtenerUsuariosPorEmpresa = async (id: number) => {
   }
 };
 
-//eliminar usuario
 export const eliminarUsuario = async (id: number) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.put(
-      `${API_URL}/usuarios/eliminarUsuario/${id}`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await apiClient.put(`/usuarios/eliminarUsuario/${id}`, {});
     return response.data;
   } catch (error: any) {
     console.error(
@@ -153,14 +103,8 @@ export const eliminarUsuario = async (id: number) => {
 
 export const obtenerUsuariosChoferPorEmpresa = async (id: number) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    const response = await axios.get(
-      `${API_URL}/usuarios/obtenerUsuarioChoferPorEmpresa/${id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await apiClient.get(
+      `/usuarios/obtenerUsuarioChoferPorEmpresa/${id}`
     );
     return response.data;
   } catch (error: any) {
@@ -174,15 +118,7 @@ export const obtenerUsuariosChoferPorEmpresa = async (id: number) => {
 
 export const obtenerUsuarioEmpresaPorId = async (id: number) => {
   try {
-    const token = await AsyncStorage.getItem("token");
-    if (!token) throw new Error("No se encontró el token");
-
-    const response = await axios.get(`${API_URL}/usuarioEmpresa/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
+    const response = await apiClient.get(`/usuarioEmpresa/${id}`);
     return response.data;
   } catch (error: any) {
     console.error("Error al obtener usuarioEmpresa:", error);
