@@ -1,4 +1,4 @@
-const { Viajes, MedioTransporte, UsuarioEmpresa, Usuario, Reserva, Empresa } = require("../models");
+const { Viajes, MedioTransporte, UsuarioEmpresa, Usuario, Reserva, Empresa, Pasajeros } = require("../models");
 const { Op } = require("sequelize");
 
 class ViajesService {
@@ -154,6 +154,74 @@ class ViajesService {
   async hasReservations(id) {
     const reserva = await Reserva.findOne({ where: { viajes_id: id } });
     return !!reserva;
+  }
+
+  /**
+   * Devuelve el mapa de asientos de un viaje: total, ocupados, libres y detalle por número.
+   */
+  async getAsientosOcupados(id) {
+    const viaje = await Viajes.findOne({
+      where: { id, eliminado: "no" },
+      include: [{
+        model: MedioTransporte,
+        attributes: ["id", "nombre", "patente", "cantLugares"]
+      }]
+    });
+
+    if (!viaje) return null;
+
+    const totalAsientos = viaje.MedioTransporte?.cantLugares || viaje.cantPasajeros;
+
+    const reservas = await Reserva.findAll({
+      where: { viajes_id: id, eliminado: "no" },
+      include: [{
+        model: Pasajeros,
+        where: { eliminado: "no", numeroAsiento: { [Op.not]: null } },
+        required: false,
+        attributes: ["id", "nombre", "apellido", "dni", "numeroAsiento", "ubicacionOrigen", "ubicacionDestino"]
+      }]
+    });
+
+    const pasajeros = reservas.flatMap(r => r.Pasajeros || []);
+    const ocupadosPorNumero = new Map(pasajeros.map(p => [p.numeroAsiento, p]));
+
+    const mapaAsientos = [];
+    for (let i = 1; i <= totalAsientos; i++) {
+      const pasajero = ocupadosPorNumero.get(i);
+      mapaAsientos.push({
+        numero: i,
+        ocupado: !!pasajero,
+        pasajero: pasajero
+          ? {
+              id: pasajero.id,
+              nombre: pasajero.nombre,
+              apellido: pasajero.apellido,
+              dni: pasajero.dni,
+              ubicacionOrigen: pasajero.ubicacionOrigen,
+              ubicacionDestino: pasajero.ubicacionDestino
+            }
+          : null
+      });
+    }
+
+    const asientosOcupados = pasajeros.length;
+    const asientosLibres = totalAsientos - asientosOcupados;
+
+    return {
+      viajeId: viaje.id,
+      origenLocalidad: viaje.origenLocalidad,
+      destinoLocalidad: viaje.destinoLocalidad,
+      fechaViaje: viaje.fechaViaje,
+      horarioSalida: viaje.horarioSalida,
+      medioTransporte: viaje.MedioTransporte,
+      totalAsientos,
+      asientosOcupados,
+      asientosLibres,
+      porcentajeOcupado: totalAsientos > 0
+        ? Math.round((asientosOcupados / totalAsientos) * 100)
+        : 0,
+      mapaAsientos
+    };
   }
 }
 

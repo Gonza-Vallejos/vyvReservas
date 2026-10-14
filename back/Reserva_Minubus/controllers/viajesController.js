@@ -94,3 +94,13 @@ exports.existeReservaParaViaje = async (req, res) => {
     sendError(res, "Error al verificar reserva", 500, error);
   }
 };
+
+exports.obtenerAsientosOcupados = async (req, res) => {
+  try {
+    const asientos = await viajesService.getAsientosOcupados(req.params.id);
+    if (!asientos) return sendError(res, "Viaje no encontrado", 404);
+    sendSuccess(res, asientos);
+  } catch (error) {
+    sendError(res, "Error al obtener asientos ocupados", 500, error);
+  }
+};

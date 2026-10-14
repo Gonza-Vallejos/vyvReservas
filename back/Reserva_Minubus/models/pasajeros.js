@@ -37,6 +37,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
+      numeroAsiento: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
       eliminado: {
         type: DataTypes.STRING,
         allowNull: false,

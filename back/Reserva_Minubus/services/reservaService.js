@@ -2,6 +2,26 @@ const { Reserva, Pasajeros, Viajes, MedioTransporte, sequelize } = require("../m
 const { Op } = require("sequelize");
 
 class ReservaService {
+  /**
+   * Devuelve los números de asiento ya ocupados en un viaje.
+   */
+  async getNumerosAsientoOcupados(viajes_id, transaction = null) {
+    const pasajeros = await Pasajeros.findAll({
+      attributes: ["numeroAsiento"],
+      where: { eliminado: "no", numeroAsiento: { [Op.not]: null } },
+      include: [
+        {
+          model: Reserva,
+          where: { viajes_id, eliminado: "no" },
+          attributes: []
+        }
+      ],
+      raw: true,
+      transaction
+    });
+    return pasajeros.map(p => p.numeroAsiento).sort((a, b) => a - b);
+  }
+
   async getAll() {
     return await Reserva.findAll({
       where: { eliminado: "no" },
@@ -64,6 +84,7 @@ class ReservaService {
       // Bloqueo de fila para evitar race conditions (FOR UPDATE)
       const viaje = await Viajes.findOne({
         where: { id: viajes_id, eliminado: "no" },
+        include: [MedioTransporte],
         lock: t.LOCK.UPDATE,
         transaction: t,
       });
@@ -81,19 +102,49 @@ class ReservaService {
       };
       const nuevaReserva = await Reserva.create(datosParaCrear, { transaction: t });
 
-      // 2. Registrar pasajeros asociados
+      // 2. Asignar números de asiento disponibles
+      const totalLugares = viaje.MedioTransporte?.cantLugares;
+      if (!totalLugares) {
+        throw new Error("INVALID_TRIP");
+      }
+      const ocupados = await this.getNumerosAsientoOcupados(viajes_id, t);
+      const libres = [];
+      for (let i = 1; i <= totalLugares && libres.length < cantPasajerosSolicitados; i++) {
+        if (!ocupados.includes(i)) libres.push(i);
+      }
+
+      if (libres.length < cantPasajerosSolicitados) {
+        throw new Error("NO_AVAILABILITY");
+      }
+
+      // 3. Registrar pasajeros asociados con número de asiento
       if (pasajerosData && pasajerosData.length > 0) {
-        const pasajerosConReserva = pasajerosData.map(p => ({
+        const pasajerosConReserva = pasajerosData.map((p, index) => ({
           nombre: p.nombre,
           apellido: p.apellido,
           dni: parseInt(p.dni, 10),
           ubicacionOrigen: p.ubicacionOrigen,
           ubicacionDestino: p.ubicacionDestino,
           reserva_id: nuevaReserva.id,
+          numeroAsiento: libres[index],
           eliminado: "no"
         }));
         await Pasajeros.bulkCreate(pasajerosConReserva, { transaction: t });
+      } else {
+        // Reserva sin pasajeros explícitos: crea un pasajero genérico con asiento
+        await Pasajeros.create({
+          nombre: "Reserva",
+          apellido: "Sin especificar",
+          dni: 0,
+          ubicacionOrigen: "",
+          ubicacionDestino: "",
+          reserva_id: nuevaReserva.id,
+          numeroAsiento: libres[0],
+          eliminado: "no"
+        }, { transaction: t });
       }
+
+      // 4. Decrementar asientos disponibles de forma segura
 
       // 3. Decrementar asientos disponibles de forma segura
       await viaje.decrement("cantPasajeros", {

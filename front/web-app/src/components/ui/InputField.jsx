@@ -21,7 +21,9 @@ const InputField = forwardRef((
     autoComplete,
     clearable = false,
     onClear,
+    rightElement,
     className = '',
+    ...rest
   },
   ref
 ) => {
@@ -63,7 +65,13 @@ const InputField = forwardRef((
           aria-invalid={hasError}
           aria-describedby={describedBy}
           className="vv-input__field"
+          {...rest}
         />
+        {rightElement && (
+          <span className="vv-input__action" aria-hidden={false}>
+            {rightElement}
+          </span>
+        )}
         {clearable && value && (
           <button
             type="button"

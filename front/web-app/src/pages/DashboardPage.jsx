@@ -1,13 +1,19 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useId } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, Bus, Users, TrendingUp, Plus, Edit, Trash2, X, ChevronRight, 
-  UserCheck, Truck, Building2, Settings, DollarSign, UserPlus, ShieldCheck, 
-  BookmarkCheck, Calendar, ArrowRight, Clock, AlertCircle, Menu
+import {
+  LayoutDashboard, Bus, Users, TrendingUp, Plus, Edit, Trash2, X,
+  UserCheck, Truck, Building2, Settings, DollarSign, UserPlus, ShieldCheck,
+  BookmarkCheck, ArrowRight, Menu, MapPin, Phone, Mail, IdCard
 } from 'lucide-react';
 import { viajeService, transporteService, empresaService, reservaService, usuarioService } from '../services/api';
 import InteractiveChart from '../components/InteractiveChart';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import InputField from '../components/ui/InputField';
+import EmptyState from '../components/ui/EmptyState';
+import SkeletonCard from '../components/ui/SkeletonCard';
 import toast from 'react-hot-toast';
 
 const formatISODate = (date) => {
@@ -37,12 +43,44 @@ const getWeekDays = (anchorDate = new Date()) => {
   });
 };
 
+const formatCurrency = (value) =>
+  new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0);
+
+const formatTime = (time) => (time ? time.substring(0, 5) : '--:--');
+
+const getProfileId = (u) => u?.Usuario?.perfil_id || u?.perfil_id || null;
+
+const getFullName = (u) => {
+  const nombre = u?.Usuario?.nombre || u?.nombre || '';
+  const apellido = u?.Usuario?.apellido || u?.apellido || '';
+  return `${nombre} ${apellido}`.trim() || 'Sin nombre';
+};
+
+const getRoleLabel = (perfilId) => {
+  if (perfilId === 4) return 'Chofer';
+  if (perfilId === 3) return 'Mostrador';
+  if (perfilId === 5) return 'Dueño';
+  if (perfilId === 1) return 'Administrador';
+  return 'Usuario';
+};
+
+const getRoleBadgeVariant = (perfilId) => {
+  if (perfilId === 4) return 'primary';
+  if (perfilId === 3) return 'accent';
+  if (perfilId === 5 || perfilId === 1) return 'success';
+  return 'default';
+};
+
 const WeekDayNav = ({ selected, onSelect }) => {
   const weekDays = getWeekDays();
   const todayIso = formatISODate(new Date());
 
   return (
-    <div style={weekNavStyle} role="tablist" aria-label="Días de la semana">
+    <div className="dashboard-week-nav" role="tablist" aria-label="Días de la semana">
       {weekDays.map((day) => {
         const isSelected = day.iso === selected;
         const isToday = day.iso === todayIso;
@@ -52,18 +90,15 @@ const WeekDayNav = ({ selected, onSelect }) => {
             type="button"
             role="tab"
             aria-selected={isSelected}
+            aria-label={`${day.label} ${day.dayNumber}${isToday ? ' Hoy' : ''}`}
             onClick={() => onSelect(day.iso)}
-            style={{
-              ...weekDayBtnStyle,
-              backgroundColor: isSelected ? 'var(--primary)' : isToday ? 'var(--primary-light)' : 'var(--color-surface)',
-              color: isSelected ? '#ffffff' : isToday ? 'var(--color-primary)' : 'var(--color-text)',
-              borderColor: isSelected ? 'var(--primary)' : isToday ? 'var(--color-primary)' : 'var(--color-border)',
-              boxShadow: isSelected ? '0 8px 16px -4px rgba(37, 99, 235, 0.3)' : 'var(--shadow-xs)',
-            }}
+            className={`dashboard-week-nav__btn ${
+              isSelected ? 'dashboard-week-nav__btn--active' : ''
+            } ${isToday && !isSelected ? 'dashboard-week-nav__btn--today' : ''}`}
           >
-            <span style={weekDayLabelStyle}>{day.label}</span>
-            <span style={weekDayNumberStyle}>{day.dayNumber}</span>
-            {isToday && <span style={weekDayTodayStyle}>Hoy</span>}
+            <span className="dashboard-week-nav__label">{day.label}</span>
+            <span className="dashboard-week-nav__number">{day.dayNumber}</span>
+            {isToday && <span className="dashboard-week-nav__today">Hoy</span>}
           </button>
         );
       })}
@@ -71,42 +106,177 @@ const WeekDayNav = ({ selected, onSelect }) => {
   );
 };
 
+const SelectField = ({ id, label, value, onChange, required = false, children, placeholder }) => {
+  const fallbackId = useId();
+  const selectId = id || fallbackId;
+  return (
+    <div className="dashboard-select-field">
+      {label && (
+        <label htmlFor={selectId} className="dashboard-select-field__label">
+          {label}
+          {required && <span className="dashboard-select-field__required" aria-hidden="true">*</span>}
+        </label>
+      )}
+      <div className="dashboard-select-field__wrapper">
+        <select
+          id={selectId}
+          value={value}
+          onChange={onChange}
+          required={required}
+          className="dashboard-select-field__input"
+        >
+          {placeholder && <option value="">{placeholder}</option>}
+          {children}
+        </select>
+      </div>
+    </div>
+  );
+};
+
+const Modal = ({ children, title, subtitle, onClose, className = '' }) => (
+  <div className="dashboard-modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
+    <Card className={`dashboard-modal-card ${className}`} padded={false} onClick={(e) => e.stopPropagation()}>
+      <div className="dashboard-modal-header">
+        <div>
+          {title && <h2 className="dashboard-modal-title">{title}</h2>}
+          {subtitle && <p className="dashboard-modal-subtitle">{subtitle}</p>}
+        </div>
+        <Button variant="ghost" size="sm" ariaLabel="Cerrar" onClick={onClose} className="dashboard-modal-close">
+          <X size={20} />
+        </Button>
+      </div>
+      {children}
+    </Card>
+  </div>
+);
+
+const StatCard = ({ icon: Icon, label, value, variant = 'default' }) => (
+  <Card className={`dashboard-stat dashboard-stat--${variant}`}>
+    <div className="dashboard-stat__icon" aria-hidden="true">
+      <Icon size={24} />
+    </div>
+    <div>
+      <p className="dashboard-stat__label">{label}</p>
+      <p className="dashboard-stat__value">{value}</p>
+    </div>
+  </Card>
+);
+
+const DashboardTable = ({ headers, children, caption }) => (
+  <div className="table-responsive-container">
+    <table className="dashboard-table">
+      {caption && <caption className="sr-only">{caption}</caption>}
+      <thead>
+        <tr>
+          {headers.map((h, i) => (
+            <th key={i} scope="col">
+              {h}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>{children}</tbody>
+    </table>
+  </div>
+);
+
+const IconButton = ({ icon: Icon, label, onClick, variant = 'default', disabled = false, type = 'button' }) => {
+  const variantClass = variant === 'danger' ? 'dashboard-icon-btn--danger' : '';
+  return (
+    <button
+      type={type}
+      className={`dashboard-icon-btn ${variantClass}`}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+    >
+      <Icon size={18} />
+    </button>
+  );
+};
+
+const SidebarItem = ({ icon: Icon, label, badgeCount, active, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`dashboard-sidebar__item ${active ? 'dashboard-sidebar__item--active' : ''}`}
+    aria-current={active ? 'page' : undefined}
+  >
+    <span className="dashboard-sidebar__item-inner">
+      <Icon size={20} aria-hidden="true" />
+      <span>{label}</span>
+    </span>
+    {badgeCount !== undefined && badgeCount > 0 && (
+      <span className="dashboard-sidebar__badge">{badgeCount}</span>
+    )}
+  </button>
+);
+
 const DashboardPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState('resumen');
   const [loading, setLoading] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  
-  // Estados de datos
+
   const [viajes, setViajes] = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
   const [choferes, setChoferes] = useState([]);
+  const [empleados, setEmpleados] = useState([]);
   const [reservas, setReservas] = useState([]);
-  const [localidades, setLocalidades] = useState([]);
   const [empresas, setEmpresas] = useState([]);
   const [miEmpresa, setMiEmpresa] = useState(null);
 
-  // Estados de modales
   const [showTripModal, setShowTripModal] = useState(false);
   const [showEditTripModal, setShowEditTripModal] = useState(false);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
   const [showPassengersModal, setShowPassengersModal] = useState(false);
   const [showReservaDetailModal, setShowReservaDetailModal] = useState(false);
+
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [selectedReserva, setSelectedReserva] = useState(null);
   const [passengers, setPassengers] = useState([]);
   const [selectedTripDate, setSelectedTripDate] = useState(() => formatISODate(new Date()));
 
-  // Estados de formularios
-  const [nuevoViaje, setNuevoViaje] = useState({ origenLocalidad: '', destinoLocalidad: '', fechaViaje: '', horarioSalida: '', precio: '', medioTransporte_id: '', usuarioEmpresa_id: '' });
-  const [editingTrip, setEditingTrip] = useState({ id: null, origenLocalidad: '', destinoLocalidad: '', fechaViaje: '', horarioSalida: '', precio: '', medioTransporte_id: '', usuarioEmpresa_id: '' });
-  const [nuevoVehiculo, setNuevoVehiculo] = useState({ nombre: '', patente: '', marca: '', cantLugares: 19 });
-  const [nuevoEmpleado, setNuevoEmpleado] = useState({ nombre: '', apellido: '', dni: '', email: '', usuario: '', contrasenia: '', perfil_id: '' });
+  const [nuevoViaje, setNuevoViaje] = useState({
+    origenLocalidad: '',
+    destinoLocalidad: '',
+    fechaViaje: '',
+    horarioSalida: '',
+    precio: '',
+    medioTransporte_id: '',
+    usuarioEmpresa_id: '',
+  });
+  const [editingTrip, setEditingTrip] = useState({
+    id: null,
+    origenLocalidad: '',
+    destinoLocalidad: '',
+    fechaViaje: '',
+    horarioSalida: '',
+    precio: '',
+    medioTransporte_id: '',
+    usuarioEmpresa_id: '',
+  });
+  const [nuevoVehiculo, setNuevoVehiculo] = useState({
+    nombre: '',
+    patente: '',
+    marca: '',
+    cantLugares: 19,
+  });
+  const [nuevoEmpleado, setNuevoEmpleado] = useState({
+    nombre: '',
+    apellido: '',
+    dni: '',
+    email: '',
+    usuario: '',
+    contrasenia: '',
+    perfil_id: '',
+  });
 
   const isOwner = user?.perfil_id === 5 || user?.perfil_id === 1;
-  const isSecretary = user?.perfil_id === 3;
 
   const viajesDelDia = useMemo(() => {
     return viajes.filter((v) => {
@@ -115,12 +285,50 @@ const DashboardPage = () => {
     });
   }, [viajes, selectedTripDate]);
 
-  const fetchData = async () => {
+  const reservasActivas = useMemo(() => reservas.filter((r) => r.eliminado !== 'si'), [reservas]);
+
+  const totalPasajeros = useMemo(() => {
+    return reservasActivas.reduce((sum, r) => sum + (r.Pasajeros?.length || r.asientos_reservados || 1), 0);
+  }, [reservasActivas]);
+
+  const totalIngresos = useMemo(() => {
+    return reservasActivas.reduce((sum, r) => {
+      const precio = Number(r.Viaje?.precio) || 0;
+      const pasajeros = r.Pasajeros?.length || r.asientos_reservados || 1;
+      return sum + precio * pasajeros;
+    }, 0);
+  }, [reservasActivas]);
+
+  const totalCapacidad = useMemo(
+    () => vehiculos.reduce((sum, v) => sum + (Number(v.cantLugares) || 0), 0),
+    [vehiculos]
+  );
+
+  const ocupacion = totalCapacidad > 0 ? Math.round((totalPasajeros / totalCapacidad) * 100) : 0;
+
+  const weekDays = useMemo(() => getWeekDays(), []);
+
+  const weeklyReservations = useMemo(() => {
+    return weekDays.map((day) =>
+      reservasActivas.filter((r) => String(r.Viaje?.fechaViaje).split('T')[0] === day.iso).length
+    );
+  }, [reservasActivas, weekDays]);
+
+  const topRoutes = useMemo(() => {
+    const map = {};
+    reservasActivas.forEach((r) => {
+      const key = `${r.Viaje?.origenLocalidad || 'Origen'} → ${r.Viaje?.destinoLocalidad || 'Destino'}`;
+      map[key] = (map[key] || 0) + (r.Pasajeros?.length || 1);
+    });
+    return Object.entries(map)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+  }, [reservasActivas]);
+
+  const fetchData = useCallback(async () => {
     if (!user) return;
     try {
       setLoading(true);
-      
-      // Determinar ID real de la empresa
       let empresaId = user.id_empresa;
       if (!empresaId) {
         try {
@@ -130,591 +338,1053 @@ const DashboardPage = () => {
           console.warn('No se pudo obtener empresa por usuario:', e);
         }
       }
-      // Fallback si no tiene empresa asignada aún
       if (!empresaId && user.perfil_id === 5) {
         empresaId = user.id;
       }
 
-      // Traer viajes, localidades, flota, empleados y reservas
-      const [vRes, lRes, tRes, cRes, eRes, rRes] = await Promise.allSettled([
+      const [vRes, tRes, cRes, eRes, rRes, empListRes] = await Promise.allSettled([
         empresaId ? viajeService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } }),
-        viajeService.obtenerLocalidades(),
         empresaId ? transporteService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } }),
         empresaId ? empresaService.obtenerUsuarios(empresaId) : Promise.resolve({ data: { data: [] } }),
         empresaId ? empresaService.obtenerPorId(empresaId) : Promise.resolve({ data: { data: null } }),
         empresaId ? reservaService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } }),
+        isOwner ? empresaService.listarTodas() : Promise.resolve({ data: { data: [] } }),
       ]);
 
       if (vRes.status === 'fulfilled') setViajes(vRes.value?.data?.data || vRes.value?.data || []);
-      if (lRes.status === 'fulfilled') setLocalidades(lRes.value?.data?.data || lRes.value?.data || []);
       if (tRes.status === 'fulfilled') setVehiculos(tRes.value?.data?.data || tRes.value?.data || []);
       if (eRes.status === 'fulfilled') {
-        const empData = eRes.value?.data?.data || eRes.value?.data;
-        if (empData) setMiEmpresa(empData);
+        const data = eRes.value?.data?.data ?? eRes.value?.data;
+        setMiEmpresa(data || null);
       }
       if (cRes.status === 'fulfilled') {
-        const todosLosUsuarios = cRes.value?.data?.data || cRes.value?.data || [];
-        setChoferes(todosLosUsuarios.filter(u => u.Usuario?.perfil_id === 4 || u.perfil_id === 4));
+        const all = cRes.value?.data?.data || cRes.value?.data || [];
+        setEmpleados(all.filter((u) => [3, 4].includes(getProfileId(u))));
+        setChoferes(all.filter((u) => getProfileId(u) === 4));
       }
-      if (rRes.status === 'fulfilled') {
-        setReservas(rRes.value?.data?.data || rRes.value?.data || []);
-      }
+      if (rRes.status === 'fulfilled') setReservas(rRes.value?.data?.data || rRes.value?.data || []);
+      if (empListRes.status === 'fulfilled')
+        setEmpresas(empListRes.value?.data?.data || empListRes.value?.data || []);
     } catch (error) {
       console.error('Error al cargar datos del dashboard:', error);
       toast.error('Error al cargar datos del panel');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, isOwner]);
 
   useEffect(() => {
     if (!user || (user.perfil_id !== 1 && user.perfil_id !== 5 && user.perfil_id !== 3)) {
       navigate('/');
       return;
     }
+    // Carga inicial de datos (fetching asíncrono estándar).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
-  }, [user, navigate]);
+  }, [user, navigate, fetchData]);
 
-  const SidebarItem = ({ id, icon: Icon, label, badgeCount }) => (
-    <div 
-      onClick={() => { setActiveTab(id); setMobileSidebarOpen(false); }} 
-      style={{ 
-        ...sidebarItemStyle, 
-        backgroundColor: activeTab === id ? 'var(--primary)' : 'transparent', 
-        color: activeTab === id ? 'white' : 'var(--text-muted)',
-        boxShadow: activeTab === id ? '0 10px 15px -3px rgba(37, 99, 235, 0.2)' : 'none',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <Icon size={20} /> <span style={{ fontWeight: '700' }}>{label}</span>
-      </div>
-      {badgeCount !== undefined && badgeCount > 0 && (
-        <span style={{ 
-          background: activeTab === id ? 'rgba(255,255,255,0.25)' : '#e2e8f0', 
-          color: activeTab === id ? 'white' : '#475569', 
-          padding: '2px 8px', 
-          borderRadius: '50px', 
-          fontSize: '0.75rem', 
-          fontWeight: '800' 
-        }}>
-          {badgeCount}
-        </span>
-      )}
-    </div>
-  );
+  const handleDeleteTrip = async (id, routeLabel) => {
+    if (!window.confirm(`¿Estás seguro de eliminar el viaje ${routeLabel}?`)) return;
+    try {
+      await viajeService.eliminar(id);
+      toast.success('Viaje eliminado con éxito');
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'No se puede eliminar el viaje');
+    }
+  };
+
+  const handleCancelReserva = async (id) => {
+    if (!window.confirm(`¿Estás seguro de cancelar la reserva #RES-${id}? Los cupos serán reintegrados al viaje.`)) return;
+    try {
+      await reservaService.cancelar(id);
+      toast.success('Reserva cancelada y cupos reintegrados');
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error al cancelar la reserva');
+    }
+  };
+
+  const chartCommonOptions = {
+    chart: { toolbar: { show: false }, fontFamily: 'Outfit, sans-serif' },
+    dataLabels: { enabled: false },
+    grid: { borderColor: 'var(--border-light)' },
+    tooltip: { theme: 'dark' },
+  };
 
   return (
-    <div style={dashboardContainer} className="dashboard-container-layout">
+    <div className="dashboard-page">
       <style>{`
-        .dashboard-mobile-topbar {
-          display: none;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 20px;
-          padding-bottom: 12px;
-          border-bottom: 1px solid #e2e8f0;
-        }
-        .mobile-only {
-          display: none;
-        }
+        .dashboard-page { display: flex; min-height: 100vh; background: var(--background); color: var(--text-dark); }
+        .dashboard-sidebar { width: 280px; border-right: 1px solid var(--border); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; background: var(--glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 100; }
+        .dashboard-sidebar__brand { padding: var(--space-6) var(--space-5); margin-bottom: var(--space-2); display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
+        .dashboard-sidebar__brand-text h3 { font-size: var(--text-2xl); font-weight: 900; color: var(--color-primary); letter-spacing: -1px; line-height: 1; }
+        .dashboard-sidebar__brand-text p { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .dashboard-sidebar__nav { flex: 1; overflow-y: auto; padding: 0 var(--space-3); }
+        .dashboard-sidebar__item { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-3); background: transparent; color: var(--text-muted); border: none; font-weight: 700; font-size: var(--text-sm); font-family: var(--font-body); transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; margin-bottom: var(--space-2); }
+        .dashboard-sidebar__item-inner { display: flex; align-items: center; gap: var(--space-3); }
+        .dashboard-sidebar__item:hover:not(.dashboard-sidebar__item--active) { background: var(--surface-hover); color: var(--color-text); }
+        .dashboard-sidebar__item--active { background: var(--color-primary); color: #ffffff; box-shadow: var(--shadow-md); }
+        .dashboard-sidebar__item--active .dashboard-sidebar__badge { background: rgba(255,255,255,0.25); color: #ffffff; }
+        .dashboard-sidebar__badge { background: var(--surface-hover); color: var(--text-muted); padding: 2px 8px; border-radius: var(--radius-pill); font-size: 0.75rem; font-weight: 800; }
+        .dashboard-sidebar__footer { margin-top: auto; padding: var(--space-5) var(--space-3); border-top: 1px solid var(--border-light); }
+        .dashboard-main { flex: 1; padding: var(--space-8) var(--space-10); overflow-y: auto; min-width: 0; }
+        .dashboard-mobile-topbar { display: none; align-items: center; justify-content: space-between; margin-bottom: var(--space-5); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border); }
+        .dashboard-active-tab-badge { background: var(--color-primary); color: #ffffff; padding: 6px 14px; border-radius: var(--radius-pill); font-size: 0.75rem; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; }
+        .dashboard-header { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-5); margin-bottom: var(--space-8); flex-wrap: wrap; }
+        .dashboard-title { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 900; color: var(--color-text); letter-spacing: -1px; text-transform: capitalize; }
+        .dashboard-role-badge { display: inline-flex; align-items: center; gap: var(--space-2); background: var(--surface-hover); color: var(--text-muted); padding: 4px 12px; border-radius: var(--radius-pill); font-size: var(--text-xs); font-weight: 800; margin-top: var(--space-2); }
+        .dashboard-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+        .dashboard-tab { display: flex; flex-direction: column; gap: var(--space-6); }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-5); }
+        .dashboard-stat { display: flex; align-items: center; gap: var(--space-4); }
+        .dashboard-stat__icon { width: 52px; height: 52px; border-radius: var(--radius-3); background: var(--primary-light); color: var(--color-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .dashboard-stat--success .dashboard-stat__icon { background: var(--success-bg); color: var(--success); }
+        .dashboard-stat--accent .dashboard-stat__icon { background: var(--accent-bg); color: var(--accent); }
+        .dashboard-stat--primary .dashboard-stat__icon { background: var(--primary-light); color: var(--color-primary-dark); }
+        .dashboard-stat__label { font-size: var(--text-xs); font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px; }
+        .dashboard-stat__value { font-size: var(--text-2xl); font-weight: 900; color: var(--color-text); font-family: var(--font-heading); letter-spacing: -0.5px; line-height: 1.2; }
+
+        .chart-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-5); }
+        .dashboard-chart-card { display: flex; flex-direction: column; gap: var(--space-3); }
+        .dashboard-chart-card__title { font-size: var(--text-lg); font-weight: 800; color: var(--color-text); }
+
+        .table-card { overflow: hidden; }
+        .dashboard-table { width: 100%; min-width: 640px; border-collapse: collapse; }
+        .dashboard-table caption { text-align: left; font-size: var(--text-xs); font-weight: 800; text-transform: uppercase; color: var(--text-muted); padding: var(--space-4) var(--space-5); }
+        .dashboard-table th { padding: var(--space-4) var(--space-5); text-align: left; font-size: var(--text-xs); font-weight: 800; text-transform: uppercase; color: var(--text-muted); background: var(--surface-hover); border-bottom: 1px solid var(--border); white-space: nowrap; }
+        .dashboard-table td { padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+        .dashboard-table tbody tr { transition: background-color 0.15s ease; }
+        .dashboard-table tbody tr:hover { background: var(--surface-hover); }
+        .dashboard-table tbody tr:last-child td { border-bottom: none; }
+        .dashboard-table__title { font-weight: 800; color: var(--color-text); line-height: 1.3; margin-bottom: 2px; }
+        .dashboard-table__text { font-size: var(--text-sm); color: var(--text-muted); font-weight: 600; }
+        .dashboard-actions-cell { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+
+        .dashboard-week-nav { display: flex; gap: var(--space-3); padding: var(--space-5) var(--space-5) 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .dashboard-week-nav__btn { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 64px; padding: var(--space-3) var(--space-2); border-radius: var(--radius-3); border: 1.5px solid var(--border); background: var(--color-surface); color: var(--color-text); cursor: pointer; font-family: var(--font-heading); transition: all 0.2s ease; box-shadow: var(--shadow-xs); }
+        .dashboard-week-nav__btn:hover:not(.dashboard-week-nav__btn--active) { border-color: var(--color-primary); background: var(--surface-hover); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+        .dashboard-week-nav__btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+        .dashboard-week-nav__btn--active { background: var(--color-primary); border-color: var(--color-primary); color: #ffffff; box-shadow: 0 8px 16px -4px rgba(37, 99, 235, 0.3); }
+        .dashboard-week-nav__btn--today:not(.dashboard-week-nav__btn--active) { border-color: var(--color-primary); color: var(--color-primary); background: var(--primary-light); }
+        .dashboard-week-nav__label { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .dashboard-week-nav__number { font-size: var(--text-xl); font-weight: 900; line-height: 1; }
+        .dashboard-week-nav__today { font-size: 0.65rem; font-weight: 800; margin-top: 2px; }
+
+        .dashboard-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: var(--radius-2); background: var(--surface-hover); color: var(--color-primary); border: none; cursor: pointer; transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease; }
+        .dashboard-icon-btn:hover { background: var(--color-border); color: var(--color-primary-dark); }
+        .dashboard-icon-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+        .dashboard-icon-btn--danger { color: var(--color-error); }
+        .dashboard-icon-btn--danger:hover { background: var(--error-bg); color: #b91c1c; }
+
+        .dashboard-modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 3000; padding: var(--space-4); }
+        .dashboard-modal-card { width: 100%; max-width: 700px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
+        .dashboard-modal-card--wide { max-width: 850px; }
+        .dashboard-modal-header { padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4); }
+        .dashboard-modal-title { font-size: var(--text-2xl); font-weight: 900; color: var(--color-text); line-height: 1.2; }
+        .dashboard-modal-subtitle { font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-1); }
+        .dashboard-modal-close { flex-shrink: 0; }
+        .dashboard-modal-body { padding: var(--space-6); overflow-y: auto; }
+        .dashboard-modal-form { display: flex; flex-direction: column; gap: var(--space-5); }
+        .dashboard-modal-actions { display: flex; justify-content: flex-end; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-2); }
+        .dashboard-modal-actions--split { justify-content: space-between; }
+
+        .dashboard-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-4); }
+        .dashboard-form-grid-full { grid-column: 1 / -1; }
+
+        .dashboard-select-field { display: flex; flex-direction: column; gap: var(--space-2); }
+        .dashboard-select-field__label { font-size: var(--text-sm); font-weight: 600; color: var(--color-text); }
+        .dashboard-select-field__required { color: var(--color-error); margin-left: 2px; }
+        .dashboard-select-field__wrapper { position: relative; display: flex; align-items: center; width: 100%; background: var(--color-surface); border: 1.5px solid var(--color-border); border-radius: var(--radius-3); padding: 0 14px; min-height: 56px; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+        .dashboard-select-field__wrapper:focus-within { border-color: var(--color-primary); box-shadow: var(--shadow-focus); }
+        .dashboard-select-field__input { flex: 1; min-width: 0; border: none; background: transparent; font-size: var(--text-base); color: var(--color-text); font-weight: 600; outline: none; padding: 12px 0; cursor: pointer; }
+        .dashboard-select-field__input option { color: var(--color-text); }
+
+        .dashboard-passenger-list { display: flex; flex-direction: column; gap: var(--space-3); }
+        .dashboard-passenger-item { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+        .dashboard-passenger-main { display: flex; align-items: center; gap: var(--space-3); }
+        .dashboard-passenger-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--color-primary); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: var(--text-sm); }
+        .dashboard-passenger-name { font-weight: 800; color: var(--color-text); }
+        .dashboard-passenger-meta { font-size: var(--text-sm); color: var(--text-muted); font-weight: 600; }
+        .dashboard-passenger-stops { display: flex; flex-direction: column; gap: 2px; font-size: var(--text-sm); color: var(--text-muted); font-weight: 600; text-align: right; }
+
+        .dashboard-reservation-detail { display: flex; flex-direction: column; gap: var(--space-5); }
+        .dashboard-reservation-route { display: flex; flex-direction: column; gap: var(--space-4); }
+        .dashboard-reservation-route-header { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+        .dashboard-reservation-route-title { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xl); font-weight: 900; color: var(--color-text); }
+        .dashboard-reservation-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-4); }
+        .dashboard-detail-label { display: block; font-size: var(--text-xs); font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: var(--space-1); }
+        .dashboard-detail-price { color: var(--color-success); }
+        .dashboard-detail-section-title { font-size: var(--text-base); font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+        .dashboard-detail-sublabel { display: block; font-size: var(--text-sm); color: var(--text-muted); margin-top: 2px; }
+
+        .dashboard-company-header { display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-6); }
+        .dashboard-company-logo { width: 64px; height: 64px; border-radius: var(--radius-3); background: var(--primary-light); color: var(--color-primary); display: flex; align-items: center; justify-content: center; }
+        .dashboard-company-name { font-size: var(--text-2xl); font-weight: 900; color: var(--color-text); }
+        .dashboard-company-meta { font-size: var(--text-sm); color: var(--text-muted); font-weight: 700; }
+        .dashboard-company-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); }
+        .dashboard-company-item { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-4); background: var(--surface-hover); border-radius: var(--radius-3); }
+        .dashboard-company-item svg { color: var(--color-primary); flex-shrink: 0; margin-top: 2px; }
+        .dashboard-company-item span { display: block; font-size: var(--text-xs); font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px; }
+        .dashboard-company-item b { font-size: var(--text-base); color: var(--color-text); font-weight: 800; }
+
+        .skeleton-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-5); margin-bottom: var(--space-8); }
 
         @media (max-width: 960px) {
-          .dashboard-mobile-topbar {
-            display: flex !important;
-          }
-          .mobile-only {
-            display: block !important;
-          }
-          .dashboard-sidebar {
-            position: fixed !important;
-            top: 0 !important;
-            left: -320px !important;
-            width: 290px !important;
-            height: 100vh !important;
-            z-index: 10000 !important;
-            background: white !important;
-            box-shadow: 10px 0 25px rgba(0,0,0,0.15) !important;
-            transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-          }
-          .dashboard-sidebar.open {
-            left: 0 !important;
-          }
-          .dashboard-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(15, 23, 42, 0.5);
-            backdrop-filter: blur(4px);
-            z-index: 9999;
-          }
-          .dashboard-main-content {
-            padding: 16px 12px !important;
-            width: 100% !important;
-            overflow-x: hidden !important;
-          }
-          .dashboard-header-responsive {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 16px !important;
-            margin-bottom: 24px !important;
-          }
-          .dashboard-btn-group {
-            width: 100% !important;
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 10px !important;
-          }
-          .dashboard-btn-group button {
-            width: 100% !important;
-            justify-content: center !important;
-          }
-          .dashboard-reserva-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .dashboard-pasajero-item {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 10px !important;
-          }
-          .dashboard-pasajero-item > div:last-child {
-            text-align: left !important;
-            padding-left: 46px !important;
-          }
+          .dashboard-main { padding: var(--space-5) var(--space-4); }
+          .dashboard-header { flex-direction: column; align-items: flex-start; }
+          .dashboard-actions { width: 100%; }
+          .dashboard-actions .vv-button { flex: 1 1 auto; }
+          .chart-row { grid-template-columns: 1fr; }
+          .dashboard-reservation-grid { grid-template-columns: 1fr; }
+          .dashboard-passenger-stops { text-align: left; }
+        }
+
+        @media (max-width: 768px) {
+          .dashboard-sidebar { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; z-index: 10000; background: var(--color-surface); box-shadow: 10px 0 25px rgba(0,0,0,0.15); transition: left 0.3s cubic-bezier(0.16,1,0.3,1); }
+          .dashboard-sidebar.open { left: 0; }
+          .dashboard-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.5); backdrop-filter: blur(4px); z-index: 9999; }
+          .dashboard-mobile-topbar { display: flex; }
+          .dashboard-main { width: 100%; overflow-x: hidden; }
+          .dashboard-actions { flex-direction: column; }
+          .dashboard-actions .vv-button { width: 100%; justify-content: center; }
+          .dashboard-modal-card { max-width: 95%; }
+          .dashboard-form-grid { grid-template-columns: 1fr; }
+          .dashboard-modal-actions { flex-direction: column-reverse; }
+          .dashboard-modal-actions .vv-button { width: 100%; justify-content: center; }
+          .dashboard-modal-actions--split { flex-direction: column-reverse; gap: var(--space-3); }
         }
       `}</style>
-      {/* Backdrop para cerrar sidebar en celular */}
+
       {mobileSidebarOpen && (
-        <div 
-          onClick={() => setMobileSidebarOpen(false)} 
-          className="dashboard-backdrop"
-        />
+        <div className="dashboard-backdrop" onClick={() => setMobileSidebarOpen(false)} aria-hidden="true" />
       )}
 
-      <aside className={`glass-effect dashboard-sidebar ${mobileSidebarOpen ? 'open' : ''}`} style={sidebarStyle}>
-        <div style={{ padding: '30px 20px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--primary)', letterSpacing: '-1px' }} className="brand">V&V ADMIN</h3>
-            <p style={{ fontSize: '0.7rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Sistema de Gestión</p>
+      <aside className={`dashboard-sidebar ${mobileSidebarOpen ? 'open' : ''}`}>
+        <div className="dashboard-sidebar__brand">
+          <div className="dashboard-sidebar__brand-text">
+            <h3>V&V ADMIN</h3>
+            <p>Sistema de Gestión</p>
           </div>
-          <button 
-            onClick={() => setMobileSidebarOpen(false)} 
-            className="mobile-only" 
-            style={{ background: '#f1f5f9', border: 'none', padding: '8px', borderRadius: '50%' }}
+          <Button
+            variant="ghost"
+            size="sm"
+            ariaLabel="Cerrar menú"
+            onClick={() => setMobileSidebarOpen(false)}
+            className="mobile-only dashboard-sidebar__close"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
-        <div style={{ padding: '0 10px' }}>
-          <SidebarItem id="resumen" icon={LayoutDashboard} label="Resumen" />
-          <SidebarItem id="viajes" icon={Bus} label="Viajes" badgeCount={viajes.length} />
-          <SidebarItem id="reservas" icon={BookmarkCheck} label="Reservas" badgeCount={reservas.length} />
-          <SidebarItem id="flota" icon={Truck} label="Mi Flota" badgeCount={vehiculos.length} />
-          <SidebarItem id="choferes" icon={Users} label="Personal" badgeCount={choferes.length} />
-          {isOwner && <SidebarItem id="estadisticas" icon={TrendingUp} label="Estadísticas" />}
+        <div className="dashboard-sidebar__nav">
+          <SidebarItem id="resumen" icon={LayoutDashboard} label="Resumen" active={activeTab === 'resumen'} onClick={() => { setActiveTab('resumen'); setMobileSidebarOpen(false); }} />
+          <SidebarItem id="viajes" icon={Bus} label="Viajes" badgeCount={viajes.length} active={activeTab === 'viajes'} onClick={() => { setActiveTab('viajes'); setMobileSidebarOpen(false); }} />
+          <SidebarItem id="reservas" icon={BookmarkCheck} label="Reservas" badgeCount={reservas.length} active={activeTab === 'reservas'} onClick={() => { setActiveTab('reservas'); setMobileSidebarOpen(false); }} />
+          <SidebarItem id="flota" icon={Truck} label="Mi Flota" badgeCount={vehiculos.length} active={activeTab === 'flota'} onClick={() => { setActiveTab('flota'); setMobileSidebarOpen(false); }} />
+          <SidebarItem id="choferes" icon={Users} label="Personal" badgeCount={empleados.length} active={activeTab === 'choferes'} onClick={() => { setActiveTab('choferes'); setMobileSidebarOpen(false); }} />
+          {isOwner && <SidebarItem id="estadisticas" icon={TrendingUp} label="Estadísticas" active={activeTab === 'estadisticas'} onClick={() => { setActiveTab('estadisticas'); setMobileSidebarOpen(false); }} />}
         </div>
-        <div style={{ marginTop: 'auto', padding: '20px 10px', borderTop: '1px solid #f1f5f9' }}>
-          <SidebarItem id="mi-empresa" icon={Building2} label="Mi Empresa" />
-          {isOwner && <SidebarItem id="empresas" icon={Settings} label="Configuración" />}
+        <div className="dashboard-sidebar__footer">
+          <SidebarItem id="mi-empresa" icon={Building2} label="Mi Empresa" active={activeTab === 'mi-empresa'} onClick={() => { setActiveTab('mi-empresa'); setMobileSidebarOpen(false); }} />
+          {isOwner && <SidebarItem id="empresas" icon={Settings} label="Configuración" active={activeTab === 'empresas'} onClick={() => { setActiveTab('empresas'); setMobileSidebarOpen(false); }} />}
         </div>
       </aside>
 
-      <main style={mainContentStyle} className="dashboard-main-content">
-        {/* Barra superior móvil con botón de menú hamburguesa */}
+      <main className="dashboard-main">
         <div className="dashboard-mobile-topbar mobile-only">
-          <button 
-            onClick={() => setMobileSidebarOpen(true)} 
-            style={mobileToggleBtn}
-          >
+          <Button variant="secondary" size="sm" onClick={() => setMobileSidebarOpen(true)} ariaLabel="Abrir menú">
             <Menu size={20} />
             <span>Pestañas / Menú</span>
-          </button>
-          <span style={activeTabBadge}>{activeTab.toUpperCase()}</span>
+          </Button>
+          <span className="dashboard-active-tab-badge">{activeTab}</span>
         </div>
 
-        <header style={headerStyle} className="dashboard-header-responsive">
+        <header className="dashboard-header">
           <div className="animate-fade-in">
-            <h1 style={{ fontSize: '2.2rem', fontWeight: '900', letterSpacing: '-1px' }}>{activeTab.toUpperCase()}</h1>
-            <div style={roleBadge}>
-              <ShieldCheck size={14} /> 
+            <h1 className="dashboard-title">{activeTab}</h1>
+            <div className="dashboard-role-badge">
+              <ShieldCheck size={14} aria-hidden="true" />
               <span>{isOwner ? 'Dueño de Empresa' : 'Operador Mostrador'}</span>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }} className="animate-fade-in dashboard-btn-group">
-            <button style={primaryBtn} onClick={() => setShowTripModal(true)}><Plus size={20} /> Nuevo Viaje</button>
-            <button style={secondaryBtn} onClick={() => setShowVehicleModal(true)}><Truck size={20} /> Nueva Unidad</button>
-            {isOwner && <button style={{...primaryBtn, background: '#10b981'}} onClick={() => setShowEmployeeModal(true)}><UserPlus size={20} /> Contratar</button>}
-            <button style={{...secondaryBtn, background: '#2563eb'}} onClick={() => navigate('/chofer')}><Bus size={20} /> Chofer</button>
+          <div className="dashboard-actions animate-fade-in">
+            <Button onClick={() => setShowTripModal(true)}>
+              <Plus size={20} /> Nuevo Viaje
+            </Button>
+            <Button variant="secondary" onClick={() => setShowVehicleModal(true)}>
+              <Truck size={20} /> Nueva Unidad
+            </Button>
+            {isOwner && (
+              <Button variant="primary" onClick={() => setShowEmployeeModal(true)}>
+                <UserPlus size={20} /> Contratar
+              </Button>
+            )}
+            <Button variant="secondary" onClick={() => navigate('/chofer')}>
+              <Bus size={20} /> Chofer
+            </Button>
           </div>
         </header>
 
-        {activeTab === 'resumen' && (
+        {loading ? (
           <div className="animate-fade-in">
-            <div style={statsGrid}>
-              <div style={statCard}><div style={statIcon}><DollarSign color="var(--primary)" /></div><div><p style={statLabel}>Ingresos</p><h4 style={statValue}>$128.400</h4></div></div>
-              <div style={{...statCard, background: 'linear-gradient(135deg, #2563eb, #1e3a8a)', color: 'white'}}><div style={{...statIcon, background: 'rgba(255,255,255,0.2)'}}><UserCheck color="white" /></div><div><p style={{...statLabel, color: 'rgba(255,255,255,0.7)'}}>Pasajeros</p><h4 style={statValue}>482</h4></div></div>
-              <div style={statCard}><div style={statIcon}><Bus color="var(--primary)" /></div><div><p style={statLabel}>Viajes Activos</p><h4 style={statValue}>{viajes.length}</h4></div></div>
+            <div className="skeleton-grid">
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
             </div>
-            
-            <div style={chartRow}>
-              <div style={chartContainer}><InteractiveChart options={{ chart:{id:'sales'}, title:{text:'Rendimiento Semanal', style:{fontSize:'16px', fontWeight:'800', fontFamily:'Outfit'}}} } series={[{name:'Ventas', data:[30,45,32,70,55,80,95]}]} type="area" /></div>
-              <div style={chartContainer}><InteractiveChart options={{ chart:{id:'routes'}, plotOptions:{bar:{borderRadius:10}}, title:{text:'Rutas Populares', style:{fontWeight:'800', fontFamily:'Outfit'}}} } series={[{name:'Reservas', data:[55,42,30]}]} type="bar" /></div>
+            <div className="chart-row">
+              <SkeletonCard />
+              <SkeletonCard />
             </div>
           </div>
-        )}
-
-        {/* Tablas Modernizadas */}
-        {(activeTab === 'viajes' || activeTab === 'reservas' || activeTab === 'flota' || activeTab === 'choferes') && (
-          <div className="animate-fade-in" style={tableWrapper}>
-            {activeTab === 'viajes' && (
-              <WeekDayNav
-                selected={selectedTripDate}
-                onSelect={setSelectedTripDate}
-              />
+        ) : (
+          <>
+            {activeTab === 'resumen' && (
+              <div className="animate-fade-in dashboard-tab">
+                <div className="stats-grid">
+                  <StatCard icon={DollarSign} label="Ingresos estimados" value={formatCurrency(totalIngresos)} />
+                  <StatCard icon={UserCheck} label="Pasajeros" value={totalPasajeros.toLocaleString('es-AR')} variant="success" />
+                  <StatCard icon={Bus} label="Viajes activos" value={viajes.length} variant="accent" />
+                  <StatCard icon={BookmarkCheck} label="Reservas activas" value={reservasActivas.length} variant="primary" />
+                </div>
+                <div className="chart-row">
+                  <Card className="dashboard-chart-card">
+                    <h3 className="dashboard-chart-card__title">Reservas por día (semana actual)</h3>
+                    <InteractiveChart
+                      options={{
+                        ...chartCommonOptions,
+                        chart: { ...chartCommonOptions.chart, id: 'weekly-reservations' },
+                        xaxis: { categories: weekDays.map((d) => d.label), labels: { style: { colors: 'var(--text-muted)' } } },
+                        yaxis: { labels: { style: { colors: 'var(--text-muted)' } } },
+                        colors: ['var(--color-primary)'],
+                      }}
+                      series={[{ name: 'Reservas', data: weeklyReservations }]}
+                      type="area"
+                      height={320}
+                    />
+                  </Card>
+                  <Card className="dashboard-chart-card">
+                    <h3 className="dashboard-chart-card__title">Rutas más reservadas</h3>
+                    <InteractiveChart
+                      options={{
+                        ...chartCommonOptions,
+                        chart: { ...chartCommonOptions.chart, id: 'top-routes' },
+                        xaxis: { categories: topRoutes.map((r) => r[0]), labels: { style: { colors: 'var(--text-muted)' } } },
+                        yaxis: { labels: { style: { colors: 'var(--text-muted)' } } },
+                        plotOptions: { bar: { borderRadius: 8 } },
+                        colors: ['var(--color-accent)'],
+                      }}
+                      series={[{ name: 'Pasajeros', data: topRoutes.map((r) => r[1]) }]}
+                      type="bar"
+                      height={320}
+                    />
+                  </Card>
+                </div>
+              </div>
             )}
-            <table style={tableStyle}>
-              <thead>
-                <tr style={thRow}>
-                  <th style={thStyle}>Detalle</th>
-                  <th style={thStyle}>Estado / Info</th>
-                  <th style={thStyle}>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeTab === 'viajes' && (
-                  viajes.length === 0 ? (
-                    <tr><td colSpan="3" style={{...tdStyle, textAlign: 'center', color: 'var(--text-muted)'}}>No hay viajes registrados en esta empresa todavía.</td></tr>
-                  ) : viajesDelDia.length === 0 ? (
-                    <tr><td colSpan="3" style={{...tdStyle, textAlign: 'center', color: 'var(--text-muted)'}}>No hay viajes cargados para el día seleccionado.</td></tr>
-                  ) : viajesDelDia.map(v => (
-                    <tr key={v.id} className="table-row" style={trStyle}>
-                      <td style={tdStyle}>
+
+            {activeTab === 'viajes' && (
+              <div className="animate-fade-in dashboard-tab">
+                <Card className="table-card" padded={false}>
+                  <WeekDayNav selected={selectedTripDate} onSelect={setSelectedTripDate} />
+                  {viajesDelDia.length === 0 ? (
+                    <div style={{ padding: 'var(--space-5)' }}>
+                      <EmptyState
+                        icon={Bus}
+                        title="No hay viajes para este día"
+                        description="Seleccioná otra fecha o creá un nuevo viaje desde el botón superior."
+                        action={{ label: 'Nuevo viaje', onClick: () => setShowTripModal(true) }}
+                      />
+                    </div>
+                  ) : (
+                    <DashboardTable
+                      headers={['Ruta', 'Fecha y hora', 'Unidad / Chofer', 'Pasajeros', 'Acciones']}
+                      caption="Viajes del día seleccionado"
+                    >
+                      {viajesDelDia.map((v) => {
+                        const vehicle = v.MedioTransporte || vehiculos.find((ve) => ve.id === v.medioTransporte_id);
+                        const driver = v.UsuarioEmpresa || empleados.find((e) => e.id === v.usuarioEmpresa_id);
+                        const passengerCount = v.cantPasajeros ?? v.Pasajeros?.length ?? 0;
+                        return (
+                          <tr key={v.id}>
+                            <td>
+                              <div className="dashboard-table__title">
+                                {v.origenLocalidad} → {v.destinoLocalidad}
+                              </div>
+                              <div className="dashboard-table__text">{formatCurrency(v.precio)}</div>
+                            </td>
+                            <td>
+                              <div className="dashboard-table__title">{formatTime(v.horarioSalida)} hs</div>
+                              <div className="dashboard-table__text">{v.fechaViaje}</div>
+                            </td>
+                            <td>
+                              <div className="dashboard-table__title">{vehicle?.nombre || 'Sin unidad'}</div>
+                              <div className="dashboard-table__text">{getFullName(driver) || 'Sin chofer'}</div>
+                            </td>
+                            <td>
+                              <Badge variant="primary">
+                                {passengerCount} pasajero{passengerCount !== 1 ? 's' : ''}
+                              </Badge>
+                            </td>
+                            <td>
+                              <div className="dashboard-actions-cell">
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedTrip(v);
+                                    setShowPassengersModal(true);
+                                    reservaService.obtenerPasajerosPorViaje(v.id).then((r) => setPassengers(r.data?.data || []));
+                                  }}
+                                  ariaLabel="Ver pasajeros"
+                                >
+                                  <Users size={16} /> Pasajeros
+                                </Button>
+                                <IconButton
+                                  icon={Edit}
+                                  label="Editar viaje"
+                                  onClick={() => {
+                                    setEditingTrip({
+                                      id: v.id,
+                                      origenLocalidad: v.origenLocalidad,
+                                      destinoLocalidad: v.destinoLocalidad,
+                                      fechaViaje: v.fechaViaje,
+                                      horarioSalida: v.horarioSalida?.substring(0, 5) || '',
+                                      precio: v.precio,
+                                      medioTransporte_id: v.medioTransporte_id || v.MedioTransporte?.id || '',
+                                      usuarioEmpresa_id: v.usuarioEmpresa_id || '',
+                                    });
+                                    setShowEditTripModal(true);
+                                  }}
+                                />
+                                <IconButton
+                                  icon={Trash2}
+                                  label="Eliminar viaje"
+                                  variant="danger"
+                                  onClick={() => handleDeleteTrip(v.id, `${v.origenLocalidad} → ${v.destinoLocalidad}`)}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </DashboardTable>
+                  )}
+                </Card>
+              </div>
+            )}
+
+            {activeTab === 'reservas' && (
+              <div className="animate-fade-in dashboard-tab">
+                <Card className="table-card" padded={false}>
+                  {reservas.length === 0 ? (
+                    <EmptyState
+                      icon={BookmarkCheck}
+                      title="No hay reservas registradas"
+                      description="Todavía no se realizaron reservas para esta empresa."
+                    />
+                  ) : (
+                    <DashboardTable
+                      headers={['Reserva / Viaje', 'Cliente', 'Pasajeros', 'Estado', 'Acciones']}
+                      caption="Listado de reservas"
+                    >
+                      {reservas.map((res) => {
+                        const cantPasajeros = res.Pasajeros?.length || res.asientos_reservados || 1;
+                        const clienteNombre = res.Usuario
+                          ? `${res.Usuario.nombre} ${res.Usuario.apellido}`
+                          : 'Cliente';
+                        const cancelada = res.eliminado === 'si';
+                        return (
+                          <tr key={res.id}>
+                            <td>
+                              <div className="dashboard-table__title">
+                                #{res.id} · {res.Viaje?.origenLocalidad} → {res.Viaje?.destinoLocalidad}
+                              </div>
+                              <div className="dashboard-table__text">
+                                {res.Viaje?.fechaViaje} · {formatTime(res.Viaje?.horarioSalida)} hs
+                              </div>
+                            </td>
+                            <td>
+                              <div className="dashboard-table__title">{clienteNombre}</div>
+                              <div className="dashboard-table__text">{res.Usuario?.telefono || 'Sin teléfono'}</div>
+                            </td>
+                            <td>
+                              <Badge variant="primary">
+                                {cantPasajeros} pasajero{cantPasajeros !== 1 ? 's' : ''}
+                              </Badge>
+                            </td>
+                            <td>
+                              <Badge variant={cancelada ? 'error' : 'success'}>
+                                {cancelada ? 'Cancelada' : 'Confirmada'}
+                              </Badge>
+                            </td>
+                            <td>
+                              <div className="dashboard-actions-cell">
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedReserva(res);
+                                    setShowReservaDetailModal(true);
+                                  }}
+                                  ariaLabel="Ver detalle de reserva"
+                                >
+                                  <BookmarkCheck size={16} /> Detalle
+                                </Button>
+                                {!cancelada && (
+                                  <IconButton
+                                    icon={Trash2}
+                                    label="Cancelar reserva"
+                                    variant="danger"
+                                    onClick={() => handleCancelReserva(res.id)}
+                                  />
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </DashboardTable>
+                  )}
+                </Card>
+              </div>
+            )}
+
+            {activeTab === 'flota' && (
+              <div className="animate-fade-in dashboard-tab">
+                <Card className="table-card" padded={false}>
+                  {vehiculos.length === 0 ? (
+                    <EmptyState
+                      icon={Truck}
+                      title="No hay unidades registradas"
+                      description="Agregá tu primer minibús para poder crear viajes."
+                      action={{ label: 'Nueva unidad', onClick: () => setShowVehicleModal(true) }}
+                    />
+                  ) : (
+                    <DashboardTable headers={['Unidad', 'Patente / Capacidad', 'Estado', 'Acciones']} caption="Flota de vehículos">
+                      {vehiculos.map((veh) => (
+                        <tr key={veh.id}>
+                          <td>
+                            <div className="dashboard-table__title">{veh.nombre}</div>
+                            <div className="dashboard-table__text">{veh.marca}</div>
+                          </td>
+                          <td>
+                            <div className="dashboard-table__title">{veh.patente}</div>
+                            <div className="dashboard-table__text">{veh.cantLugares} asientos</div>
+                          </td>
+                          <td>
+                            <Badge variant="success">Activo</Badge>
+                          </td>
+                          <td>
+                            <IconButton
+                              icon={Edit}
+                              label="Editar unidad"
+                              onClick={() => toast('Edición de unidades próximamente')}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </DashboardTable>
+                  )}
+                </Card>
+              </div>
+            )}
+
+            {activeTab === 'choferes' && (
+              <div className="animate-fade-in dashboard-tab">
+                <Card className="table-card" padded={false}>
+                  {empleados.length === 0 ? (
+                    <EmptyState
+                      icon={Users}
+                      title="No hay personal registrado"
+                      description="Contratá choferes o secretarios de mostrador para tu empresa."
+                      action={{ label: 'Contratar personal', onClick: () => setShowEmployeeModal(true) }}
+                    />
+                  ) : (
+                    <DashboardTable headers={['Nombre', 'Documento', 'Rol', 'Estado', 'Acciones']} caption="Personal de la empresa">
+                      {empleados.map((emp) => {
+                        const perfilId = getProfileId(emp);
+                        return (
+                          <tr key={emp.id}>
+                            <td>
+                              <div className="dashboard-table__title">{getFullName(emp)}</div>
+                              <div className="dashboard-table__text">{emp.Usuario?.email || emp.email || ''}</div>
+                            </td>
+                            <td>
+                              <div className="dashboard-table__title">{emp.Usuario?.dni || emp.dni || 'S/D'}</div>
+                            </td>
+                            <td>
+                              <Badge variant={getRoleBadgeVariant(perfilId)}>{getRoleLabel(perfilId)}</Badge>
+                            </td>
+                            <td>
+                              <Badge variant="success">Activo</Badge>
+                            </td>
+                            <td>
+                              <IconButton
+                                icon={Edit}
+                                label="Editar personal"
+                                onClick={() => toast('Edición de personal próximamente')}
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </DashboardTable>
+                  )}
+                </Card>
+              </div>
+            )}
+
+            {activeTab === 'estadisticas' && (
+              <div className="animate-fade-in dashboard-tab">
+                <div className="stats-grid">
+                  <StatCard icon={Users} label="Ocupación estimada" value={`${ocupacion}%`} variant="primary" />
+                  <StatCard icon={DollarSign} label="Ingresos estimados" value={formatCurrency(totalIngresos)} />
+                  <StatCard icon={Bus} label="Viajes activos" value={viajes.length} variant="accent" />
+                  <StatCard icon={BookmarkCheck} label="Reservas activas" value={reservasActivas.length} variant="success" />
+                </div>
+                <div className="chart-row">
+                  <Card className="dashboard-chart-card">
+                    <h3 className="dashboard-chart-card__title">Reservas por día (semana actual)</h3>
+                    <InteractiveChart
+                      options={{
+                        ...chartCommonOptions,
+                        chart: { ...chartCommonOptions.chart, id: 'stats-weekly' },
+                        xaxis: { categories: weekDays.map((d) => d.label), labels: { style: { colors: 'var(--text-muted)' } } },
+                        yaxis: { labels: { style: { colors: 'var(--text-muted)' } } },
+                        colors: ['var(--color-primary)'],
+                      }}
+                      series={[{ name: 'Reservas', data: weeklyReservations }]}
+                      type="area"
+                      height={320}
+                    />
+                  </Card>
+                  <Card className="dashboard-chart-card">
+                    <h3 className="dashboard-chart-card__title">Rutas más populares</h3>
+                    <InteractiveChart
+                      options={{
+                        ...chartCommonOptions,
+                        chart: { ...chartCommonOptions.chart, id: 'stats-routes' },
+                        xaxis: { categories: topRoutes.map((r) => r[0]), labels: { style: { colors: 'var(--text-muted)' } } },
+                        yaxis: { labels: { style: { colors: 'var(--text-muted)' } } },
+                        plotOptions: { bar: { borderRadius: 8 } },
+                        colors: ['var(--color-accent)'],
+                      }}
+                      series={[{ name: 'Pasajeros', data: topRoutes.map((r) => r[1]) }]}
+                      type="bar"
+                      height={320}
+                    />
+                  </Card>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'mi-empresa' && (
+              <div className="animate-fade-in dashboard-tab">
+                {miEmpresa ? (
+                  <Card>
+                    <div className="dashboard-company-header">
+                      <div className="dashboard-company-logo">
+                        <Building2 size={32} aria-hidden="true" />
+                      </div>
+                      <div>
+                        <h2 className="dashboard-company-name">{miEmpresa.nombre}</h2>
+                        <p className="dashboard-company-meta">CUIT: {miEmpresa.cuit || 'S/C'}</p>
+                      </div>
+                    </div>
+                    <div className="dashboard-company-grid">
+                      <div className="dashboard-company-item">
+                        <MapPin size={18} aria-hidden="true" />
                         <div>
-                          <b style={{fontSize:'1.1rem'}}>{v.origenLocalidad} → {v.destinoLocalidad}</b>
-                          <p style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>
-                            {v.fechaViaje} • {v.horarioSalida?.substring(0, 5)}hs - ${v.precio}
-                          </p>
+                          <span>Dirección</span>
+                          <b>{miEmpresa.direccion || 'S/D'}</b>
                         </div>
-                      </td>
-                      <td style={tdStyle}>
-                        <button 
-                          onClick={() => { 
-                            setSelectedTrip(v); 
-                            setShowPassengersModal(true); 
-                            reservaService.obtenerPasajerosPorViaje(v.id).then(r => setPassengers(r.data?.data || [])); 
-                          }} 
-                          style={passengerBadge}
-                        >
-                          <Users size={14} /> Ver Pasajeros
-                        </button>
-                      </td>
-                      <td style={tdStyle}>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button 
-                            style={iconBtn}
-                            title="Editar Viaje"
-                            onClick={() => {
-                              setEditingTrip({
-                                id: v.id,
-                                origenLocalidad: v.origenLocalidad,
-                                destinoLocalidad: v.destinoLocalidad,
-                                fechaViaje: v.fechaViaje,
-                                horarioSalida: v.horarioSalida?.substring(0, 5) || '',
-                                precio: v.precio,
-                                medioTransporte_id: v.medioTransporte_id || v.MedioTransporte?.id || '',
-                                usuarioEmpresa_id: v.usuarioEmpresa_id || ''
-                              });
-                              setShowEditTripModal(true);
-                            }}
-                          >
-                            <Edit size={18}/>
-                          </button>
-                          <button 
-                            style={{ ...iconBtn, color: '#ef4444' }}
-                            title="Eliminar Viaje"
-                            onClick={async () => {
-                              if (!window.confirm(`¿Estás seguro de que deseas eliminar el viaje ${v.origenLocalidad} ➔ ${v.destinoLocalidad}?`)) return;
-                              try {
-                                await viajeService.eliminar(v.id);
-                                toast.success('Viaje eliminado con éxito');
-                                fetchData();
-                              } catch (err) {
-                                toast.error(err.response?.data?.message || 'No se puede eliminar el viaje');
-                              }
-                            }}
-                          >
-                            <Trash2 size={18}/>
-                          </button>
+                      </div>
+                      <div className="dashboard-company-item">
+                        <Phone size={18} aria-hidden="true" />
+                        <div>
+                          <span>Teléfono</span>
+                          <b>{miEmpresa.telefono || 'S/D'}</b>
                         </div>
-                      </td>
-                    </tr>
-                  ))
+                      </div>
+                      <div className="dashboard-company-item">
+                        <Mail size={18} aria-hidden="true" />
+                        <div>
+                          <span>Email</span>
+                          <b>{miEmpresa.email || 'S/D'}</b>
+                        </div>
+                      </div>
+                      <div className="dashboard-company-item">
+                        <IdCard size={18} aria-hidden="true" />
+                        <div>
+                          <span>Localidad</span>
+                          <b>{miEmpresa.Localidad?.nombre || 'S/D'}</b>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ) : (
+                  <EmptyState
+                    icon={Building2}
+                    title="No hay datos de la empresa"
+                    description="Todavía no se cargó la información de tu empresa."
+                  />
                 )}
-                {activeTab === 'reservas' && (
-                  reservas.length === 0 ? (
-                    <tr><td colSpan="3" style={{...tdStyle, textAlign: 'center', color: 'var(--text-muted)'}}>No hay reservas registradas para esta empresa todavía.</td></tr>
-                  ) : reservas.map(res => {
-                    const cantPasajeros = res.Pasajeros?.length || res.asientos_reservados || 1;
-                    const clienteNombre = res.Usuario ? `${res.Usuario.nombre} ${res.Usuario.apellido}` : 'Cliente';
-                    return (
-                      <tr key={res.id} className="table-row" style={trStyle}>
-                        <td style={tdStyle}>
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontWeight: '900', color: 'var(--primary)', fontSize: '0.85rem' }}>#RES-{res.id}</span>
-                              <b style={{ fontSize: '1.05rem', color: '#1e293b' }}>
-                                {res.Viaje?.origenLocalidad} → {res.Viaje?.destinoLocalidad}
-                              </b>
-                            </div>
-                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                              Fecha Salida: <b>{res.Viaje?.fechaViaje}</b> a las <b>{res.Viaje?.horarioSalida?.substring(0, 5)}hs</b> • Reservado: {res.fechaReserva?.substring(0, 10)}
-                            </p>
-                          </div>
-                        </td>
-                        <td style={tdStyle}>
-                          <div>
-                            <span style={{ fontWeight: '800', color: '#334155', fontSize: '0.9rem' }}>👤 {clienteNombre}</span>
-                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                              {cantPasajeros} {cantPasajeros === 1 ? 'pasajero' : 'pasajeros'} • Tel: {res.Usuario?.telefono || 'Sin tel'}
-                            </p>
-                          </div>
-                        </td>
-                        <td style={tdStyle}>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button 
-                              onClick={() => { setSelectedReserva(res); setShowReservaDetailModal(true); }} 
-                              style={{ ...passengerBadge, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', cursor: 'pointer' }}
-                            >
-                              <BookmarkCheck size={16} /> Ver Detalle
-                            </button>
-                            <button 
-                              style={{ ...iconBtn, color: '#ef4444' }} 
-                              title="Cancelar Reserva"
-                              onClick={async () => {
-                                if (!window.confirm(`¿Estás seguro de cancelar la reserva #RES-${res.id}? Los cupos serán reintegrados al viaje.`)) return;
-                                try {
-                                  await reservaService.cancelar(res.id);
-                                  toast.success('Reserva cancelada y cupos reintegrados');
-                                  fetchData();
-                                } catch (err) {
-                                  toast.error(err.response?.data?.message || 'Error al cancelar la reserva');
-                                }
-                              }}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-                {activeTab === 'flota' && (
-                  vehiculos.length === 0 ? (
-                    <tr><td colSpan="3" style={{...tdStyle, textAlign: 'center', color: 'var(--text-muted)'}}>No hay unidades registradas en la flota.</td></tr>
-                  ) : vehiculos.map(veh => (
-                    <tr key={veh.id} className="table-row" style={trStyle}>
-                      <td style={tdStyle}><b>{veh.nombre}</b><p style={{fontSize:'0.8rem'}}>{veh.marca} ({veh.cantLugares} asientos)</p></td>
-                      <td style={tdStyle}><span style={statusBadge}>{veh.patente}</span></td>
-                      <td style={tdStyle}><button style={iconBtn}><Edit size={18}/></button></td>
-                    </tr>
-                  ))
-                )}
-                {activeTab === 'choferes' && (
-                  choferes.length === 0 ? (
-                    <tr><td colSpan="3" style={{...tdStyle, textAlign: 'center', color: 'var(--text-muted)'}}>No hay personal registrado. Haz clic en "Contratar Personal" arriba.</td></tr>
-                  ) : choferes.map(ch => (
-                    <tr key={ch.id} className="table-row" style={trStyle}>
-                      <td style={tdStyle}><b>{ch.Usuario?.nombre || ch.nombre} {ch.Usuario?.apellido || ch.apellido}</b><p style={{fontSize:'0.8rem', color: 'var(--text-muted)'}}>DNI: {ch.Usuario?.dni || ch.dni} • Rol: {ch.perfil_id === 4 || ch.Usuario?.perfil_id === 4 ? 'Chofer' : 'Mostrador'}</p></td>
-                      <td style={tdStyle}><span style={{...statusBadge, background:'#dcfce7', color:'#166534'}}>Activo</span></td>
-                      <td style={tdStyle}><button style={iconBtn}><Edit size={18}/></button></td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            )}
+
+            {activeTab === 'empresas' && isOwner && (
+              <div className="animate-fade-in dashboard-tab">
+                <Card className="table-card" padded={false}>
+                  {empresas.length === 0 ? (
+                    <EmptyState
+                      icon={Building2}
+                      title="No hay empresas registradas"
+                      description="No se encontraron otras empresas en el sistema."
+                    />
+                  ) : (
+                    <DashboardTable headers={['Nombre', 'CUIT', 'Contacto', 'Estado']} caption="Empresas registradas">
+                      {empresas.map((emp) => (
+                        <tr key={emp.id}>
+                          <td>
+                            <div className="dashboard-table__title">{emp.nombre}</div>
+                            <div className="dashboard-table__text">{emp.direccion}</div>
+                          </td>
+                          <td>
+                            <div className="dashboard-table__title">{emp.cuit}</div>
+                          </td>
+                          <td>
+                            <div className="dashboard-table__title">{emp.telefono}</div>
+                            <div className="dashboard-table__text">{emp.email}</div>
+                          </td>
+                          <td>
+                            <Badge variant={emp.eliminado === 'si' ? 'error' : 'success'}>
+                              {emp.eliminado === 'si' ? 'Inactiva' : 'Activa'}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </DashboardTable>
+                  )}
+                </Card>
+              </div>
+            )}
+          </>
         )}
       </main>
 
-      {/* Modal Contratar Personal */}
       {showEmployeeModal && (
-        <div style={modalOverlay} className="animate-fade-in">
-          <div style={modalContent}>
-            <div style={modalHeader}><h2 style={{fontWeight:'900', fontSize:'1.8rem'}}>Contratar Personal</h2><button onClick={() => setShowEmployeeModal(false)} style={closeBtn}><X /></button></div>
-            <form onSubmit={async (e) => { 
-              e.preventDefault(); 
-              try { 
-                const empId = user.id_empresa || (miEmpresa?.id) || user.id;
-                await usuarioService.registrarEmpleado({ ...nuevoEmpleado, empresa_id: empId }); 
-                toast.success('¡Empleado contratado y registrado!'); 
-                setShowEmployeeModal(false); 
-                fetchData(); 
-              } catch(err) {
+        <Modal
+          title="Contratar personal"
+          subtitle="Completá los datos del nuevo empleado."
+          onClose={() => setShowEmployeeModal(false)}
+        >
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                const empId = user.id_empresa || miEmpresa?.id || user.id;
+                await usuarioService.registrarEmpleado({ ...nuevoEmpleado, empresa_id: empId });
+                toast.success('¡Empleado contratado y registrado!');
+                setShowEmployeeModal(false);
+                setNuevoEmpleado({
+                  nombre: '',
+                  apellido: '',
+                  dni: '',
+                  email: '',
+                  usuario: '',
+                  contrasenia: '',
+                  perfil_id: '',
+                });
+                fetchData();
+              } catch (err) {
                 toast.error(err.response?.data?.message || 'Error al registrar empleado');
-              } 
-            }} style={modalForm}>
-              <div style={formGrid}>
-                <div style={field}><label style={label}>Nombre</label><input style={input} onChange={e => setNuevoEmpleado({...nuevoEmpleado, nombre: e.target.value})} required /></div>
-                <div style={field}><label style={label}>Apellido</label><input style={input} onChange={e => setNuevoEmpleado({...nuevoEmpleado, apellido: e.target.value})} required /></div>
-                <div style={field}><label style={label}>DNI</label><input type="number" style={input} onChange={e => setNuevoEmpleado({...nuevoEmpleado, dni: e.target.value})} required /></div>
-                <div style={field}><label style={label}>Email</label><input type="email" style={input} onChange={e => setNuevoEmpleado({...nuevoEmpleado, email: e.target.value})} required /></div>
-                <div style={field}><label style={label}>Usuario (Acceso)</label><input style={input} placeholder="Opcional (se autogenera)" onChange={e => setNuevoEmpleado({...nuevoEmpleado, usuario: e.target.value})} /></div>
-                <div style={field}><label style={label}>Contraseña</label><input type="password" style={input} placeholder="Por defecto 123456" onChange={e => setNuevoEmpleado({...nuevoEmpleado, contrasenia: e.target.value})} /></div>
-                <div style={{...field, gridColumn:'1 / -1'}}><label style={label}>Rol</label><select style={input} onChange={e => setNuevoEmpleado({...nuevoEmpleado, perfil_id: e.target.value})} required><option value="">Elegir puesto...</option><option value="4">Chofer de Unidad</option><option value="3">Secretario de Mostrador</option></select></div>
+              }
+            }}
+            className="dashboard-modal-form"
+          >
+            <div className="dashboard-form-grid">
+              <InputField
+                label="Nombre"
+                value={nuevoEmpleado.nombre}
+                onChange={(e) => setNuevoEmpleado({ ...nuevoEmpleado, nombre: e.target.value })}
+                required
+              />
+              <InputField
+                label="Apellido"
+                value={nuevoEmpleado.apellido}
+                onChange={(e) => setNuevoEmpleado({ ...nuevoEmpleado, apellido: e.target.value })}
+                required
+              />
+              <InputField
+                label="DNI"
+                type="number"
+                value={nuevoEmpleado.dni}
+                onChange={(e) => setNuevoEmpleado({ ...nuevoEmpleado, dni: e.target.value })}
+                required
+              />
+              <InputField
+                label="Email"
+                type="email"
+                value={nuevoEmpleado.email}
+                onChange={(e) => setNuevoEmpleado({ ...nuevoEmpleado, email: e.target.value })}
+                required
+              />
+              <InputField
+                label="Usuario (acceso)"
+                value={nuevoEmpleado.usuario}
+                placeholder="Opcional (se autogenera)"
+                onChange={(e) => setNuevoEmpleado({ ...nuevoEmpleado, usuario: e.target.value })}
+              />
+              <InputField
+                label="Contraseña"
+                type="password"
+                value={nuevoEmpleado.contrasenia}
+                placeholder="Por defecto 123456"
+                onChange={(e) => setNuevoEmpleado({ ...nuevoEmpleado, contrasenia: e.target.value })}
+              />
+              <div className="dashboard-form-grid-full">
+                <SelectField
+                  label="Rol"
+                  value={nuevoEmpleado.perfil_id}
+                  onChange={(e) => setNuevoEmpleado({ ...nuevoEmpleado, perfil_id: e.target.value })}
+                  required
+                  placeholder="Elegir puesto..."
+                >
+                  <option value="4">Chofer de unidad</option>
+                  <option value="3">Secretario de mostrador</option>
+                </SelectField>
               </div>
-              <div style={modalActions}><button type="submit" style={primaryBtn}>Confirmar Contratación</button></div>
-            </form>
-          </div>
-        </div>
+            </div>
+            <div className="dashboard-modal-actions">
+              <Button type="button" variant="secondary" onClick={() => setShowEmployeeModal(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">Confirmar contratación</Button>
+            </div>
+          </form>
+        </Modal>
       )}
 
-      {/* Modal Nuevo Viaje */}
       {showTripModal && (
-        <div style={modalOverlay} className="animate-fade-in">
-          <div style={modalContent}>
-            <div style={modalHeader}><h2 style={{fontWeight:'900', fontSize:'1.8rem'}}>Crear Nuevo Viaje</h2><button onClick={() => setShowTripModal(false)} style={closeBtn}><X /></button></div>
-            <form onSubmit={async (e) => {
+        <Modal title="Crear nuevo viaje" subtitle="Programá un servicio y asigná unidad y chofer." onClose={() => setShowTripModal(false)}>
+          <form
+            onSubmit={async (e) => {
               e.preventDefault();
               try {
                 const choferId = nuevoViaje.usuarioEmpresa_id || choferes[0]?.id || user.id;
                 const vehiculoId = nuevoViaje.medioTransporte_id || vehiculos[0]?.id;
                 if (!vehiculoId) {
-                  toast.error('Primero debes registrar un minibús en la flota');
+                  toast.error('Primero debés registrar un minibús en la flota');
                   return;
                 }
                 await viajeService.crear({
                   ...nuevoViaje,
                   usuarioEmpresa_id: parseInt(choferId, 10),
                   medioTransporte_id: parseInt(vehiculoId, 10),
-                  precio: parseFloat(nuevoViaje.precio)
+                  precio: parseFloat(nuevoViaje.precio),
                 });
                 toast.success('¡Viaje creado con éxito!');
                 setShowTripModal(false);
+                setNuevoViaje({
+                  origenLocalidad: '',
+                  destinoLocalidad: '',
+                  fechaViaje: '',
+                  horarioSalida: '',
+                  precio: '',
+                  medioTransporte_id: '',
+                  usuarioEmpresa_id: '',
+                });
                 fetchData();
-              } catch(err) {
+              } catch (err) {
                 toast.error(err.response?.data?.message || 'Error al crear el viaje');
               }
-            }} style={modalForm}>
-              <div style={formGrid}>
-                <div style={field}>
-                  <label style={label}>Origen</label>
-                  <input style={input} placeholder="Ej: San Roque" onChange={e => setNuevoViaje({...nuevoViaje, origenLocalidad: e.target.value})} required />
-                </div>
-                <div style={field}>
-                  <label style={label}>Destino</label>
-                  <input style={input} placeholder="Ej: Corrientes" onChange={e => setNuevoViaje({...nuevoViaje, destinoLocalidad: e.target.value})} required />
-                </div>
-                <div style={field}>
-                  <label style={label}>Fecha</label>
-                  <input type="date" style={input} onChange={e => setNuevoViaje({...nuevoViaje, fechaViaje: e.target.value})} required />
-                </div>
-                <div style={field}>
-                  <label style={label}>Horario de Salida</label>
-                  <input type="time" style={input} onChange={e => setNuevoViaje({...nuevoViaje, horarioSalida: e.target.value})} required />
-                </div>
-                <div style={field}>
-                  <label style={label}>Precio ($)</label>
-                  <input type="number" step="0.01" style={input} placeholder="Ej: 8500" onChange={e => setNuevoViaje({...nuevoViaje, precio: e.target.value})} required />
-                </div>
-                <div style={field}>
-                  <label style={label}>Minibús / Vehículo</label>
-                  <select style={input} onChange={e => setNuevoViaje({...nuevoViaje, medioTransporte_id: e.target.value})} required>
-                    <option value="">Seleccionar unidad...</option>
-                    {vehiculos.map(veh => <option key={veh.id} value={veh.id}>{veh.nombre} - {veh.patente}</option>)}
-                  </select>
-                </div>
-                <div style={{...field, gridColumn:'1 / -1'}}>
-                  <label style={label}>Chofer asignado</label>
-                  <select style={input} onChange={e => setNuevoViaje({...nuevoViaje, usuarioEmpresa_id: e.target.value})} required>
-                    <option value="">Seleccionar chofer...</option>
-                    {choferes.map(ch => <option key={ch.id} value={ch.id}>{ch.Usuario?.nombre || ch.nombre} {ch.Usuario?.apellido || ch.apellido}</option>)}
-                  </select>
-                </div>
+            }}
+            className="dashboard-modal-form"
+          >
+            <div className="dashboard-form-grid">
+              <InputField
+                label="Origen"
+                value={nuevoViaje.origenLocalidad}
+                placeholder="Ej: San Roque"
+                onChange={(e) => setNuevoViaje({ ...nuevoViaje, origenLocalidad: e.target.value })}
+                required
+              />
+              <InputField
+                label="Destino"
+                value={nuevoViaje.destinoLocalidad}
+                placeholder="Ej: Corrientes"
+                onChange={(e) => setNuevoViaje({ ...nuevoViaje, destinoLocalidad: e.target.value })}
+                required
+              />
+              <InputField
+                label="Fecha"
+                type="date"
+                value={nuevoViaje.fechaViaje}
+                onChange={(e) => setNuevoViaje({ ...nuevoViaje, fechaViaje: e.target.value })}
+                required
+              />
+              <InputField
+                label="Horario de salida"
+                type="time"
+                value={nuevoViaje.horarioSalida}
+                onChange={(e) => setNuevoViaje({ ...nuevoViaje, horarioSalida: e.target.value })}
+                required
+              />
+              <InputField
+                label="Precio ($)"
+                type="number"
+                step="0.01"
+                value={nuevoViaje.precio}
+                placeholder="Ej: 8500"
+                onChange={(e) => setNuevoViaje({ ...nuevoViaje, precio: e.target.value })}
+                required
+              />
+              <SelectField
+                label="Minibús / Vehículo"
+                value={nuevoViaje.medioTransporte_id}
+                onChange={(e) => setNuevoViaje({ ...nuevoViaje, medioTransporte_id: e.target.value })}
+                required
+                placeholder="Seleccionar unidad..."
+              >
+                {vehiculos.map((veh) => (
+                  <option key={veh.id} value={veh.id}>
+                    {veh.nombre} - {veh.patente}
+                  </option>
+                ))}
+              </SelectField>
+              <div className="dashboard-form-grid-full">
+                <SelectField
+                  label="Chofer asignado"
+                  value={nuevoViaje.usuarioEmpresa_id}
+                  onChange={(e) => setNuevoViaje({ ...nuevoViaje, usuarioEmpresa_id: e.target.value })}
+                  required
+                  placeholder="Seleccionar chofer..."
+                >
+                  {choferes.map((ch) => (
+                    <option key={ch.id} value={ch.id}>
+                      {getFullName(ch)}
+                    </option>
+                  ))}
+                </SelectField>
               </div>
-              <div style={modalActions}><button type="submit" style={primaryBtn}>Publicar Viaje</button></div>
-            </form>
-          </div>
-        </div>
+            </div>
+            <div className="dashboard-modal-actions">
+              <Button type="button" variant="secondary" onClick={() => setShowTripModal(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">Publicar viaje</Button>
+            </div>
+          </form>
+        </Modal>
       )}
 
-      {/* Modal Nueva Unidad Flota */}
       {showVehicleModal && (
-        <div style={modalOverlay} className="animate-fade-in">
-          <div style={modalContent}>
-            <div style={modalHeader}><h2 style={{fontWeight:'900', fontSize:'1.8rem'}}>Añadir a la Flota</h2><button onClick={() => setShowVehicleModal(false)} style={closeBtn}><X /></button></div>
-            <form onSubmit={async (e) => {
+        <Modal title="Añadir a la flota" subtitle="Registrá una nueva unidad disponible." onClose={() => setShowVehicleModal(false)}>
+          <form
+            onSubmit={async (e) => {
               e.preventDefault();
               try {
-                const empId = user.id_empresa || (miEmpresa?.id) || user.id;
+                const empId = user.id_empresa || miEmpresa?.id || user.id;
                 await transporteService.crear({
                   ...nuevoVehiculo,
                   empresa_id: parseInt(empId, 10),
-                  cantLugares: parseInt(nuevoVehiculo.cantLugares, 10)
+                  cantLugares: parseInt(nuevoVehiculo.cantLugares, 10),
                 });
                 toast.success('¡Vehículo agregado a la flota!');
                 setShowVehicleModal(false);
+                setNuevoVehiculo({ nombre: '', patente: '', marca: '', cantLugares: 19 });
                 fetchData();
-              } catch(err) {
+              } catch (err) {
                 toast.error(err.response?.data?.message || 'Error al agregar vehículo');
               }
-            }} style={modalForm}>
-              <div style={formGrid}>
-                <div style={field}><label style={label}>Nombre / Unidad</label><input style={input} placeholder="Ej: Minibús Sprinter #01" onChange={e => setNuevoVehiculo({...nuevoVehiculo, nombre: e.target.value})} required /></div>
-                <div style={field}><label style={label}>Marca / Modelo</label><input style={input} placeholder="Ej: Mercedes-Benz Sprinter" onChange={e => setNuevoVehiculo({...nuevoVehiculo, marca: e.target.value})} required /></div>
-                <div style={field}><label style={label}>Patente</label><input style={input} placeholder="Ej: AF-123-VY" onChange={e => setNuevoVehiculo({...nuevoVehiculo, patente: e.target.value})} required /></div>
-                <div style={field}><label style={label}>Capacidad de Asientos</label><input type="number" defaultValue="19" style={input} onChange={e => setNuevoVehiculo({...nuevoVehiculo, cantLugares: e.target.value})} required /></div>
-              </div>
-              <div style={modalActions}><button type="submit" style={primaryBtn}>Guardar Vehículo</button></div>
-            </form>
-          </div>
-        </div>
+            }}
+            className="dashboard-modal-form"
+          >
+            <div className="dashboard-form-grid">
+              <InputField
+                label="Nombre / Unidad"
+                value={nuevoVehiculo.nombre}
+                placeholder="Ej: Minibús Sprinter #01"
+                onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, nombre: e.target.value })}
+                required
+              />
+              <InputField
+                label="Marca / Modelo"
+                value={nuevoVehiculo.marca}
+                placeholder="Ej: Mercedes-Benz Sprinter"
+                onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, marca: e.target.value })}
+                required
+              />
+              <InputField
+                label="Patente"
+                value={nuevoVehiculo.patente}
+                placeholder="Ej: AF-123-VY"
+                onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, patente: e.target.value })}
+                required
+              />
+              <InputField
+                label="Capacidad de asientos"
+                type="number"
+                value={nuevoVehiculo.cantLugares}
+                onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, cantLugares: e.target.value })}
+                required
+              />
+            </div>
+            <div className="dashboard-modal-actions">
+              <Button type="button" variant="secondary" onClick={() => setShowVehicleModal(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">Guardar vehículo</Button>
+            </div>
+          </form>
+        </Modal>
       )}
 
-      {/* Modal Ver Pasajeros */}
-      {showPassengersModal && (
-        <div style={modalOverlay} className="animate-fade-in">
-          <div style={modalContent}>
-            <div style={modalHeader}>
-              <h2 style={{fontWeight:'900', fontSize:'1.8rem'}}>Pasajeros - {selectedTrip?.origenLocalidad} ➔ {selectedTrip?.destinoLocalidad}</h2>
-              <button onClick={() => setShowPassengersModal(false)} style={closeBtn}><X /></button>
-            </div>
-            <div style={{ padding: '30px' }}>
-              {passengers.length === 0 ? (
-                <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No hay pasajeros anotados en este viaje.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {passengers.map((p, i) => (
-                    <div key={i} style={{ padding: '15px', background: '#f8fafc', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <b>{p.nombre} {p.apellido}</b>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>DNI: {p.dni} • Subida: {p.ubicacionOrigen} ➔ Bajada: {p.ubicacionDestino}</p>
+      {showPassengersModal && selectedTrip && (
+        <Modal
+          title={`Pasajeros - ${selectedTrip.origenLocalidad} → ${selectedTrip.destinoLocalidad}`}
+          onClose={() => setShowPassengersModal(false)}
+        >
+          <div className="dashboard-modal-body">
+            {passengers.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No hay pasajeros"
+                description="Todavía no hay pasajeros anotados en este viaje."
+              />
+            ) : (
+              <div className="dashboard-passenger-list">
+                {passengers.map((p, i) => (
+                  <Card key={i} className="dashboard-passenger-item" hover>
+                    <div>
+                      <div className="dashboard-passenger-name">
+                        {p.nombre} {p.apellido}
                       </div>
-                      <span style={{...statusBadge, background: '#e0f2fe', color: '#0369a1'}}>Confirmado</span>
+                      <div className="dashboard-passenger-meta">
+                        DNI: {p.dni} · Subida: {p.ubicacionOrigen || selectedTrip.origenLocalidad} → Bajada:{" "}
+                        {p.ubicacionDestino || selectedTrip.destinoLocalidad}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    <Badge variant="success">Confirmado</Badge>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        </Modal>
       )}
 
-      {/* Modal Editar Viaje */}
       {showEditTripModal && (
-        <div style={modalOverlay} className="animate-fade-in">
-          <div style={modalContent}>
-            <div style={modalHeader}>
-              <div>
-                <h2 style={{fontWeight:'900', fontSize:'1.8rem'}}>Editar Viaje #{editingTrip.id}</h2>
-                <p style={{fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px'}}>
-                  Modificá los datos del servicio o reasigná la unidad y el chofer.
-                </p>
-              </div>
-              <button onClick={() => setShowEditTripModal(false)} style={closeBtn}><X /></button>
-            </div>
-            <form onSubmit={async (e) => {
+        <Modal
+          title={`Editar viaje #${editingTrip.id}`}
+          subtitle="Modificá los datos del servicio o reasigná la unidad y el chofer."
+          onClose={() => setShowEditTripModal(false)}
+        >
+          <form
+            onSubmit={async (e) => {
               e.preventDefault();
               try {
                 const choferId = editingTrip.usuarioEmpresa_id || choferes[0]?.id || user.id;
@@ -723,287 +1393,213 @@ const DashboardPage = () => {
                   ...editingTrip,
                   usuarioEmpresa_id: parseInt(choferId, 10),
                   medioTransporte_id: parseInt(vehiculoId, 10),
-                  precio: parseFloat(editingTrip.precio)
+                  precio: parseFloat(editingTrip.precio),
                 });
                 toast.success('¡Viaje actualizado correctamente!');
                 setShowEditTripModal(false);
                 fetchData();
-              } catch(err) {
+              } catch (err) {
                 toast.error(err.response?.data?.message || 'Error al actualizar el viaje');
               }
-            }} style={modalForm}>
-              <div style={formGrid}>
-                <div style={field}>
-                  <label style={label}>Origen</label>
-                  <input 
-                    style={input} 
-                    value={editingTrip.origenLocalidad} 
-                    onChange={e => setEditingTrip({...editingTrip, origenLocalidad: e.target.value})} 
-                    required 
-                  />
-                </div>
-                <div style={field}>
-                  <label style={label}>Destino</label>
-                  <input 
-                    style={input} 
-                    value={editingTrip.destinoLocalidad} 
-                    onChange={e => setEditingTrip({...editingTrip, destinoLocalidad: e.target.value})} 
-                    required 
-                  />
-                </div>
-                <div style={field}>
-                  <label style={label}>Fecha</label>
-                  <input 
-                    type="date" 
-                    style={input} 
-                    value={editingTrip.fechaViaje} 
-                    onChange={e => setEditingTrip({...editingTrip, fechaViaje: e.target.value})} 
-                    required 
-                  />
-                </div>
-                <div style={field}>
-                  <label style={label}>Horario de Salida</label>
-                  <input 
-                    type="time" 
-                    style={input} 
-                    value={editingTrip.horarioSalida} 
-                    onChange={e => setEditingTrip({...editingTrip, horarioSalida: e.target.value})} 
-                    required 
-                  />
-                </div>
-                <div style={field}>
-                  <label style={label}>Precio ($)</label>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    style={input} 
-                    value={editingTrip.precio} 
-                    onChange={e => setEditingTrip({...editingTrip, precio: e.target.value})} 
-                    required 
-                  />
-                </div>
-                <div style={field}>
-                  <label style={label}>Minibús / Vehículo</label>
-                  <select 
-                    style={input} 
-                    value={editingTrip.medioTransporte_id} 
-                    onChange={e => setEditingTrip({...editingTrip, medioTransporte_id: e.target.value})} 
-                    required
-                  >
-                    <option value="">Seleccionar unidad...</option>
-                    {vehiculos.map(veh => <option key={veh.id} value={veh.id}>{veh.nombre} - {veh.patente}</option>)}
-                  </select>
-                </div>
-                <div style={{...field, gridColumn:'1 / -1'}}>
-                  <label style={label}>Chofer asignado</label>
-                  <select 
-                    style={input} 
-                    value={editingTrip.usuarioEmpresa_id} 
-                    onChange={e => setEditingTrip({...editingTrip, usuarioEmpresa_id: e.target.value})} 
-                    required
-                  >
-                    <option value="">Seleccionar chofer...</option>
-                    {choferes.map(ch => <option key={ch.id} value={ch.id}>{ch.Usuario?.nombre || ch.nombre} {ch.Usuario?.apellido || ch.apellido}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div style={{ ...modalActions, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <button 
-                  type="button" 
-                  onClick={async () => {
-                    if (!window.confirm('¿Seguro que deseas eliminar este viaje? Esta acción no se puede deshacer.')) return;
-                    try {
-                      await viajeService.eliminar(editingTrip.id);
-                      toast.success('Viaje eliminado con éxito');
-                      setShowEditTripModal(false);
-                      fetchData();
-                    } catch (err) {
-                      toast.error(err.response?.data?.message || 'No se puede eliminar el viaje porque tiene reservas asociadas.');
-                    }
-                  }} 
-                  style={{ ...secondaryBtn, background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', cursor: 'pointer' }}
+            }}
+            className="dashboard-modal-form"
+          >
+            <div className="dashboard-form-grid">
+              <InputField
+                label="Origen"
+                value={editingTrip.origenLocalidad}
+                onChange={(e) => setEditingTrip({ ...editingTrip, origenLocalidad: e.target.value })}
+                required
+              />
+              <InputField
+                label="Destino"
+                value={editingTrip.destinoLocalidad}
+                onChange={(e) => setEditingTrip({ ...editingTrip, destinoLocalidad: e.target.value })}
+                required
+              />
+              <InputField
+                label="Fecha"
+                type="date"
+                value={editingTrip.fechaViaje}
+                onChange={(e) => setEditingTrip({ ...editingTrip, fechaViaje: e.target.value })}
+                required
+              />
+              <InputField
+                label="Horario de salida"
+                type="time"
+                value={editingTrip.horarioSalida}
+                onChange={(e) => setEditingTrip({ ...editingTrip, horarioSalida: e.target.value })}
+                required
+              />
+              <InputField
+                label="Precio ($)"
+                type="number"
+                step="0.01"
+                value={editingTrip.precio}
+                onChange={(e) => setEditingTrip({ ...editingTrip, precio: e.target.value })}
+                required
+              />
+              <SelectField
+                label="Minibús / Vehículo"
+                value={editingTrip.medioTransporte_id}
+                onChange={(e) => setEditingTrip({ ...editingTrip, medioTransporte_id: e.target.value })}
+                required
+                placeholder="Seleccionar unidad..."
+              >
+                {vehiculos.map((veh) => (
+                  <option key={veh.id} value={veh.id}>
+                    {veh.nombre} - {veh.patente}
+                  </option>
+                ))}
+              </SelectField>
+              <div className="dashboard-form-grid-full">
+                <SelectField
+                  label="Chofer asignado"
+                  value={editingTrip.usuarioEmpresa_id}
+                  onChange={(e) => setEditingTrip({ ...editingTrip, usuarioEmpresa_id: e.target.value })}
+                  required
+                  placeholder="Seleccionar chofer..."
                 >
-                  <Trash2 size={18} /> Eliminar Viaje
-                </button>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button type="button" onClick={() => setShowEditTripModal(false)} style={secondaryBtn}>
-                    Cancelar
-                  </button>
-                  <button type="submit" style={primaryBtn}>
-                    Guardar Cambios
-                  </button>
-                </div>
+                  {choferes.map((ch) => (
+                    <option key={ch.id} value={ch.id}>
+                      {getFullName(ch)}
+                    </option>
+                  ))}
+                </SelectField>
               </div>
-            </form>
-          </div>
-        </div>
+            </div>
+            <div className="dashboard-modal-actions dashboard-modal-actions--split">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={async () => {
+                  if (!window.confirm('¿Seguro que deseas eliminar este viaje? Esta acción no se puede deshacer.')) return;
+                  try {
+                    await viajeService.eliminar(editingTrip.id);
+                    toast.success('Viaje eliminado con éxito');
+                    setShowEditTripModal(false);
+                    fetchData();
+                  } catch (err) {
+                    toast.error(err.response?.data?.message || 'No se puede eliminar el viaje porque tiene reservas asociadas.');
+                  }
+                }}
+              >
+                <Trash2 size={18} /> Eliminar viaje
+              </Button>
+              <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                <Button type="button" variant="secondary" onClick={() => setShowEditTripModal(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit">Guardar cambios</Button>
+              </div>
+            </div>
+          </form>
+        </Modal>
       )}
 
-      {/* Modal Detalle de Reserva */}
       {showReservaDetailModal && selectedReserva && (
-        <div style={modalOverlay} className="animate-fade-in">
-          <div style={{ ...modalContent, maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={modalHeader}>
-              <div>
-                <span style={{ fontSize: '0.8rem', fontWeight: '900', color: 'var(--primary)', letterSpacing: '1px', textTransform: 'uppercase' }}>
-                  Detalle de Reserva
-                </span>
-                <h2 style={{ fontWeight: '900', fontSize: '1.8rem', color: '#1e293b', marginTop: '4px' }}>
-                  Reserva #{selectedReserva.id}
-                </h2>
-              </div>
-              <button onClick={() => setShowReservaDetailModal(false)} style={closeBtn}><X /></button>
-            </div>
-
-            <div style={{ padding: '30px 40px' }}>
-              {/* Resumen del viaje */}
-              <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '20px', border: '1px solid #e2e8f0', marginBottom: '25px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.2rem', fontWeight: '900', color: '#1e3a8a' }}>
-                    <span>{selectedReserva.Viaje?.origenLocalidad}</span>
-                    <ArrowRight size={18} />
-                    <span>{selectedReserva.Viaje?.destinoLocalidad}</span>
+        <Modal
+          title={`Reserva #${selectedReserva.id}`}
+          subtitle="Detalle completo del viaje y pasajeros."
+          onClose={() => setShowReservaDetailModal(false)}
+          className="dashboard-modal-card--wide"
+        >
+          <div className="dashboard-modal-body">
+            <div className="dashboard-reservation-detail">
+              <Card padded>
+                <div className="dashboard-reservation-route">
+                  <div className="dashboard-reservation-route-header">
+                    <div className="dashboard-reservation-route-title">
+                      <span>{selectedReserva.Viaje?.origenLocalidad}</span>
+                      <ArrowRight size={18} aria-hidden="true" />
+                      <span>{selectedReserva.Viaje?.destinoLocalidad}</span>
+                    </div>
+                    <Badge variant={selectedReserva.eliminado === 'si' ? 'error' : 'success'}>
+                      {selectedReserva.eliminado === 'si' ? 'Cancelada' : 'Confirmada'}
+                    </Badge>
                   </div>
-                  <span style={{ background: '#dcfce7', color: '#15803d', padding: '6px 14px', borderRadius: '50px', fontSize: '0.85rem', fontWeight: '800' }}>
-                    Confirmada
-                  </span>
-                </div>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px', fontSize: '0.85rem', color: '#475569', marginTop: '10px' }} className="dashboard-reserva-grid">
-                  <div>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase' }}>Fecha y Hora</p>
-                    <p style={{ fontWeight: '700', marginTop: '2px' }}>📅 {selectedReserva.Viaje?.fechaViaje} • {selectedReserva.Viaje?.horarioSalida?.substring(0, 5)}hs</p>
-                  </div>
-                  <div>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase' }}>Unidad Asignada</p>
-                    <p style={{ fontWeight: '700', marginTop: '2px' }}>🚐 {selectedReserva.Viaje?.MedioTransporte?.nombre || 'Minibús'} ({selectedReserva.Viaje?.MedioTransporte?.patente || 'S/P'})</p>
-                  </div>
-                  <div>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase' }}>Tarifa Unit.</p>
-                    <p style={{ fontWeight: '700', marginTop: '2px', color: '#16a34a' }}>💰 ${selectedReserva.Viaje?.precio || 0}</p>
+                  <div className="dashboard-reservation-grid">
+                    <div>
+                      <span className="dashboard-detail-label">Fecha y hora</span>
+                      <b>
+                        {selectedReserva.Viaje?.fechaViaje} · {formatTime(selectedReserva.Viaje?.horarioSalida)} hs
+                      </b>
+                    </div>
+                    <div>
+                      <span className="dashboard-detail-label">Unidad asignada</span>
+                      <b>
+                        {selectedReserva.Viaje?.MedioTransporte?.nombre || 'Minibús'} ({selectedReserva.Viaje?.MedioTransporte?.patente || 'S/P'})
+                      </b>
+                    </div>
+                    <div>
+                      <span className="dashboard-detail-label">Tarifa unitaria</span>
+                      <b className="dashboard-detail-price">{formatCurrency(selectedReserva.Viaje?.precio)}</b>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Card>
 
-              {/* Información del Cliente Comprador */}
-              <div style={{ marginBottom: '25px' }}>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>
-                  Datos del Titular de Reserva
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px', background: 'white', padding: '18px', borderRadius: '16px', border: '1px solid #e2e8f0' }} className="dashboard-reserva-grid">
+              <h3 className="dashboard-detail-section-title">Datos del titular</h3>
+              <Card padded>
+                <div className="dashboard-reservation-grid">
                   <div>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '700' }}>CLIENTE</p>
-                    <b style={{ fontSize: '0.95rem' }}>{selectedReserva.Usuario?.nombre} {selectedReserva.Usuario?.apellido}</b>
+                    <span className="dashboard-detail-label">Cliente</span>
+                    <b>
+                      {selectedReserva.Usuario?.nombre} {selectedReserva.Usuario?.apellido}
+                    </b>
                   </div>
                   <div>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '700' }}>DNI</p>
-                    <b style={{ fontSize: '0.95rem' }}>{selectedReserva.Usuario?.dni || 'S/D'}</b>
+                    <span className="dashboard-detail-label">DNI</span>
+                    <b>{selectedReserva.Usuario?.dni || 'S/D'}</b>
                   </div>
                   <div>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '700' }}>TELÉFONO / EMAIL</p>
-                    <p style={{ fontSize: '0.85rem', fontWeight: '600' }}>📞 {selectedReserva.Usuario?.telefono || 'Sin teléfono'}</p>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>✉️ {selectedReserva.Usuario?.email}</p>
+                    <span className="dashboard-detail-label">Contacto</span>
+                    <b>{selectedReserva.Usuario?.telefono || 'Sin teléfono'}</b>
+                    <span className="dashboard-detail-sublabel">{selectedReserva.Usuario?.email}</span>
                   </div>
                 </div>
-              </div>
+              </Card>
 
-              {/* Manifiesto de Pasajeros */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <h4 style={{ fontSize: '0.9rem', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                    Pasajeros Registrados ({selectedReserva.Pasajeros?.length || 0})
-                  </h4>
-                </div>
-
-                {(!selectedReserva.Pasajeros || selectedReserva.Pasajeros.length === 0) ? (
-                  <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', padding: '10px 0' }}>No hay detalle individual de pasajeros cargado en esta reserva.</p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {selectedReserva.Pasajeros.map((pasajero, idx) => (
-                      <div key={pasajero.id || idx} className="dashboard-pasajero-item" style={{ background: '#f8fafc', padding: '16px 20px', borderRadius: '14px', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '0.8rem' }}>
-                            {idx + 1}
+              <h3 className="dashboard-detail-section-title">
+                Pasajeros registrados ({selectedReserva.Pasajeros?.length || 0})
+              </h3>
+              {!selectedReserva.Pasajeros || selectedReserva.Pasajeros.length === 0 ? (
+                <EmptyState
+                  icon={Users}
+                  title="Sin pasajeros detallados"
+                  description="No hay detalle individual de pasajeros cargado en esta reserva."
+                />
+              ) : (
+                <div className="dashboard-passenger-list">
+                  {selectedReserva.Pasajeros.map((pasajero, idx) => (
+                    <Card key={pasajero.id || idx} className="dashboard-passenger-item" hover>
+                      <div className="dashboard-passenger-main">
+                        <div className="dashboard-passenger-avatar">{idx + 1}</div>
+                        <div>
+                          <div className="dashboard-passenger-name">
+                            {pasajero.nombre} {pasajero.apellido}
                           </div>
-                          <div>
-                            <b style={{ fontSize: '1rem', color: '#1e293b' }}>{pasajero.nombre} {pasajero.apellido}</b>
-                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                              DNI: <b>{pasajero.dni}</b>
-                            </p>
-                          </div>
-                        </div>
-
-                        <div style={{ textAlign: 'right', fontSize: '0.8rem' }}>
-                          <p style={{ color: '#0369a1', fontWeight: '700' }}>📍 Sube: {pasajero.ubicacionOrigen || selectedReserva.Viaje?.origenLocalidad}</p>
-                          <p style={{ color: '#15803d', fontWeight: '700', marginTop: '2px' }}>🏁 Baja: {pasajero.ubicacionDestino || selectedReserva.Viaje?.destinoLocalidad}</p>
+                          <div className="dashboard-passenger-meta">DNI: {pasajero.dni}</div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      <div className="dashboard-passenger-stops">
+                        <span>Sube: {pasajero.ubicacionOrigen || selectedReserva.Viaje?.origenLocalidad}</span>
+                        <span>Baja: {pasajero.ubicacionDestino || selectedReserva.Viaje?.destinoLocalidad}</span>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
 
-              {/* Botón de cierre */}
-              <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'flex-end' }}>
-                <button onClick={() => setShowReservaDetailModal(false)} style={primaryBtn}>
-                  Cerrar Detalle
-                </button>
+              <div className="dashboard-modal-actions">
+                <Button onClick={() => setShowReservaDetailModal(false)}>Cerrar detalle</Button>
               </div>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
 };
-
-// Estilos de Nueva Generación
-const dashboardContainer = { display: 'flex', minHeight: '100vh', background: '#f8fafc' };
-const sidebarStyle = { width: '280px', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh' };
-const sidebarItemStyle = { display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px', borderRadius: '16px', cursor: 'pointer', marginBottom: '8px', transition: '0.3s ease', margin: '0 10px' };
-const mainContentStyle = { flex: 1, padding: '50px', overflowY: 'auto' };
-const headerStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' };
-const roleBadge = { display: 'flex', alignItems: 'center', gap: '6px', background: '#f1f5f9', padding: '4px 12px', borderRadius: '50px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', marginTop: '8px' };
-const primaryBtn = { background: 'var(--primary)', color: 'white', padding: '14px 28px', borderRadius: '16px', fontWeight: '800', border: 'none', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.3)', cursor: 'pointer' };
-const secondaryBtn = { background: '#1e293b', color: 'white', padding: '14px 28px', borderRadius: '16px', fontWeight: '800', border: 'none', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' };
-
-const mobileToggleBtn = { display: 'flex', alignItems: 'center', gap: '8px', background: 'white', border: '1px solid #e2e8f0', padding: '10px 16px', borderRadius: '12px', fontWeight: '700', color: 'var(--text-main)', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' };
-const activeTabBadge = { background: 'var(--primary)', color: 'white', padding: '6px 14px', borderRadius: '50px', fontSize: '0.75rem', fontWeight: '900', letterSpacing: '0.5px' };
-
-const statsGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '35px' };
-const statCard = { background: 'white', padding: '24px', borderRadius: '24px', boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', gap: '18px', border: '1px solid #f1f5f9' };
-const statIcon = { width: '50px', height: '50px', borderRadius: '14px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
-const statValue = { fontSize: '1.8rem', fontWeight: '900', letterSpacing: '-1px', fontFamily: 'Outfit' };
-const statLabel = { fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' };
-
-const chartRow = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' };
-const chartContainer = { background: 'white', padding: '20px', borderRadius: '24px', boxShadow: 'var(--shadow-md)', border: '1px solid #f1f5f9' };
-
-const tableWrapper = { background: 'white', borderRadius: '24px', boxShadow: 'var(--shadow-md)', overflowX: 'auto', border: '1px solid #f1f5f9', WebkitOverflowScrolling: 'touch' };
-const tableStyle = { width: '100%', minWidth: '600px', borderCollapse: 'collapse' };
-const thRow = { background: '#f8fafc', borderBottom: '1px solid #f1f5f9' };
-const thStyle = { padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' };
-const tdStyle = { padding: '18px 20px', borderBottom: '1px solid #f8fafc' };
-const trStyle = { transition: '0.2s' };
-const iconBtn = { background: '#f1f5f9', border: 'none', padding: '10px', borderRadius: '12px', color: 'var(--primary)', cursor: 'pointer' };
-const statusBadge = { background: '#f1f5f9', padding: '6px 14px', borderRadius: '100px', fontSize: '0.8rem', fontWeight: '800' };
-const passengerBadge = { background: '#dcfce7', color: '#166534', padding: '8px 16px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '800', border: 'none', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' };
-
-const weekNavStyle = { display: 'flex', gap: '10px', padding: '20px 20px 0', overflowX: 'auto', WebkitOverflowScrolling: 'touch' };
-const weekDayBtnStyle = { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: '64px', padding: '10px 8px', borderRadius: '16px', border: '1.5px solid transparent', cursor: 'pointer', fontFamily: 'Outfit, sans-serif', transition: 'all 0.2s ease' };
-const weekDayLabelStyle = { fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' };
-const weekDayNumberStyle = { fontSize: '1.25rem', fontWeight: '900', lineHeight: 1 };
-const weekDayTodayStyle = { fontSize: '0.65rem', fontWeight: '800', marginTop: '2px' };
-
-const modalOverlay = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000, padding: '16px' };
-const modalContent = { background: 'white', borderRadius: '28px', width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 30px 60px -12px rgba(0,0,0,0.25)' };
-const modalHeader = { padding: '24px 24px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
-const closeBtn = { background: '#f1f5f9', border: 'none', padding: '10px', borderRadius: '50%', cursor: 'pointer' };
-const modalForm = { padding: '24px' };
-const formGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' };
-const field = { display: 'flex', flexDirection: 'column', gap: '8px' };
-const label = { fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-muted)' };
-const input = { padding: '14px 18px', borderRadius: '14px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '0.95rem', fontWeight: '600', width: '100%', boxSizing: 'border-box' };
-const modalActions = { marginTop: '28px', display: 'flex', justifyContent: 'flex-end', gap: '10px' };
 
 export default DashboardPage;

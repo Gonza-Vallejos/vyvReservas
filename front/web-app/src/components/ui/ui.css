@@ -71,6 +71,23 @@
   color: var(--color-primary-dark);
 }
 
+.vv-button--success {
+  background: var(--color-success);
+  color: #ffffff;
+  border-color: var(--color-success);
+}
+
+.vv-button--success:not(:disabled):hover {
+  background: #059669;
+  border-color: #059669;
+  box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.35);
+  transform: translateY(-1px);
+}
+
+.vv-button--success:not(:disabled):active {
+  transform: scale(0.98);
+}
+
 .vv-button--sm {
   min-height: 36px;
   padding: 8px 14px;
@@ -201,6 +218,14 @@
 .vv-input__clear:hover {
   background: var(--color-border);
   color: var(--color-text);
+}
+
+.vv-input__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: var(--space-1);
 }
 
 .vv-input__helper,

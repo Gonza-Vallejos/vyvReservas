@@ -1,22 +1,50 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/api';
-import { Lock, User as UserIcon, Loader2, ArrowRight } from 'lucide-react';
+import { User as UserIcon, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+import AuthLayout from '../components/auth/AuthLayout';
+import Card from '../components/ui/Card';
+import InputField from '../components/ui/InputField';
+import Button from '../components/ui/Button';
+
 const LoginPage = () => {
-  const [usuario, setUsuario] = useState('');
-  const [contrasenia, setContrasenia] = useState('');
+  const [form, setForm] = useState({ usuario: '', contrasenia: '' });
+  const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validate = () => {
+    const next = {};
+    if (!form.usuario.trim()) {
+      next.usuario = 'Ingresá tu usuario';
+    }
+    if (!form.contrasenia) {
+      next.contrasenia = 'Ingresá tu contraseña';
+    }
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validate()) return;
+
     setLoading(true);
     try {
-      const response = await authService.login(usuario, contrasenia);
+      const response = await authService.login(form.usuario, form.contrasenia);
       const { success, data } = response.data;
       if (success && data) {
         login(data.usuario, data.token);
@@ -28,110 +56,97 @@ const LoginPage = () => {
       } else {
         toast.error(response.data.message || 'Error de credenciales');
       }
-    } catch (error) {
+    } catch {
       toast.error('Credenciales inválidas');
     } finally {
       setLoading(false);
     }
   };
 
+  const passwordToggle = (
+    <button
+      type="button"
+      className="auth-password-toggle"
+      onClick={() => setShowPassword((prev) => !prev)}
+      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+      aria-pressed={showPassword}
+    >
+      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+    </button>
+  );
+
   return (
-    <div style={pageContainer}>
-      <style>{`
-        .login-card-responsive {
-          background: white;
-          padding: 50px 40px;
-          border-radius: 32px;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-          width: 100%;
-          max-width: 440px;
-          border: 1px solid #f1f5f9;
-        }
-        @media (max-width: 480px) {
-          .login-card-responsive {
-            padding: 30px 20px !important;
-            border-radius: 24px !important;
-          }
-        }
-      `}</style>
-      <div className="animate-fade-in login-card-responsive">
-        <div style={headerSection}>
-          <div style={logoCircle}><Lock size={24} color="white" /></div>
-          <h2 style={titleStyle}>Hola de nuevo</h2>
-          <p style={subtitleStyle}>Gestiona tus viajes y reservas con facilidad.</p>
-        </div>
-
-        <form onSubmit={handleSubmit} style={formStyle}>
-          <div style={inputGroup}>
-            <label style={labelStyle}>Usuario</label>
-            <div style={inputWrapper} className="input-focus">
-              <UserIcon size={18} color="var(--primary)" />
-              <input 
-                type="text" 
-                value={usuario}
-                onChange={(e) => setUsuario(e.target.value)}
-                placeholder="Ej: gonzalo123" 
-                style={inputStyle} 
-                required
-              />
-            </div>
+    <AuthLayout>
+      <Card className="auth-card animate-fade-in">
+        <header className="auth-header">
+          <div className="auth-logo">
+            <Lock size={24} aria-hidden="true" />
           </div>
+          <h2 className="auth-title">Hola de nuevo</h2>
+          <p className="auth-subtitle">Gestiona tus viajes y reservas con facilidad.</p>
+        </header>
 
-          <div style={inputGroup}>
-            <label style={labelStyle}>Contraseña</label>
-            <div style={inputWrapper}>
-              <Lock size={18} color="var(--primary)" />
-              <input 
-                type="password" 
-                value={contrasenia}
-                onChange={(e) => setContrasenia(e.target.value)}
-                placeholder="••••••••" 
-                style={inputStyle} 
-                required
-              />
-            </div>
-          </div>
+        <form onSubmit={handleSubmit} className="auth-form" noValidate>
+          <InputField
+            id="usuario"
+            name="usuario"
+            label="Usuario"
+            type="text"
+            value={form.usuario}
+            onChange={handleChange}
+            placeholder="Ej: gonzalo123"
+            icon={UserIcon}
+            error={errors.usuario}
+            required
+            autoComplete="username"
+          />
 
-          <button type="submit" disabled={loading} style={buttonStyle}>
-            {loading ? <Loader2 className="animate-spin" size={22} /> : (
-              <>Ingresar a mi cuenta <ArrowRight size={20} /></>
+          <InputField
+            id="contrasenia"
+            name="contrasenia"
+            label="Contraseña"
+            type={showPassword ? 'text' : 'password'}
+            value={form.contrasenia}
+            onChange={handleChange}
+            placeholder="••••••••"
+            icon={Lock}
+            rightElement={passwordToggle}
+            error={errors.contrasenia}
+            required
+            autoComplete="current-password"
+          />
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            loading={loading}
+            className="auth-submit"
+          >
+            {loading ? (
+              'Ingresando...'
+            ) : (
+              <>
+                Ingresar a mi cuenta
+                <ArrowRight size={20} aria-hidden="true" />
+              </>
             )}
-          </button>
+          </Button>
         </form>
 
-        <div style={dividerContainer}>
-          <div style={dividerLine} />
-          <span style={dividerText}>o</span>
-          <div style={dividerLine} />
+        <div className="auth-divider" aria-hidden="true">
+          <span>o</span>
         </div>
 
-        <p style={footerText}>
-          ¿Eres nuevo por aquí? <Link to="/register" style={registerLink}>Crea una cuenta gratis</Link>
+        <p className="auth-footer">
+          ¿Eres nuevo por aquí?
+          <Link to="/register" className="auth-link">
+            Crea una cuenta gratis
+          </Link>
         </p>
-      </div>
-    </div>
+      </Card>
+    </AuthLayout>
   );
 };
-
-// Estilos Premium
-const pageContainer = { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '90vh', background: 'radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.05) 0%, rgba(255, 255, 255, 1) 90%)', padding: '20px' };
-const loginCard = { background: 'white', padding: '50px 40px', borderRadius: '32px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1)', width: '100%', maxWidth: '440px', border: '1px solid #f1f5f9' };
-const headerSection = { textAlign: 'center', marginBottom: '40px' };
-const logoCircle = { width: '50px', height: '50px', background: 'var(--primary)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto', boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.4)' };
-const titleStyle = { fontSize: '2.2rem', fontWeight: '800', marginBottom: '8px', letterSpacing: '-1px', fontFamily: 'Outfit, sans-serif' };
-const subtitleStyle = { color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: '500' };
-const formStyle = { display: 'flex', flexDirection: 'column', gap: '22px' };
-const inputGroup = { display: 'flex', flexDirection: 'column', gap: '8px' };
-const labelStyle = { fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-dark)', textTransform: 'uppercase', letterSpacing: '0.5px' };
-const inputWrapper = { display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 18px', background: '#f8fafc', borderRadius: '16px', border: '2px solid transparent', transition: '0.3s ease' };
-const inputStyle = { border: 'none', background: 'transparent', width: '100%', outline: 'none', fontSize: '1rem', fontWeight: '600' };
-const buttonStyle = { background: 'var(--primary)', color: 'white', padding: '16px', borderRadius: '16px', fontWeight: '800', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 10px 20px -5px rgba(37, 99, 235, 0.3)', marginTop: '10px' };
-
-const dividerContainer = { display: 'flex', alignItems: 'center', gap: '15px', margin: '30px 0', opacity: '0.5' };
-const dividerLine = { height: '1px', flex: 1, background: '#e2e8f0' };
-const dividerText = { fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase' };
-
-const footerText = { textAlign: 'center', fontSize: '0.95rem', fontWeight: '600', color: 'var(--text-muted)' };
-const registerLink = { color: 'var(--primary)', fontWeight: '800', textDecoration: 'none', marginLeft: '5px' };
 
 export default LoginPage;

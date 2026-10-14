@@ -1,47 +1,111 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/api';
-import { User, Mail, Phone, CreditCard, Lock, Loader2, Sparkles, ArrowLeft, Check, X } from 'lucide-react';
+import { User, Mail, Phone, CreditCard, Lock, Sparkles, ArrowLeft, Check, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+import AuthLayout from '../components/auth/AuthLayout';
+import Card from '../components/ui/Card';
+import InputField from '../components/ui/InputField';
+import Button from '../components/ui/Button';
+
+const REQUIREMENTS = [
+  { key: 'length', label: '8-12 caracteres' },
+  { key: 'upper', label: 'Una mayúscula' },
+  { key: 'lower', label: 'Una minúscula' },
+  { key: 'number', label: 'Un número' },
+  { key: 'special', label: 'Un símbolo (@.$!)' },
+];
+
 const RegisterPage = () => {
-  const [formData, setFormData] = useState({ nombre: '', apellido: '', dni: '', telefono: '', email: '', usuario: '', contrasenia: '' });
-  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    nombre: '',
+    apellido: '',
+    dni: '',
+    telefono: '',
+    email: '',
+    usuario: '',
+    contrasenia: '',
+  });
+  const [errors, setErrors] = useState({});
   const [passRequirements, setPassRequirements] = useState({
     length: false,
     upper: false,
     lower: false,
     number: false,
-    special: false
+    special: false,
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const updatePasswordRequirements = (value) => {
+    const next = {
+      length: value.length >= 8 && value.length <= 12,
+      upper: /[A-Z]/.test(value),
+      lower: /[a-z]/.test(value),
+      number: /[0-9]/.test(value),
+      special: /[@$!%*?#_.&]/.test(value),
+    };
+    setPassRequirements(next);
+    return next;
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-
-    if (name === 'contrasenia') {
-      setPassRequirements({
-        length: value.length >= 8 && value.length <= 12,
-        upper: /[A-Z]/.test(value),
-        lower: /[a-z]/.test(value),
-        number: /[0-9]/.test(value),
-        special: /[@$!%*?#_.&]/.test(value)
-      });
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
     }
+    if (name === 'contrasenia') {
+      const next = updatePasswordRequirements(value);
+      if (Object.values(next).every(Boolean)) {
+        setErrors((prev) => ({ ...prev, contrasenia: '' }));
+      }
+    }
+  };
+
+  const validate = () => {
+    const next = {};
+    const { nombre, apellido, dni, telefono, email, usuario, contrasenia } = formData;
+
+    if (!nombre.trim()) next.nombre = 'Ingresá tu nombre';
+    else if (nombre.trim().length < 2) next.nombre = 'Mínimo 2 caracteres';
+
+    if (!apellido.trim()) next.apellido = 'Ingresá tu apellido';
+    else if (apellido.trim().length < 2) next.apellido = 'Mínimo 2 caracteres';
+
+    const dniClean = dni.toString().replace(/\D/g, '');
+    if (!dniClean) next.dni = 'Ingresá tu DNI';
+    else if (!/^\d{7,8}$/.test(dniClean)) next.dni = 'DNI inválido (7-8 dígitos)';
+
+    const telClean = telefono.toString().replace(/\D/g, '');
+    if (!telClean) next.telefono = 'Ingresá tu teléfono';
+    else if (telClean.length < 10) next.telefono = 'Teléfono inválido';
+
+    if (!email.trim()) next.email = 'Ingresá tu correo';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = 'Correo inválido';
+
+    if (!usuario.trim()) next.usuario = 'Ingresá un usuario';
+    else if (usuario.trim().length < 3) next.usuario = 'Mínimo 3 caracteres';
+
+    if (!contrasenia) next.contrasenia = 'Ingresá una contraseña';
+    else if (!Object.values(passRequirements).every(Boolean)) {
+      next.contrasenia = 'La contraseña no cumple los requisitos';
+    }
+
+    setErrors(next);
+    return Object.keys(next).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!Object.values(passRequirements).every(v => v)) {
-      toast.error('La contraseña no cumple con los requisitos');
-      return;
-    }
+    if (!validate()) return;
 
     setLoading(true);
     const cleanedData = {
       ...formData,
-      dni: parseInt(formData.dni.toString().replace(/\D/g, '')),
+      dni: parseInt(formData.dni.toString().replace(/\D/g, ''), 10),
       telefono: formData.telefono.toString().replace(/\D/g, ''),
     };
 
@@ -57,120 +121,174 @@ const RegisterPage = () => {
     }
   };
 
-  const Requirement = ({ met, text }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: met ? '#10b981' : '#94a3b8', fontSize: '0.75rem', fontWeight: '600', transition: '0.3s' }}>
-      {met ? <Check size={14} strokeWidth={3} /> : <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid #e2e8f0' }} />}
-      <span>{text}</span>
-    </div>
+  const passwordToggle = (
+    <button
+      type="button"
+      className="auth-password-toggle"
+      onClick={() => setShowPassword((prev) => !prev)}
+      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+      aria-pressed={showPassword}
+    >
+      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+    </button>
   );
 
   return (
-    <div style={pageContainer}>
-      <style>{`
-        .register-card-responsive {
-          background: white;
-          padding: 50px 40px;
-          border-radius: 32px;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-          width: 100%;
-          max-width: 650px;
-          border: 1px solid #f1f5f9;
-        }
-        .register-form-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 20px;
-        }
-        .register-back-btn {
-          position: absolute;
-          top: 40px;
-          left: 40px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: var(--text-muted);
-          text-decoration: none;
-          font-weight: 700;
-          font-size: 0.9rem;
-        }
-        @media (max-width: 680px) {
-          .register-card-responsive {
-            padding: 30px 20px !important;
-            border-radius: 24px !important;
-          }
-          .register-form-grid {
-            grid-template-columns: 1fr !important;
-            gap: 16px !important;
-          }
-          .register-back-btn {
-            position: static !important;
-            align-self: flex-start !important;
-            margin-bottom: 20px !important;
-          }
-        }
-      `}</style>
-      <Link to="/login" className="register-back-btn"><ArrowLeft size={18} /> Volver</Link>
-      <div className="animate-fade-in register-card-responsive">
-        <div style={headerSection}>
-          <div style={logoCircle}><Sparkles size={24} color="white" /></div>
-          <h2 style={titleStyle}>Únete a V&V</h2>
-          <p style={subtitleStyle}>Tu seguridad es nuestra prioridad.</p>
-        </div>
+    <AuthLayout>
+      <Link to="/login" className="auth-back">
+        <ArrowLeft size={18} aria-hidden="true" />
+        Volver
+      </Link>
 
-        <form onSubmit={handleSubmit} style={formStyle}>
-          <div className="register-form-grid">
-            <div style={inputGroup}><label style={labelStyle}>Nombre</label><div style={inputWrapper}><User size={18} color="var(--primary)"/><input type="text" name="nombre" placeholder="Juan" onChange={handleChange} style={inputStyle} required /></div></div>
-            <div style={inputGroup}><label style={labelStyle}>Apellido</label><div style={inputWrapper}><User size={18} color="var(--primary)"/><input type="text" name="apellido" placeholder="Pérez" onChange={handleChange} style={inputStyle} required /></div></div>
-            <div style={inputGroup}><label style={labelStyle}>DNI</label><div style={inputWrapper}><CreditCard size={18} color="var(--primary)"/><input type="text" name="dni" placeholder="Solo números" onChange={handleChange} style={inputStyle} required /></div></div>
-            <div style={inputGroup}><label style={labelStyle}>Teléfono</label><div style={inputWrapper}><Phone size={18} color="var(--primary)"/><input type="tel" name="telefono" placeholder="Ej: 3794..." onChange={handleChange} style={inputStyle} required /></div></div>
-            <div style={{...inputGroup, gridColumn: '1 / -1'}}><label style={labelStyle}>Correo Electrónico</label><div style={inputWrapper}><Mail size={18} color="var(--primary)"/><input type="email" name="email" placeholder="juan@ejemplo.com" onChange={handleChange} style={inputStyle} required /></div></div>
-            <div style={inputGroup}><label style={labelStyle}>Usuario</label><div style={inputWrapper}><User size={18} color="var(--primary)"/><input type="text" name="usuario" placeholder="juanperez" onChange={handleChange} style={inputStyle} required /></div></div>
-            <div style={inputGroup}>
-              <label style={labelStyle}>Contraseña</label>
-              <div style={inputWrapper}>
-                <Lock size={18} color="var(--primary)"/><input type="password" name="contrasenia" placeholder="••••••••" onChange={handleChange} style={inputStyle} required />
-              </div>
-            </div>
+      <Card className="auth-card auth-card--wide animate-fade-in">
+        <header className="auth-header">
+          <div className="auth-logo">
+            <Sparkles size={24} aria-hidden="true" />
           </div>
-          
-          <div style={passValidatorBox}>
-            <div style={{ marginBottom: '10px', fontWeight: '800', fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-dark)' }}>Seguridad de contraseña</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
-              <Requirement met={passRequirements.length} text="8-12 caracteres" />
-              <Requirement met={passRequirements.upper} text="Una Mayúscula" />
-              <Requirement met={passRequirements.lower} text="Una Minúscula" />
-              <Requirement met={passRequirements.number} text="Un Número" />
-              <Requirement met={passRequirements.special} text="Un Símbolo (@.$!)" />
-            </div>
+          <h2 className="auth-title">Únete a V&V</h2>
+          <p className="auth-subtitle">Tu seguridad es nuestra prioridad.</p>
+        </header>
+
+        <form onSubmit={handleSubmit} className="auth-form" noValidate>
+          <div className="auth-form-grid">
+            <InputField
+              id="nombre"
+              name="nombre"
+              label="Nombre"
+              type="text"
+              value={formData.nombre}
+              onChange={handleChange}
+              placeholder="Juan"
+              icon={User}
+              error={errors.nombre}
+              required
+              autoComplete="given-name"
+            />
+            <InputField
+              id="apellido"
+              name="apellido"
+              label="Apellido"
+              type="text"
+              value={formData.apellido}
+              onChange={handleChange}
+              placeholder="Pérez"
+              icon={User}
+              error={errors.apellido}
+              required
+              autoComplete="family-name"
+            />
+            <InputField
+              id="dni"
+              name="dni"
+              label="DNI"
+              type="text"
+              inputMode="numeric"
+              value={formData.dni}
+              onChange={handleChange}
+              placeholder="Solo números"
+              icon={CreditCard}
+              error={errors.dni}
+              required
+              autoComplete="off"
+            />
+            <InputField
+              id="telefono"
+              name="telefono"
+              label="Teléfono"
+              type="tel"
+              inputMode="tel"
+              value={formData.telefono}
+              onChange={handleChange}
+              placeholder="Ej: 3794..."
+              icon={Phone}
+              error={errors.telefono}
+              required
+              autoComplete="tel"
+            />
+            <InputField
+              id="email"
+              name="email"
+              label="Correo Electrónico"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="juan@ejemplo.com"
+              icon={Mail}
+              error={errors.email}
+              required
+              autoComplete="email"
+              className="auth-form-grid__full"
+            />
+            <InputField
+              id="usuario"
+              name="usuario"
+              label="Usuario"
+              type="text"
+              value={formData.usuario}
+              onChange={handleChange}
+              placeholder="juanperez"
+              icon={User}
+              error={errors.usuario}
+              required
+              autoComplete="username"
+            />
+            <InputField
+              id="contrasenia"
+              name="contrasenia"
+              label="Contraseña"
+              type={showPassword ? 'text' : 'password'}
+              value={formData.contrasenia}
+              onChange={handleChange}
+              placeholder="••••••••"
+              icon={Lock}
+              rightElement={passwordToggle}
+              error={errors.contrasenia}
+              required
+              autoComplete="new-password"
+            />
           </div>
 
-          <button type="submit" disabled={loading} style={buttonStyle}>
-            {loading ? <Loader2 className="animate-spin" size={22} /> : 'Crear mi cuenta gratuita'}
-          </button>
+          <fieldset className="auth-requirements" role="list">
+            <legend className="sr-only">Requisitos de contraseña</legend>
+            {REQUIREMENTS.map(({ key, label }) => {
+              const met = passRequirements[key];
+              return (
+                <div
+                  key={key}
+                  className={`auth-requirement ${met ? 'auth-requirement--met' : ''}`}
+                  role="listitem"
+                >
+                  {met ? (
+                    <Check size={14} strokeWidth={3} aria-hidden="true" />
+                  ) : (
+                    <span className="auth-requirement__dot" aria-hidden="true" />
+                  )}
+                  <span>{label}</span>
+                </div>
+              );
+            })}
+          </fieldset>
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            loading={loading}
+            className="auth-submit"
+          >
+            {loading ? 'Creando cuenta...' : 'Crear mi cuenta gratuita'}
+          </Button>
         </form>
 
-        <p style={footerText}>
-          ¿Ya eres parte? <Link to="/login" style={loginLink}>Inicia sesión</Link>
+        <p className="auth-footer">
+          ¿Ya eres parte?
+          <Link to="/login" className="auth-link">
+            Inicia sesión
+          </Link>
         </p>
-      </div>
-    </div>
+      </Card>
+    </AuthLayout>
   );
 };
-
-// Estilos Premium
-const pageContainer = { display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'radial-gradient(circle at 90% 10%, rgba(37, 99, 235, 0.05) 0%, rgba(255, 255, 255, 1) 90%)', padding: '30px 16px', position: 'relative' };
-const headerSection = { textAlign: 'center', marginBottom: '35px' };
-const logoCircle = { width: '50px', height: '50px', background: 'linear-gradient(135deg, #2563eb, #7c3aed)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto', boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.4)' };
-const titleStyle = { fontSize: '2.2rem', fontWeight: '800', marginBottom: '8px', letterSpacing: '-1px', fontFamily: 'Outfit, sans-serif' };
-const subtitleStyle = { color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: '500' };
-const formStyle = { display: 'flex', flexDirection: 'column', gap: '22px' };
-const inputGroup = { display: 'flex', flexDirection: 'column', gap: '8px' };
-const labelStyle = { fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-dark)', textTransform: 'uppercase', letterSpacing: '0.5px' };
-const inputWrapper = { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 18px', background: '#f8fafc', borderRadius: '16px', border: '2px solid transparent', transition: '0.3s ease' };
-const inputStyle = { border: 'none', background: 'transparent', width: '100%', outline: 'none', fontSize: '0.95rem', fontWeight: '600' };
-const buttonStyle = { background: 'var(--primary)', color: 'white', padding: '16px', borderRadius: '16px', fontWeight: '800', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 10px 20px -5px rgba(37, 99, 235, 0.3)', marginTop: '10px', cursor: 'pointer' };
-const passValidatorBox = { background: '#f8fafc', padding: '18px', borderRadius: '20px', border: '1px solid #e2e8f0' };
-const footerText = { textAlign: 'center', fontSize: '0.95rem', fontWeight: '600', color: 'var(--text-muted)', marginTop: '25px' };
-const loginLink = { color: 'var(--primary)', fontWeight: '800', textDecoration: 'none', marginLeft: '5px' };
 
 export default RegisterPage;

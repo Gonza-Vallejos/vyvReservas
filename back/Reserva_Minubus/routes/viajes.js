@@ -34,6 +34,21 @@ router.get('/disponibles', viajesController.obtenerViajesDisponibles);
 
 /**
  * @swagger
+ * /api/viajes/{id}/asientos:
+ *   get:
+ *     summary: Obtener asientos ocupados de un viaje (mapa)
+ *     tags: [Viajes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ */
+router.get('/:id/asientos', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa', 'usuarioChofer'), viajesController.obtenerAsientosOcupados);
+
+/**
+ * @swagger
  * /api/viajes/{id}:
  *   get:
  *     summary: Obtener un viaje por ID
