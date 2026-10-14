@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { Bus, LogOut, Menu, X, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Bus, LogOut, Menu, X, ArrowRight, ShieldCheck, UserRound, Ticket, Home as HomeIcon, Building2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster, toast } from 'react-hot-toast';
 import SearchForm from './components/SearchForm';
@@ -207,23 +207,67 @@ const Navbar = () => {
 
       {isMenuOpen && (
         <div className="site-navbar__mobile animate-fade-in">
-          <Link to="/" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link">Inicio</Link>
+          <div className="site-navbar__mobile-header">
+            <div>
+              <span className="site-navbar__mobile-kicker">Navegación</span>
+              <strong>Menú principal</strong>
+            </div>
+            <button
+              type="button"
+              className="site-navbar__mobile-close"
+              onClick={() => setIsMenuOpen(false)}
+              aria-label="Cerrar menú"
+            >
+              <X size={22} />
+            </button>
+          </div>
+
           {user ? (
             <>
+              <div className="site-navbar__mobile-user">
+                <span className="site-navbar__avatar">{user?.nombre?.charAt(0).toUpperCase()}</span>
+                <div>
+                  <strong>{user?.nombre} {user?.apellido}</strong>
+                  <span>{Number(user.perfil_id) === PROFILES.EMPRESA ? 'Empresa' : Number(user.perfil_id) === PROFILES.CHOFER ? 'Chofer' : Number(user.perfil_id) === PROFILES.ADMINISTRADOR ? 'Super administrador' : 'Cuenta personal'}</span>
+                </div>
+              </div>
+
+              <nav className="site-navbar__mobile-links" aria-label="Opciones de usuario">
+                <Link to="/" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link">
+                  <HomeIcon size={19} /> <span>Inicio</span>
+                </Link>
               {(Number(user?.perfil_id) === PROFILES.ADMINISTRADOR || Number(user?.perfil_id) === PROFILES.EMPRESA || Number(user?.perfil_id) === PROFILES.MOSTRADOR) && (
-                <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link site-navbar__mobile-link--accent">Panel Empresa</Link>
+                <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link site-navbar__mobile-link--accent">
+                  <Building2 size={19} /> <span>Panel de gestión</span>
+                </Link>
               )}
               {Number(user.perfil_id) === PROFILES.CHOFER && (
-                <Link to="/chofer" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link site-navbar__mobile-link--accent">Panel Chofer</Link>
+                <Link to="/chofer" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link site-navbar__mobile-link--accent">
+                  <Bus size={19} /> <span>Panel de chofer</span>
+                </Link>
               )}
-              <Link to="/perfil" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link">Mi Perfil</Link>
+              <Link to="/perfil" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link">
+                <UserRound size={19} /> <span>Mi perfil</span>
+              </Link>
               {canViewMyReservations && (
-                <Link to="/mis-reservas" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link">Mis Reservas</Link>
+                <Link to="/mis-reservas" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link">
+                  <Ticket size={19} /> <span>Mis reservas</span>
+                </Link>
               )}
-              <button onClick={handleLogout} className="site-navbar__mobile-link site-navbar__mobile-link--danger">Cerrar Sesión ({user?.nombre})</button>
+              </nav>
+              <button onClick={handleLogout} className="site-navbar__mobile-logout">
+                <LogOut size={19} /> Cerrar sesión
+              </button>
             </>
           ) : (
-            <Link to="/login" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link site-navbar__mobile-link--accent">Ingresar</Link>
+            <nav className="site-navbar__mobile-links" aria-label="Opciones de navegación">
+              <Link to="/" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link">
+                <HomeIcon size={19} /> <span>Inicio</span>
+              </Link>
+              <Link to="/login" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link site-navbar__mobile-link--accent">
+                <ArrowRight size={19} /> <span>Ingresar a mi cuenta</span>
+              </Link>
+            </nav>
           )}
         </div>
       )}
