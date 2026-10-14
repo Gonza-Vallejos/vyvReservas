@@ -55,4 +55,11 @@ export const reservaService = {
   cancelar: (id) => api.delete(`/reserva/${id}`),
 };
 
+export const pagoService = {
+  crearPreferencia: (reserva_id) => api.post('/pagos/crear-preferencia', { reserva_id }),
+  obtenerEstado: (reservaId) => api.get(`/pagos/estado/${reservaId}`),
+  reintentar: (reservaId) => api.post(`/pagos/reintentar/${reservaId}`),
+  obtenerPagos: (reservaId) => api.get(`/pagos/reserva/${reservaId}`),
+};
+
 export default api;

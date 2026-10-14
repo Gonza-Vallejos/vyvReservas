@@ -22,6 +22,7 @@ const detalleVentaRouter = require('./routes/detalleVenta');
 const ubicacionRouter = require('./routes/ubicacion');
 const usuarioEmpresaRouter = require('./routes/usuarioEmpresa');
 const reportesRouter = require('./routes/reportes');
+const pagosRouter = require('./routes/pagos');
 
 const app = express();
 
@@ -55,6 +56,7 @@ app.use('/api/detalle-venta', detalleVentaRouter);
 app.use('/api/ubicacion', ubicacionRouter);
 app.use('/api/usuario-empresa', usuarioEmpresaRouter);
 app.use('/api/reportes', reportesRouter);
+app.use('/api/pagos', pagosRouter);
 
 // Compatibilidad directa para reservaAPP (rutas que llaman sin prefijo /api)
 app.use('/auth', authRoutes);
@@ -70,6 +72,7 @@ app.use('/ubicacion', ubicacionRouter);
 app.use('/usuarioEmpresa', usuarioEmpresaRouter);
 app.use('/usuario-empresa', usuarioEmpresaRouter);
 app.use('/reportes', reportesRouter);
+app.use('/pagos', pagosRouter);
 
 // 404 Handler
 app.use((req, res) => {

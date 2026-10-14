@@ -1,4 +1,4 @@
-const { Reserva, Pasajeros, Viajes, MedioTransporte, sequelize } = require("../models");
+const { Reserva, Pasajeros, Viajes, MedioTransporte, Pago, sequelize } = require("../models");
 const { Op } = require("sequelize");
 
 class ReservaService {
@@ -45,6 +45,11 @@ class ReservaService {
           model: Pasajeros,
           where: { eliminado: "no" },
           required: false,
+        },
+        {
+          model: Pago,
+          where: { eliminado: "no" },
+          required: false,
         }
       ]
     });
@@ -59,6 +64,7 @@ class ReservaService {
 
     return reservas.map((reserva) => {
       const viajeInfo = viajes.find((v) => v.id === reserva.viajes_id);
+      const ultimoPago = this.getUltimoPago(reserva.Pagos);
       return {
         id: reserva.id,
         fechaReserva: reserva.fechaReserva,
@@ -68,8 +74,17 @@ class ReservaService {
         Viaje: viajeInfo,
         Pasajeros: reserva.Pasajeros || [],
         pasajeros: reserva.Pasajeros || [],
+        Pagos: reserva.Pagos || [],
+        pagos: reserva.Pagos || [],
+        estadoPago: ultimoPago?.estado || "pendiente",
+        estado: ultimoPago?.estado === "aprobado" ? "Pagada" : "Pendiente de pago"
       };
     });
+  }
+
+  getUltimoPago(pagos) {
+    if (!pagos || pagos.length === 0) return null;
+    return pagos.sort((a, b) => new Date(b.fechaCreacion) - new Date(a.fechaCreacion))[0];
   }
 
   /**

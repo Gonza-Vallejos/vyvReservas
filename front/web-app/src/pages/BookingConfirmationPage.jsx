@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { reservaService } from '../services/api';
+import { reservaService, pagoService } from '../services/api';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -75,9 +75,23 @@ const BookingConfirmationPage = () => {
     return () => { cancelled = true; };
   }, [user, navigate, reservaId, initialReservation]);
 
-  const handlePayment = () => {
-    // TODO: integrar con MercadoPago
-    toast('Pronto podrás pagar con MercadoPago', { icon: '💳' });
+  const handlePayment = async () => {
+    try {
+      setLoading(true);
+      const response = await pagoService.crearPreferencia(reservaId);
+      const { initPoint } = response.data?.data || response.data || {};
+      if (initPoint) {
+        window.location.href = initPoint;
+      } else {
+        toast.error('No se pudo generar el link de pago');
+      }
+    } catch (err) {
+      console.error('Error al crear preferencia:', err);
+      const message = err.response?.data?.message || 'Error al iniciar el pago';
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDownload = () => {

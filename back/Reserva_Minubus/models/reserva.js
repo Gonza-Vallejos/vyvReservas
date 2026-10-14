@@ -19,6 +19,9 @@ module.exports = (sequelize, DataTypes) => {
       Reserva.hasMany(models.Ventas, {
         foreignKey: "reserva_id",
       });
+      Reserva.hasMany(models.Pago, {
+        foreignKey: "reserva_id",
+      });
     }
   }
 

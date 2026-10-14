@@ -486,7 +486,7 @@ const DashboardPage = () => {
         .dashboard-modal-subtitle { font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-1); }
         .dashboard-modal-close { flex-shrink: 0; }
         .dashboard-modal-body { padding: var(--space-6); overflow-y: auto; }
-        .dashboard-modal-form { display: flex; flex-direction: column; gap: var(--space-5); }
+        .dashboard-modal-form { display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-6); overflow-y: auto; max-height: calc(90vh - 80px); }
         .dashboard-modal-actions { display: flex; justify-content: flex-end; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-2); }
         .dashboard-modal-actions--split { justify-content: space-between; }
 
@@ -550,6 +550,7 @@ const DashboardPage = () => {
           .dashboard-actions { flex-direction: column; }
           .dashboard-actions .vv-button { width: 100%; justify-content: center; }
           .dashboard-modal-card { max-width: 95%; }
+          .dashboard-modal-form { padding: var(--space-5) var(--space-4); }
           .dashboard-form-grid { grid-template-columns: 1fr; }
           .dashboard-modal-actions { flex-direction: column-reverse; }
           .dashboard-modal-actions .vv-button { width: 100%; justify-content: center; }
