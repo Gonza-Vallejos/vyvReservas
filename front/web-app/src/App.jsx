@@ -169,7 +169,7 @@ const Navbar = () => {
   const canViewMyReservations = user && [PROFILES.CLIENTE, PROFILES.MOSTRADOR].includes(Number(user.perfil_id));
 
   return (
-    <nav className="site-navbar" aria-label="Navegación principal">
+    <nav className={`site-navbar ${isMenuOpen ? 'site-navbar--menu-open' : ''}`} aria-label="Navegación principal">
       <div className="site-navbar__inner">
         <Link to="/" className="site-navbar__logo" aria-label="V&V Reservas, ir al inicio">
           <span className="site-navbar__logo-mark"><Bus size={22} /></span>

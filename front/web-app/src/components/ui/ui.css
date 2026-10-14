@@ -496,10 +496,13 @@
   .vv-search-form {
     flex-direction: column;
     align-items: stretch;
+    gap: var(--space-3);
   }
 
-  .vv-search-form__field {
-    flex: 1 1 auto;
+  .vv-search-form__field,
+  .vv-location-autocomplete {
+    flex: 0 0 auto;
+    width: 100%;
   }
 
   .vv-search-form__swap {

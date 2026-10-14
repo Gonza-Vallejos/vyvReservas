@@ -1392,6 +1392,11 @@ img, svg {
   cursor: pointer;
 }
 
+.site-navbar--menu-open .site-navbar__menu {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .site-navbar__logout:hover,
 .site-navbar__logout:focus-visible {
   background: #fee2e2;
@@ -1590,6 +1595,11 @@ img, svg {
 }
 
 @media (max-width: 768px) {
+  .site-navbar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
   .site-navbar__inner {
     width: min(100% - 28px, 1180px);
     min-height: 64px;
