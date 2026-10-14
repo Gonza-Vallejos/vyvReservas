@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/api';
 import {
@@ -27,6 +27,8 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from || null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -60,9 +62,16 @@ const LoginPage = () => {
         login(data.usuario, data.token);
         toast.success('¡Bienvenido!');
         const perfilId = Number(data.usuario?.perfil_id);
-        if ([PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR].includes(perfilId)) navigate('/dashboard');
-        else if (perfilId === PROFILES.CHOFER) navigate('/chofer');
-        else navigate('/');
+        // Redirect to where user was before login if it exists
+        if (from) {
+          navigate(from, { replace: true });
+        } else if ([PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR].includes(perfilId)) {
+          navigate('/dashboard');
+        } else if (perfilId === PROFILES.CHOFER) {
+          navigate('/chofer');
+        } else {
+          navigate('/');
+        }
       } else {
         toast.error(response.data.message || 'No pudimos iniciar sesión');
       }

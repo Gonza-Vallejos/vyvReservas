@@ -33,25 +33,61 @@ const STEPS = [
 
 const MAX_SEATS = 3;
 
+const BOOKING_STORAGE_KEY = 'vyv_booking_state';
+
 const BookingPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Restore saved state or init empty
+  const [savedState, setSavedState] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(BOOKING_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Only use if matches current trip
+        if (parsed.tripId === id) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return null;
+  });
 
   const [trip, setTrip] = useState(null);
   const [loadingTrip, setLoadingTrip] = useState(true);
   const [tripError, setTripError] = useState(null);
   const [occupiedSeats, setOccupiedSeats] = useState([]);
 
-  const [step, setStep] = useState(1);
-  const [selectedSeats, setSelectedSeats] = useState([]);
-  const [passengers, setPassengers] = useState([]);
+  const [step, setStep] = useState(savedState?.step || 1);
+  const [selectedSeats, setSelectedSeats] = useState(savedState?.selectedSeats || []);
+  const [passengers, setPassengers] = useState(savedState?.passengers || []);
   const [errors, setErrors] = useState({});
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
+  // Clear saved state when component unmounts or on success
+  useEffect(() => {
+    return () => {
+      // Don't clear on unmount if we have state - let it persist for session
+    };
+  }, []);
+
+  const saveBookingState = () => {
+    const state = {
+      tripId: id,
+      step,
+      selectedSeats,
+      passengers,
+    };
+    sessionStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(state));
+  };
+
   useEffect(() => {
     if (!user) {
+      // Save current state before redirecting
+      saveBookingState();
       toast.error('Iniciá sesión para reservar');
       navigate('/login', { state: { from: `/reservar/${id}` } });
       return;
@@ -226,6 +262,7 @@ const BookingPage = () => {
       const reservaId = created?.id || created?.reservaId;
 
       toast.success('¡Reserva realizada con éxito!');
+      sessionStorage.removeItem(BOOKING_STORAGE_KEY);
       navigate(`/confirmacion/${reservaId || 'nueva'}`, {
         state: { reservation: created, trip, passengers, selectedSeats },
       });
