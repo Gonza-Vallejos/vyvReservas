@@ -369,7 +369,8 @@ const DashboardPage = () => {
         isSuperAdmin ? Promise.resolve({ data: { data: null } }) : (empresaId ? empresaService.obtenerPorId(empresaId) : Promise.resolve({ data: { data: null } })),
         isSuperAdmin ? reservaService.listarTodas() : (empresaId ? reservaService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } })),
         isSuperAdmin ? empresaService.listarTodas() : Promise.resolve({ data: { data: [] } }),
-        isSuperAdmin ? viajeService.obtenerLocalidades() : Promise.resolve({ data: { data: [] } }),
+        isSuperAdmin ? viajeService.listarTodas() : Promise.resolve({ data: { data: [] } }),
+        isSuperAdmin ? usuarioService.listarTodos() : Promise.resolve({ data: { data: [] } }),
       ]);
 
       if (vRes.status === 'fulfilled') setViajes(vRes.value?.data?.data || vRes.value?.data || []);
