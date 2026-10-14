@@ -1,24 +1,27 @@
 const AuthVehicle = ({ eyesClosed = false }) => (
   <div className="auth-vehicle" aria-hidden="true">
-    <svg viewBox="0 0 360 150" role="presentation">
-      <path className="auth-vehicle__shadow" d="M42 130h270" />
+    <svg viewBox="0 0 360 190" role="presentation">
+      <path className="auth-vehicle__shadow" d="M72 166h216" />
       <g className="auth-vehicle__body">
         <path
           className="auth-vehicle__shell"
-          d="M44 104V62c0-11 9-20 20-20h164l48 35h30c8 0 14 6 14 14v13h-14a26 26 0 0 1-51 0H102a26 26 0 0 1-51 0H44Z"
+          d="M84 145V58c0-20 16-36 36-36h120c20 0 36 16 36 36v87H84Z"
         />
-        <path className="auth-vehicle__window" d="M80 51h80v31H66V65c0-8 6-14 14-14Zm91 0h52l38 31h-90V51Z" />
-        <path className="auth-vehicle__stripe" d="M45 86h274v10H45z" />
-        <circle className="auth-vehicle__wheel" cx="76" cy="105" r="18" />
-        <circle className="auth-vehicle__wheel" cx="280" cy="105" r="18" />
-        <circle className="auth-vehicle__hub" cx="76" cy="105" r="7" />
-        <circle className="auth-vehicle__hub" cx="280" cy="105" r="7" />
+        <path className="auth-vehicle__window" d="M112 38h136c10 0 18 8 18 18v34H94V56c0-10 8-18 18-18Z" />
+        <path className="auth-vehicle__window-divider" d="M180 39v51" />
+        <path className="auth-vehicle__stripe" d="M84 104h192v13H84z" />
+        <circle className="auth-vehicle__wheel" cx="112" cy="145" r="20" />
+        <circle className="auth-vehicle__wheel" cx="248" cy="145" r="20" />
+        <circle className="auth-vehicle__hub" cx="112" cy="145" r="8" />
+        <circle className="auth-vehicle__hub" cx="248" cy="145" r="8" />
         <g className={`auth-vehicle__face ${eyesClosed ? 'auth-vehicle__face--closed' : ''}`}>
-          <circle className="auth-vehicle__eye" cx="218" cy="69" r="5" />
-          <circle className="auth-vehicle__eye" cx="244" cy="69" r="5" />
-          <path className="auth-vehicle__smile" d="M224 76c4 5 10 5 14 0" />
+          <circle className="auth-vehicle__eye" cx="155" cy="70" r="6" />
+          <circle className="auth-vehicle__eye" cx="205" cy="70" r="6" />
+          <path className="auth-vehicle__smile" d="M166 80c8 8 20 8 28 0" />
         </g>
-        <path className="auth-vehicle__light" d="M304 67h10v12h-10z" />
+        <path className="auth-vehicle__light" d="M96 120h17l-5 12H96zM247 120h17l5 12h-17z" />
+        <path className="auth-vehicle__grille" d="M158 123h44v10h-44z" />
+        <path className="auth-vehicle__bumper" d="M92 143h176" />
       </g>
     </svg>
     <span className="auth-vehicle__caption">Viajá seguro con V&V</span>

@@ -891,8 +891,12 @@ img, svg {
     flex-direction: column;
     justify-content: space-between;
     position: relative;
+    align-self: center;
+    min-height: calc(100vh - 32px);
+    margin: 16px 0 16px 24px;
     padding: clamp(var(--space-6), 4vw, var(--space-10));
     color: #ffffff;
+    border-radius: 0 var(--radius-5) var(--radius-5) 0;
     background:
       radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.35), transparent 40%),
       radial-gradient(circle at 80% 80%, rgba(245, 158, 11, 0.25), transparent 40%),
@@ -1054,6 +1058,12 @@ img, svg {
     opacity: 0.95;
   }
 
+  .auth-vehicle__window-divider {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.5);
+    stroke-width: 3;
+  }
+
   .auth-vehicle__stripe {
     fill: #fbbf24;
   }
@@ -1088,6 +1098,18 @@ img, svg {
 
   .auth-vehicle__light {
     fill: #fde68a;
+  }
+
+  .auth-vehicle__grille {
+    fill: #172554;
+    opacity: 0.9;
+  }
+
+  .auth-vehicle__bumper {
+    fill: none;
+    stroke: #172554;
+    stroke-linecap: round;
+    stroke-width: 5;
   }
 
   .auth-vehicle__shadow {
