@@ -122,4 +122,29 @@ router.put("/:id", autenticarToken, permitirPerfiles("usuarioAdministrador", "us
  */
 router.delete("/:id", autenticarToken, permitirPerfiles("usuarioAdministrador"), empresaController.eliminarEmpresa);
 
+/**
+ * @swagger
+ * /api/empresa/{id}/asignar-dueño:
+ *   put:
+ *     summary: Asignar un usuario como dueño de la empresa
+ *     tags: [Empresas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [usuarioId]
+ *             properties:
+ *               usuarioId:
+ *                 type: integer
+ */
+router.put("/:id/asignar-dueño", autenticarToken, permitirPerfiles("usuarioAdministrador"), empresaController.asignarDueno);
+
 module.exports = router;

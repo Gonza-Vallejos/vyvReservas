@@ -233,6 +233,7 @@ const DashboardPage = () => {
   const [reservas, setReservas] = useState([]);
   const [empresas, setEmpresas] = useState([]);
   const [miEmpresa, setMiEmpresa] = useState(null);
+  const [allUsers, setAllUsers] = useState([]);
 
   const [showTripModal, setShowTripModal] = useState(false);
   const [showEditTripModal, setShowEditTripModal] = useState(false);
@@ -241,6 +242,8 @@ const DashboardPage = () => {
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [showPassengersModal, setShowPassengersModal] = useState(false);
   const [showReservaDetailModal, setShowReservaDetailModal] = useState(false);
+  const [showAssignOwnerModal, setShowAssignOwnerModal] = useState(false);
+  const [selectedEmpresaForOwner, setSelectedEmpresaForOwner] = useState(null);
 
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [selectedReserva, setSelectedReserva] = useState(null);
@@ -293,7 +296,7 @@ const DashboardPage = () => {
 
   const currentProfileId = Number(user?.perfil_id);
   const isSuperAdmin = currentProfileId === PROFILES.ADMINISTRADOR;
-  const isOwner = currentProfileId === PROFILES.EMPRESA || currentProfileId === PROFILES.ADMINISTRADOR;
+  const isOwner = currentProfileId === PROFILES.EMPRESA;
 
   const viajesDelDia = useMemo(() => {
     return viajes.filter((v) => {
@@ -359,7 +362,7 @@ const DashboardPage = () => {
         empresaId = user.id;
       }
 
-      const [vRes, tRes, cRes, eRes, rRes, empListRes, locRes] = await Promise.allSettled([
+      const [vRes, tRes, cRes, eRes, rRes, empListRes, locRes, usersRes] = await Promise.allSettled([
         isSuperAdmin ? viajeService.listarTodas() : (empresaId ? viajeService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } })),
         isSuperAdmin ? transporteService.listarTodas() : (empresaId ? transporteService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } })),
         empresaId ? empresaService.obtenerUsuarios(empresaId) : Promise.resolve({ data: { data: [] } }),
@@ -385,6 +388,8 @@ const DashboardPage = () => {
         setEmpresas(empListRes.value?.data?.data || empListRes.value?.data || []);
       if (locRes.status === 'fulfilled')
         setLocalidades(locRes.value?.data?.data || locRes.value?.data || []);
+      if (usersRes.status === 'fulfilled')
+        setAllUsers(usersRes.value?.data?.data || usersRes.value?.data || []);
     } catch (error) {
       console.error('Error al cargar datos del dashboard:', error);
       toast.error('Error al cargar datos del panel');
@@ -600,15 +605,24 @@ const DashboardPage = () => {
         </div>
         <div className="dashboard-sidebar__nav">
           <SidebarItem id="resumen" icon={LayoutDashboard} label="Resumen" active={activeTab === 'resumen'} onClick={() => { setActiveTab('resumen'); setMobileSidebarOpen(false); }} />
-          <SidebarItem id="viajes" icon={Bus} label="Viajes" badgeCount={viajes.length} active={activeTab === 'viajes'} onClick={() => { setActiveTab('viajes'); setMobileSidebarOpen(false); }} />
-          <SidebarItem id="reservas" icon={BookmarkCheck} label="Reservas" badgeCount={reservas.length} active={activeTab === 'reservas'} onClick={() => { setActiveTab('reservas'); setMobileSidebarOpen(false); }} />
-          <SidebarItem id="flota" icon={Truck} label="Mi Flota" badgeCount={vehiculos.length} active={activeTab === 'flota'} onClick={() => { setActiveTab('flota'); setMobileSidebarOpen(false); }} />
-          <SidebarItem id="choferes" icon={Users} label="Personal" badgeCount={empleados.length} active={activeTab === 'choferes'} onClick={() => { setActiveTab('choferes'); setMobileSidebarOpen(false); }} />
-          {isOwner && <SidebarItem id="estadisticas" icon={TrendingUp} label="Estadísticas" active={activeTab === 'estadisticas'} onClick={() => { setActiveTab('estadisticas'); setMobileSidebarOpen(false); }} />}
+          {isSuperAdmin ? (
+            <>
+              <SidebarItem id="estadisticas" icon={TrendingUp} label="Estadísticas" active={activeTab === 'estadisticas'} onClick={() => { setActiveTab('estadisticas'); setMobileSidebarOpen(false); }} />
+              <SidebarItem id="usuarios" icon={Users} label="Usuarios" badgeCount={allUsers.length} active={activeTab === 'usuarios'} onClick={() => { setActiveTab('usuarios'); setMobileSidebarOpen(false); }} />
+            </>
+          ) : (
+            <>
+              <SidebarItem id="viajes" icon={Bus} label="Viajes" badgeCount={viajes.length} active={activeTab === 'viajes'} onClick={() => { setActiveTab('viajes'); setMobileSidebarOpen(false); }} />
+              <SidebarItem id="reservas" icon={BookmarkCheck} label="Reservas" badgeCount={reservas.length} active={activeTab === 'reservas'} onClick={() => { setActiveTab('reservas'); setMobileSidebarOpen(false); }} />
+              <SidebarItem id="flota" icon={Truck} label="Mi Flota" badgeCount={vehiculos.length} active={activeTab === 'flota'} onClick={() => { setActiveTab('flota'); setMobileSidebarOpen(false); }} />
+              <SidebarItem id="choferes" icon={Users} label="Personal" badgeCount={empleados.length} active={activeTab === 'choferes'} onClick={() => { setActiveTab('choferes'); setMobileSidebarOpen(false); }} />
+              {isOwner && <SidebarItem id="estadisticas" icon={TrendingUp} label="Estadísticas" active={activeTab === 'estadisticas'} onClick={() => { setActiveTab('estadisticas'); setMobileSidebarOpen(false); }} />}
+            </>
+          )}
         </div>
         <div className="dashboard-sidebar__footer">
-          <SidebarItem id="mi-empresa" icon={Building2} label="Mi Empresa" active={activeTab === 'mi-empresa'} onClick={() => { setActiveTab('mi-empresa'); setMobileSidebarOpen(false); }} />
-          {isOwner && <SidebarItem id="empresas" icon={Settings} label={isSuperAdmin ? 'Empresas' : 'Configuración'} active={activeTab === 'empresas'} onClick={() => { setActiveTab('empresas'); setMobileSidebarOpen(false); }} />}
+          {!isSuperAdmin && <SidebarItem id="mi-empresa" icon={Building2} label="Mi Empresa" active={activeTab === 'mi-empresa'} onClick={() => { setActiveTab('mi-empresa'); setMobileSidebarOpen(false); }} />}
+          <SidebarItem id="empresas" icon={Settings} label={isSuperAdmin ? 'Empresas' : 'Configuración'} active={activeTab === 'empresas'} onClick={() => { setActiveTab('empresas'); setMobileSidebarOpen(false); }} />
         </div>
       </aside>
 
@@ -629,27 +643,24 @@ const DashboardPage = () => {
               <span>{isSuperAdmin ? 'Super Administrador' : isOwner ? 'Dueño de Empresa' : 'Operador Mostrador'}</span>
             </div>
           </div>
-          <div className="dashboard-actions animate-fade-in">
-            <Button onClick={() => setShowTripModal(true)}>
-              <Plus size={20} /> Nuevo Viaje
-            </Button>
-            <Button variant="secondary" onClick={() => setShowVehicleModal(true)}>
-              <Truck size={20} /> Nueva Unidad
-            </Button>
-            {isOwner && (
-              <Button variant="primary" onClick={() => setShowEmployeeModal(true)}>
-                <UserPlus size={20} /> Contratar
+          {!isSuperAdmin && (
+            <div className="dashboard-actions animate-fade-in">
+              <Button onClick={() => setShowTripModal(true)}>
+                <Plus size={20} /> Nuevo Viaje
               </Button>
-            )}
-            {isSuperAdmin && (
-              <Button variant="primary" onClick={() => setShowCompanyModal(true)}>
-                <Building2 size={20} /> Nueva empresa
+              <Button variant="secondary" onClick={() => setShowVehicleModal(true)}>
+                <Truck size={20} /> Nueva Unidad
               </Button>
-            )}
-            <Button variant="secondary" onClick={() => navigate('/chofer')}>
-              <Bus size={20} /> Chofer
-            </Button>
-          </div>
+              {isOwner && (
+                <Button variant="primary" onClick={() => setShowEmployeeModal(true)}>
+                  <UserPlus size={20} /> Contratar
+                </Button>
+              )}
+              <Button variant="secondary" onClick={() => navigate('/chofer')}>
+                <Bus size={20} /> Chofer
+              </Button>
+            </div>
+          )}
         </header>
 
         {loading ? (
@@ -1061,6 +1072,46 @@ const DashboardPage = () => {
               </div>
             )}
 
+            {activeTab === 'usuarios' && isSuperAdmin && (
+              <div className="animate-fade-in dashboard-tab">
+                <Card className="table-card" padded={false}>
+                  {allUsers.length === 0 ? (
+                    <EmptyState
+                      icon={Users}
+                      title="No hay usuarios registrados"
+                      description="No se encontraron usuarios en el sistema."
+                    />
+                  ) : (
+                    <DashboardTable headers={['Nombre', 'Usuario', 'Email', 'Perfil', 'Empresa']} caption="Usuarios del sistema">
+                      {allUsers.map((u) => (
+                        <tr key={u.id}>
+                          <td>
+                            <div className="dashboard-table__title">{u.nombre} {u.apellido}</div>
+                            <div className="dashboard-table__text">DNI {u.dni}</div>
+                          </td>
+                          <td>
+                            <div className="dashboard-table__title">{u.usuario}</div>
+                          </td>
+                          <td>
+                            <div className="dashboard-table__title">{u.email}</div>
+                            <div className="dashboard-table__text">{u.telefono || 'Sin teléfono'}</div>
+                          </td>
+                          <td>
+                            <Badge variant={getRoleBadgeVariant(u.perfil_id)}>
+                              {getRoleLabel(u.perfil_id)}
+                            </Badge>
+                          </td>
+                          <td>
+                            <div className="dashboard-table__text">{u.id_empresa ? `Empresa #${u.id_empresa}` : '-'}</div>
+                          </td>
+                        </tr>
+                      ))}
+                    </DashboardTable>
+                  )}
+                </Card>
+              </div>
+            )}
+
             {activeTab === 'empresas' && isOwner && (
               <div className="animate-fade-in dashboard-tab">
                 {isSuperAdmin && (
@@ -1082,27 +1133,49 @@ const DashboardPage = () => {
                       description="No se encontraron otras empresas en el sistema."
                     />
                   ) : (
-                    <DashboardTable headers={['Nombre', 'CUIT', 'Contacto', 'Estado']} caption="Empresas registradas">
-                      {empresas.map((emp) => (
-                        <tr key={emp.id}>
-                          <td>
-                            <div className="dashboard-table__title">{emp.nombre}</div>
-                            <div className="dashboard-table__text">{emp.direccion}</div>
-                          </td>
-                          <td>
-                            <div className="dashboard-table__title">{emp.cuit}</div>
-                          </td>
-                          <td>
-                            <div className="dashboard-table__title">{emp.telefono}</div>
-                            <div className="dashboard-table__text">{emp.email}</div>
-                          </td>
-                          <td>
-                            <Badge variant={emp.eliminado === 'si' ? 'error' : 'success'}>
-                              {emp.eliminado === 'si' ? 'Inactiva' : 'Activa'}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
+                    <DashboardTable headers={['Nombre', 'CUIT', 'Contacto', 'Estado', 'Dueño']} caption="Empresas registradas">
+                      {empresas.map((emp) => {
+                        const dueno = allUsers.find(u => String(u.id_empresa) === String(emp.id) && Number(u.perfil_id) === PROFILES.EMPRESA);
+                        return (
+                          <tr key={emp.id}>
+                            <td>
+                              <div className="dashboard-table__title">{emp.nombre}</div>
+                              <div className="dashboard-table__text">{emp.direccion}</div>
+                            </td>
+                            <td>
+                              <div className="dashboard-table__title">{emp.cuit}</div>
+                            </td>
+                            <td>
+                              <div className="dashboard-table__title">{emp.telefono}</div>
+                              <div className="dashboard-table__text">{emp.email}</div>
+                            </td>
+                            <td>
+                              <Badge variant={emp.eliminado === 'si' ? 'error' : 'success'}>
+                                {emp.eliminado === 'si' ? 'Inactiva' : 'Activa'}
+                              </Badge>
+                            </td>
+                            <td>
+                              {dueno ? (
+                                <div className="dashboard-table__title">{dueno.nombre} {dueno.apellido}</div>
+                              ) : (
+                                <span className="dashboard-table__text" style={{color: 'var(--text-muted)'}}>Sin asignar</span>
+                              )}
+                              {isSuperAdmin && (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedEmpresaForOwner(emp);
+                                    setShowAssignOwnerModal(true);
+                                  }}
+                                >
+                                  {dueno ? 'Cambiar' : 'Asignar'}
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </DashboardTable>
                   )}
                 </Card>
@@ -1162,6 +1235,57 @@ const DashboardPage = () => {
               <Button type="submit">Crear empresa</Button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {showAssignOwnerModal && selectedEmpresaForOwner && (
+        <Modal
+          title="Asignar dueño"
+          subtitle={`Seleccioná el usuario que será dueño de ${selectedEmpresaForOwner.nombre}`}
+          onClose={() => { setShowAssignOwnerModal(false); setSelectedEmpresaForOwner(null); }}
+        >
+          <div className="dashboard-modal-form">
+            <SelectField
+              label="Usuario"
+              value=""
+              onChange={(e) => setSelectedEmpresaForOwner({ ...selectedEmpresaForOwner, selectedUserId: Number(e.target.value) })}
+              required
+              placeholder="Seleccionar usuario..."
+            >
+              {allUsers
+                .filter(u => Number(u.perfil_id) !== PROFILES.ADMINISTRADOR)
+                .map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nombre} {u.apellido} ({u.usuario}) - {getRoleLabel(u.perfil_id)}
+                  </option>
+                ))}
+            </SelectField>
+            <div className="dashboard-modal-actions">
+              <Button type="button" variant="secondary" onClick={() => { setShowAssignOwnerModal(false); setSelectedEmpresaForOwner(null); }}>
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={async () => {
+                  if (!selectedEmpresaForOwner.selectedUserId) {
+                    toast.error('Seleccioná un usuario');
+                    return;
+                  }
+                  try {
+                    await empresaService.asignarDueno(selectedEmpresaForOwner.id, selectedEmpresaForOwner.selectedUserId);
+                    toast.success('Dueño asignado correctamente');
+                    setShowAssignOwnerModal(false);
+                    setSelectedEmpresaForOwner(null);
+                    fetchData();
+                  } catch (err) {
+                    toast.error(err.response?.data?.message || 'Error al asignar dueño');
+                  }
+                }}
+              >
+                Asignar como dueño
+              </Button>
+            </div>
+          </div>
         </Modal>
       )}
 

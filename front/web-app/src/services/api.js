@@ -45,9 +45,11 @@ export const empresaService = {
   obtenerPorId: (id) => api.get(`/empresa/${id}`),
   obtenerEmpresaDeUsuario: (usuarioId) => api.get(`/usuario-empresa/usuario/${usuarioId}`),
   actualizar: (id, data) => api.put(`/empresa/${id}`, data),
+  asignarDueno: (empresaId, usuarioId) => api.put(`/empresa/${empresaId}/asignar-dueño`, { usuarioId }),
 };
 
 export const usuarioService = {
+  listarTodos: () => api.get('/usuarios'),
   registrarEmpleado: (data) => api.post('/usuarios/registrar-empleado', data),
   actualizar: (id, data) => api.put(`/usuarios/${id}`, data),
 };
