@@ -27,7 +27,7 @@ import { usuarioService } from '../services/api';
 const roleLabel = (perfilId) => {
   switch (perfilId) {
     case 1:
-      return 'Administrador';
+      return 'Super Administrador';
     case 3:
       return 'Mostrador';
     case 4:

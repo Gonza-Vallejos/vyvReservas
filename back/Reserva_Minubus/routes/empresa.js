@@ -28,7 +28,8 @@ const { autenticarToken, permitirPerfiles } = require("../middlewares/authMiddle
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
  */
-router.get("/", autenticarToken, permitirPerfiles("usuarioAdministrador", "usuarioEmpresa", "usuarioMostrador"), empresaController.obtenerEmpresas);
+// El listado global de empresas es exclusivo del super administrador.
+router.get("/", autenticarToken, permitirPerfiles("usuarioAdministrador"), empresaController.obtenerEmpresas);
 
 /**
  * @swagger

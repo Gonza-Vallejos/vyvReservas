@@ -114,6 +114,14 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
 body {
   font-family: var(--font-body);
   background-color: var(--background);
@@ -1406,7 +1414,7 @@ img, svg {
 
 .site-navbar__mobile {
   position: fixed;
-  top: 70px;
+  top: 64px;
   right: 0;
   bottom: 0;
   left: 0;
@@ -3220,6 +3228,8 @@ img, svg {
 .profile-page__container {
   padding-top: var(--space-8);
   padding-bottom: var(--space-12);
+  width: 100%;
+  min-width: 0;
 }
 
 .profile-page__loader {
@@ -3412,8 +3422,16 @@ img, svg {
 }
 
 @media (max-width: 640px) {
+  .profile-page__container {
+    padding-top: var(--space-5);
+    padding-bottom: var(--space-8);
+  }
+
   .profile-page__header {
+    flex-direction: column;
     align-items: flex-start;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
   }
 
   .profile-page__avatar {
@@ -3424,6 +3442,36 @@ img, svg {
   .profile-page__card-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .profile-page__name-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .profile-page__title {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font-size: 1.65rem;
+  }
+
+  .profile-page__email {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .profile-page__form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .profile-page__card-actions,
+  .profile-page__card-actions .vv-button {
+    width: 100%;
+  }
+
+  .profile-page__card-actions {
+    justify-content: flex-end;
   }
 
   .profile-page__preference {

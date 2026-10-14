@@ -166,6 +166,8 @@ const Navbar = () => {
     setIsMenuOpen(false);
   };
 
+  const canViewMyReservations = user && [PROFILES.CLIENTE, PROFILES.MOSTRADOR].includes(Number(user.perfil_id));
+
   return (
     <nav className="site-navbar" aria-label="Navegación principal">
       <div className="site-navbar__inner">
@@ -178,7 +180,7 @@ const Navbar = () => {
           <Link to="/" className="site-navbar__link">Inicio</Link>
           {user ? (
             <>
-              <Link to="/mis-reservas" className="site-navbar__link">Mis Reservas</Link>
+              {canViewMyReservations && <Link to="/mis-reservas" className="site-navbar__link">Mis Reservas</Link>}
               {(Number(user?.perfil_id) === PROFILES.ADMINISTRADOR || Number(user?.perfil_id) === PROFILES.EMPRESA || Number(user?.perfil_id) === PROFILES.MOSTRADOR) && (
                 <Link to="/dashboard" className="site-navbar__panel"><ShieldCheck size={17} /> Panel</Link>
               )}
@@ -215,7 +217,7 @@ const Navbar = () => {
                 <Link to="/chofer" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link site-navbar__mobile-link--accent">Panel Chofer</Link>
               )}
               <Link to="/perfil" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link">Mi Perfil</Link>
-              {Number(user.perfil_id) !== PROFILES.CHOFER && (
+              {canViewMyReservations && (
                 <Link to="/mis-reservas" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link">Mis Reservas</Link>
               )}
               <button onClick={handleLogout} className="site-navbar__mobile-link site-navbar__mobile-link--danger">Cerrar Sesión ({user?.nombre})</button>

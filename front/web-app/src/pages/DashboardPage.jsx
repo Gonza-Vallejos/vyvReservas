@@ -238,6 +238,7 @@ const DashboardPage = () => {
   const [showEditTripModal, setShowEditTripModal] = useState(false);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [showPassengersModal, setShowPassengersModal] = useState(false);
   const [showReservaDetailModal, setShowReservaDetailModal] = useState(false);
 
@@ -280,8 +281,18 @@ const DashboardPage = () => {
     contrasenia: '',
     perfil_id: '',
   });
+  const [nuevaEmpresa, setNuevaEmpresa] = useState({
+    nombre: '',
+    direccion: '',
+    cuit: '',
+    telefono: '',
+    email: '',
+    localidad_id: '',
+  });
+  const [localidades, setLocalidades] = useState([]);
 
   const currentProfileId = Number(user?.perfil_id);
+  const isSuperAdmin = currentProfileId === PROFILES.ADMINISTRADOR;
   const isOwner = currentProfileId === PROFILES.EMPRESA || currentProfileId === PROFILES.ADMINISTRADOR;
 
   const viajesDelDia = useMemo(() => {
@@ -348,13 +359,14 @@ const DashboardPage = () => {
         empresaId = user.id;
       }
 
-      const [vRes, tRes, cRes, eRes, rRes, empListRes] = await Promise.allSettled([
-        empresaId ? viajeService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } }),
-        empresaId ? transporteService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } }),
+      const [vRes, tRes, cRes, eRes, rRes, empListRes, locRes] = await Promise.allSettled([
+        isSuperAdmin ? viajeService.listarTodas() : (empresaId ? viajeService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } })),
+        isSuperAdmin ? transporteService.listarTodas() : (empresaId ? transporteService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } })),
         empresaId ? empresaService.obtenerUsuarios(empresaId) : Promise.resolve({ data: { data: [] } }),
-        empresaId ? empresaService.obtenerPorId(empresaId) : Promise.resolve({ data: { data: null } }),
-        empresaId ? reservaService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } }),
-        isOwner ? empresaService.listarTodas() : Promise.resolve({ data: { data: [] } }),
+        isSuperAdmin ? Promise.resolve({ data: { data: null } }) : (empresaId ? empresaService.obtenerPorId(empresaId) : Promise.resolve({ data: { data: null } })),
+        isSuperAdmin ? reservaService.listarTodas() : (empresaId ? reservaService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } })),
+        isSuperAdmin ? empresaService.listarTodas() : Promise.resolve({ data: { data: [] } }),
+        isSuperAdmin ? viajeService.obtenerLocalidades() : Promise.resolve({ data: { data: [] } }),
       ]);
 
       if (vRes.status === 'fulfilled') setViajes(vRes.value?.data?.data || vRes.value?.data || []);
@@ -371,16 +383,18 @@ const DashboardPage = () => {
       if (rRes.status === 'fulfilled') setReservas(rRes.value?.data?.data || rRes.value?.data || []);
       if (empListRes.status === 'fulfilled')
         setEmpresas(empListRes.value?.data?.data || empListRes.value?.data || []);
+      if (locRes.status === 'fulfilled')
+        setLocalidades(locRes.value?.data?.data || locRes.value?.data || []);
     } catch (error) {
       console.error('Error al cargar datos del dashboard:', error);
       toast.error('Error al cargar datos del panel');
     } finally {
       setLoading(false);
     }
-  }, [user, isOwner]);
+  }, [user, isOwner, isSuperAdmin]);
 
   useEffect(() => {
-    if (!user || (user.perfil_id !== 1 && user.perfil_id !== 5 && user.perfil_id !== 3)) {
+    if (!user || ![PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR].includes(Number(user.perfil_id))) {
       navigate('/');
       return;
     }
@@ -571,8 +585,8 @@ const DashboardPage = () => {
       <aside className={`dashboard-sidebar ${mobileSidebarOpen ? 'open' : ''}`}>
         <div className="dashboard-sidebar__brand">
           <div className="dashboard-sidebar__brand-text">
-            <h3>V&V ADMIN</h3>
-            <p>Sistema de Gestión</p>
+            <h3>{isSuperAdmin ? 'V&V SUPER ADMIN' : 'V&V ADMIN'}</h3>
+            <p>{isSuperAdmin ? 'Control global del sistema' : 'Sistema de Gestión'}</p>
           </div>
           <Button
             variant="ghost"
@@ -594,7 +608,7 @@ const DashboardPage = () => {
         </div>
         <div className="dashboard-sidebar__footer">
           <SidebarItem id="mi-empresa" icon={Building2} label="Mi Empresa" active={activeTab === 'mi-empresa'} onClick={() => { setActiveTab('mi-empresa'); setMobileSidebarOpen(false); }} />
-          {isOwner && <SidebarItem id="empresas" icon={Settings} label="Configuración" active={activeTab === 'empresas'} onClick={() => { setActiveTab('empresas'); setMobileSidebarOpen(false); }} />}
+          {isOwner && <SidebarItem id="empresas" icon={Settings} label={isSuperAdmin ? 'Empresas' : 'Configuración'} active={activeTab === 'empresas'} onClick={() => { setActiveTab('empresas'); setMobileSidebarOpen(false); }} />}
         </div>
       </aside>
 
@@ -612,7 +626,7 @@ const DashboardPage = () => {
             <h1 className="dashboard-title">{activeTab}</h1>
             <div className="dashboard-role-badge">
               <ShieldCheck size={14} aria-hidden="true" />
-              <span>{isOwner ? 'Dueño de Empresa' : 'Operador Mostrador'}</span>
+              <span>{isSuperAdmin ? 'Super Administrador' : isOwner ? 'Dueño de Empresa' : 'Operador Mostrador'}</span>
             </div>
           </div>
           <div className="dashboard-actions animate-fade-in">
@@ -625,6 +639,11 @@ const DashboardPage = () => {
             {isOwner && (
               <Button variant="primary" onClick={() => setShowEmployeeModal(true)}>
                 <UserPlus size={20} /> Contratar
+              </Button>
+            )}
+            {isSuperAdmin && (
+              <Button variant="primary" onClick={() => setShowCompanyModal(true)}>
+                <Building2 size={20} /> Nueva empresa
               </Button>
             )}
             <Button variant="secondary" onClick={() => navigate('/chofer')}>
@@ -1044,6 +1063,17 @@ const DashboardPage = () => {
 
             {activeTab === 'empresas' && isOwner && (
               <div className="animate-fade-in dashboard-tab">
+                {isSuperAdmin && (
+                  <div className="dashboard-tab__toolbar">
+                    <div>
+                      <h2 className="dashboard-section-title">Empresas del sistema</h2>
+                      <p className="dashboard-section-description">Alta y supervisión de todas las empresas registradas.</p>
+                    </div>
+                    <Button onClick={() => setShowCompanyModal(true)}>
+                      <Plus size={18} /> Nueva empresa
+                    </Button>
+                  </div>
+                )}
                 <Card className="table-card" padded={false}>
                   {empresas.length === 0 ? (
                     <EmptyState
@@ -1081,6 +1111,59 @@ const DashboardPage = () => {
           </>
         )}
       </main>
+
+      {showCompanyModal && isSuperAdmin && (
+        <Modal
+          title="Dar de alta una empresa"
+          subtitle="Registrá una nueva empresa operadora en V&V."
+          onClose={() => setShowCompanyModal(false)}
+        >
+          <form
+            onSubmit={async (event) => {
+              event.preventDefault();
+              try {
+                await empresaService.crear({
+                  ...nuevaEmpresa,
+                  cuit: nuevaEmpresa.cuit.replace(/\D/g, ''),
+                  telefono: nuevaEmpresa.telefono.replace(/\D/g, ''),
+                  localidad_id: Number(nuevaEmpresa.localidad_id),
+                });
+                toast.success('Empresa creada correctamente');
+                setNuevaEmpresa({ nombre: '', direccion: '', cuit: '', telefono: '', email: '', localidad_id: '' });
+                setShowCompanyModal(false);
+                fetchData();
+              } catch (error) {
+                const validationErrors = error.response?.data?.errores;
+                toast.error(validationErrors?.[0]?.msg || error.response?.data?.message || 'No se pudo crear la empresa');
+              }
+            }}
+            className="dashboard-modal-form"
+          >
+            <div className="dashboard-form-grid">
+              <InputField label="Nombre" value={nuevaEmpresa.nombre} onChange={(e) => setNuevaEmpresa({ ...nuevaEmpresa, nombre: e.target.value })} required />
+              <InputField label="Dirección" value={nuevaEmpresa.direccion} onChange={(e) => setNuevaEmpresa({ ...nuevaEmpresa, direccion: e.target.value })} required />
+              <InputField label="CUIT" inputMode="numeric" value={nuevaEmpresa.cuit} onChange={(e) => setNuevaEmpresa({ ...nuevaEmpresa, cuit: e.target.value })} required />
+              <InputField label="Teléfono" inputMode="tel" value={nuevaEmpresa.telefono} onChange={(e) => setNuevaEmpresa({ ...nuevaEmpresa, telefono: e.target.value })} required />
+              <InputField label="Correo electrónico" type="email" value={nuevaEmpresa.email} onChange={(e) => setNuevaEmpresa({ ...nuevaEmpresa, email: e.target.value })} required />
+              <SelectField
+                label="Localidad"
+                value={nuevaEmpresa.localidad_id}
+                onChange={(e) => setNuevaEmpresa({ ...nuevaEmpresa, localidad_id: e.target.value })}
+                required
+                placeholder="Seleccionar localidad..."
+              >
+                {localidades.map((localidad) => (
+                  <option key={localidad.id} value={localidad.id}>{localidad.nombre}</option>
+                ))}
+              </SelectField>
+            </div>
+            <div className="dashboard-modal-actions">
+              <Button type="button" variant="secondary" onClick={() => setShowCompanyModal(false)}>Cancelar</Button>
+              <Button type="submit">Crear empresa</Button>
+            </div>
+          </form>
+        </Modal>
+      )}
 
       {showEmployeeModal && (
         <Modal
