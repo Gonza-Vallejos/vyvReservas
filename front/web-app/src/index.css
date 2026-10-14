@@ -888,15 +888,17 @@ img, svg {
     grid-template-columns: minmax(360px, 0.76fr) minmax(560px, 1.24fr);
     gap: clamp(1rem, 3vw, 3rem);
     padding-right: clamp(1rem, 4vw, 5rem);
+    min-height: calc(100vh - 72px);
   }
 
   .auth-brand {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
     position: relative;
     align-self: center;
-    min-height: calc(100vh - 32px);
+    height: calc(100vh - 120px);
+    min-height: 0;
     margin: 24px 0 24px 24px;
     padding: clamp(var(--space-7), 4vw, var(--space-10));
     color: #ffffff;
@@ -907,6 +909,10 @@ img, svg {
       linear-gradient(145deg, #2454d8 0%, #173786 58%, #10265c 100%);
     box-shadow: 0 24px 60px rgba(15, 41, 102, 0.2);
     overflow: hidden;
+  }
+
+  .auth-form-panel {
+    min-height: calc(100vh - 72px);
   }
 
   .auth-brand::before {
@@ -1143,7 +1149,10 @@ img, svg {
   }
 
   .auth-brand__footer {
-    position: relative;
+    position: absolute;
+    left: clamp(var(--space-6), 4vw, var(--space-10));
+    right: clamp(var(--space-6), 4vw, var(--space-10));
+    bottom: var(--space-5);
     z-index: 1;
     display: flex;
     align-items: center;
@@ -1156,7 +1165,7 @@ img, svg {
 
   .auth-card {
     max-width: 500px;
-    padding: clamp(2rem, 4vh, 3rem) clamp(2.5rem, 4vw, 4rem);
+    padding: clamp(1.75rem, 3vh, 2.5rem) clamp(2.5rem, 4vw, 4rem);
   }
 
   .auth-form-grid {
