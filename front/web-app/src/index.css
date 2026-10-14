@@ -1991,9 +1991,22 @@ img, svg {
 }
 
 @media (max-width: 640px) {
+  .trip-detail__container {
+    padding-top: var(--space-4);
+    padding-bottom: var(--space-8);
+  }
+
   .trip-detail__summary-card {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .trip-detail__price-block,
+  .trip-detail__summary-row,
+  .trip-detail__security,
+  .trip-detail__cta,
+  .trip-detail__login-hint {
+    flex: 0 0 auto;
   }
 
   .trip-detail__price-block {
