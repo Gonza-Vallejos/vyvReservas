@@ -1,122 +1,90 @@
-import React from 'react';
-import { User, CreditCard, MapPin } from 'lucide-react';
+import { User, CreditCard, Navigation, Flag } from 'lucide-react';
+import InputField from './ui/InputField';
 
-const PassengerForm = ({ passenger, onChange }) => {
+const PassengerForm = ({ passenger, errors = {}, onChange, showAutofill = false, onAutofill }) => {
   return (
-    <div style={formCard}>
-      <h4 style={titleStyle}>Pasajero - Asiento {passenger.seatNumber}</h4>
-      
-      <div style={inputGrid}>
-        <div style={inputGroup}>
-          <label style={labelStyle}>Nombre</label>
-          <div style={inputWrapper}>
-            <User size={18} color="var(--text-muted)" />
-            <input 
-              type="text" 
-              value={passenger.nombre}
-              onChange={(e) => onChange('nombre', e.target.value)}
-              placeholder="Ej: Juan" 
-              style={inputStyle} 
-            />
-          </div>
-        </div>
+    <fieldset className="passenger-form">
+      <legend className="passenger-form__legend">
+        <span className="passenger-form__legend-title">
+          Pasajero — Asiento {passenger.seatNumber}
+        </span>
+        {showAutofill && (
+          <button
+            type="button"
+            className="passenger-form__autofill"
+            onClick={onAutofill}
+            aria-label="Cargar mis datos de usuario en este pasajero"
+          >
+            Cargar mis datos
+          </button>
+        )}
+      </legend>
 
-        <div style={inputGroup}>
-          <label style={labelStyle}>Apellido</label>
-          <div style={inputWrapper}>
-            <User size={18} color="var(--text-muted)" />
-            <input 
-              type="text" 
-              value={passenger.apellido}
-              onChange={(e) => onChange('apellido', e.target.value)}
-              placeholder="Ej: Pérez" 
-              style={inputStyle} 
-            />
-          </div>
-        </div>
+      <div className="passenger-form__grid">
+        <InputField
+          id={`nombre-${passenger.seatNumber}`}
+          label="Nombre"
+          placeholder="Ej: Juan"
+          value={passenger.nombre}
+          onChange={(e) => onChange('nombre', e.target.value)}
+          icon={User}
+          error={errors.nombre}
+          required
+          autoComplete="given-name"
+        />
 
-        <div style={inputGroup}>
-          <label style={labelStyle}>DNI</label>
-          <div style={inputWrapper}>
-            <CreditCard size={18} color="var(--text-muted)" />
-            <input 
-              type="number" 
-              value={passenger.dni}
-              onChange={(e) => onChange('dni', e.target.value)}
-              placeholder="Número de documento" 
-              style={inputStyle} 
-            />
-          </div>
-        </div>
+        <InputField
+          id={`apellido-${passenger.seatNumber}`}
+          label="Apellido"
+          placeholder="Ej: Pérez"
+          value={passenger.apellido}
+          onChange={(e) => onChange('apellido', e.target.value)}
+          icon={User}
+          error={errors.apellido}
+          required
+          autoComplete="family-name"
+        />
 
-        <div style={inputGroup}>
-          <label style={labelStyle}>Punto de Subida</label>
-          <div style={inputWrapper}>
-            <MapPin size={18} color="var(--text-muted)" />
-            <input 
-              type="text" 
-              value={passenger.ubicacionOrigen}
-              onChange={(e) => onChange('ubicacionOrigen', e.target.value)}
-              placeholder="¿Dónde te buscamos?" 
-              style={inputStyle} 
-            />
-          </div>
-        </div>
+        <InputField
+          id={`dni-${passenger.seatNumber}`}
+          label="DNI"
+          type="text"
+          inputMode="numeric"
+          placeholder="Número de documento"
+          value={passenger.dni}
+          onChange={(e) => onChange('dni', e.target.value.replace(/\D/g, ''))}
+          icon={CreditCard}
+          error={errors.dni}
+          required
+          autoComplete="off"
+        />
+
+        <InputField
+          id={`subida-${passenger.seatNumber}`}
+          label="Punto de subida"
+          placeholder="¿Dónde te buscamos?"
+          value={passenger.ubicacionOrigen}
+          onChange={(e) => onChange('ubicacionOrigen', e.target.value)}
+          icon={Navigation}
+          error={errors.ubicacionOrigen}
+          required
+          autoComplete="off"
+        />
+
+        <InputField
+          id={`bajada-${passenger.seatNumber}`}
+          label="Punto de bajada"
+          placeholder="¿Dónde te dejamos?"
+          value={passenger.ubicacionDestino}
+          onChange={(e) => onChange('ubicacionDestino', e.target.value)}
+          icon={Flag}
+          error={errors.ubicacionDestino}
+          required
+          autoComplete="off"
+        />
       </div>
-    </div>
+    </fieldset>
   );
-};
-
-const formCard = {
-  background: 'white',
-  padding: '20px 16px',
-  borderRadius: '16px',
-  border: '1px solid #e2e8f0',
-  marginBottom: '20px',
-  boxSizing: 'border-box'
-};
-
-const titleStyle = {
-  fontSize: '1.1rem',
-  fontWeight: '700',
-  marginBottom: '18px',
-  color: 'var(--primary)'
-};
-
-const inputGrid = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
-  gap: '16px'
-};
-
-const inputGroup = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '8px'
-};
-
-const labelStyle = {
-  fontSize: '0.85rem',
-  fontWeight: '600',
-  color: 'var(--text-muted)'
-};
-
-const inputWrapper = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-  padding: '10px 12px',
-  background: '#f8fafc',
-  borderRadius: '10px',
-  border: '1px solid #e2e8f0'
-};
-
-const inputStyle = {
-  border: 'none',
-  background: 'transparent',
-  width: '100%',
-  outline: 'none',
-  fontSize: '0.95rem'
 };
 
 export default PassengerForm;

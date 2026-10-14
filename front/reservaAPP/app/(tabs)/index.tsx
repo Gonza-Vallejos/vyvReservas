@@ -10,17 +10,31 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
-import * as Animatable from "react-native-animatable";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Animatable from "react-native-animatable";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
+import { useThemeColor } from "@/components/Themed";
+import SearchForm from "@/components/ui/SearchForm";
+import Card from "@/components/ui/Card";
 
 export default function Index() {
   const { isLoggedIn, isLoading, userInfo } = useAuth();
   const router = useRouter();
+  const reducedMotion = useReducedMotion();
+
+  const text = useThemeColor({}, "text");
+  const textSecondary = useThemeColor({}, "textSecondary");
+  const textMuted = useThemeColor({}, "textMuted");
+  const surface = useThemeColor({}, "surface");
+  const surfaceElevated = useThemeColor({}, "surfaceElevated");
+  const border = useThemeColor({}, "border");
+  const primary = useThemeColor({}, "primary");
 
   if (isLoading) {
     return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#38bdf8" />
+      <View style={[styles.loaderContainer, { backgroundColor: useThemeColor({}, "background") }]}>
+        <ActivityIndicator size="large" color={primary} />
       </View>
     );
   }
@@ -29,285 +43,301 @@ export default function Index() {
     return null;
   }
 
+  const isCliente = userInfo?.perfil === "usuarioCliente";
+
   const getPerfilLabel = (perfil?: string) => {
     switch (perfil) {
       case "usuarioEmpresa":
-        return { label: "Empresa", icon: "business" as const, color: "#38bdf8" };
+        return { label: "Empresa", icon: "business" as const, color: "#3B82F6" };
       case "usuarioChofer":
-        return { label: "Chofer", icon: "car" as const, color: "#10b981" };
+        return { label: "Chofer", icon: "car" as const, color: "#10B981" };
       case "usuarioMostrador":
-        return { label: "Mostrador", icon: "desktop" as const, color: "#a855f7" };
+        return { label: "Mostrador", icon: "desktop" as const, color: "#8B5CF6" };
       case "usuarioAdministrador":
-        return { label: "Administrador", icon: "shield-checkmark" as const, color: "#f59e0b" };
+        return { label: "Administrador", icon: "shield-checkmark" as const, color: "#F59E0B" };
       default:
-        return { label: "Pasajero", icon: "person" as const, color: "#60a5fa" };
+        return { label: "Pasajero", icon: "person" as const, color: "#60A5FA" };
     }
   };
 
   const perfilInfo = getPerfilLabel(userInfo?.perfil);
 
+  const handleSearch = (params: { origen: string; destino: string; fecha: string }) => {
+    router.push({
+      pathname: "/(tabs)/viajes",
+      params: {
+        origen: params.origen,
+        destino: params.destino,
+        fecha: params.fecha,
+      },
+    });
+  };
+
+  const QuickAction = ({
+    icon,
+    title,
+    description,
+    onPress,
+    color,
+  }: {
+    icon: keyof typeof Ionicons.glyphMap;
+    title: string;
+    description: string;
+    onPress: () => void;
+    color: string;
+  }) => (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.actionCard,
+        {
+          backgroundColor: surface,
+          borderColor: border,
+          opacity: pressed ? 0.9 : 1,
+          transform: [{ scale: pressed ? 0.99 : 1 }],
+        },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={description}
+    >
+      <View style={[styles.iconCircle, { backgroundColor: `${color}15` }]}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
+      <View style={styles.actionInfo}>
+        <Text allowFontScaling style={[styles.actionTitle, { color: text }]}>
+          {title}
+        </Text>
+        <Text
+          allowFontScaling
+          style={[styles.actionDesc, { color: textSecondary }]}
+        >
+          {description}
+        </Text>
+      </View>
+      <Ionicons name="chevron-forward" size={20} color={textMuted} />
+    </Pressable>
+  );
+
   return (
     <ScrollView
-      style={styles.scroll}
+      style={[styles.scroll, { backgroundColor: useThemeColor({}, "background") }]}
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     >
       {/* Hero Welcome */}
-      <Animatable.View animation="fadeInDown" duration={800} style={styles.heroCard}>
-        <View style={styles.heroHeader}>
-          <Animatable.Image
-            animation="pulse"
-            iterationCount="infinite"
-            duration={2500}
-            source={require("../../assets/images/bus-icon.png")}
-            style={styles.heroIcon}
-          />
-          <View style={styles.heroTextContainer}>
-            <Text style={styles.greeting}>
-              ¡Hola, {userInfo?.nombre || userInfo?.usuario || "Bienvenido"}!
-            </Text>
-            <Text style={styles.brandSubtitle}>V&V Reservas</Text>
+      <LinearGradient
+        colors={["#1e3a8a", "#2563eb"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroCard}
+      >
+        <Animatable.View
+          animation={reducedMotion ? undefined : "fadeInDown"}
+          duration={reducedMotion ? 0 : 600}
+        >
+          <View style={styles.heroHeader}>
+            <View style={styles.heroIconCircle}>
+              <Ionicons name="bus" size={28} color="#FFFFFF" />
+            </View>
+            <View style={styles.heroTextContainer}>
+              <Text style={styles.greeting} allowFontScaling>
+                ¡Hola, {userInfo?.nombre || userInfo?.usuario || "Bienvenido"}!
+              </Text>
+              <Text style={styles.brandSubtitle} allowFontScaling>
+                V&V Reservas
+              </Text>
+            </View>
           </View>
-        </View>
 
-        <View style={styles.badgeRow}>
-          <View style={[styles.badge, { borderColor: perfilInfo.color }]}>
-            <Ionicons name={perfilInfo.icon} size={14} color={perfilInfo.color} style={{ marginRight: 6 }} />
-            <Text style={[styles.badgeText, { color: perfilInfo.color }]}>
-              {perfilInfo.label}
+          <View style={styles.badgeRow}>
+            <View
+              style={[
+                styles.badge,
+                { borderColor: perfilInfo.color, backgroundColor: "rgba(15,23,42,0.35)" },
+              ]}
+            >
+              <Ionicons
+                name={perfilInfo.icon}
+                size={14}
+                color={perfilInfo.color}
+                style={{ marginRight: 6 }}
+              />
+              <Text style={[styles.badgeText, { color: "#FFFFFF" }]} allowFontScaling>
+                {perfilInfo.label}
+              </Text>
+            </View>
+            <Text style={styles.travelText} allowFontScaling>
+              Tu viaje comienza aquí
             </Text>
           </View>
-          <Text style={styles.travelText}>Tu viaje comienza aquí</Text>
-        </View>
-      </Animatable.View>
+        </Animatable.View>
+      </LinearGradient>
+
+      {/* Búsqueda rápida (solo pasajero) */}
+      {isCliente && (
+        <Animatable.View
+          animation={reducedMotion ? undefined : "fadeInUp"}
+          duration={reducedMotion ? 0 : 600}
+          delay={reducedMotion ? 0 : 100}
+        >
+          <Card style={styles.searchCard}>
+            <Text
+              allowFontScaling
+              style={[styles.sectionTitle, { color: text }]}
+            >
+              ¿A dónde querés viajar?
+            </Text>
+            <SearchForm onSearch={handleSearch} />
+          </Card>
+        </Animatable.View>
+      )}
 
       {/* Acciones principales según perfil */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Accesos Rápidos</Text>
+        <Text
+          allowFontScaling
+          style={[styles.sectionHeaderTitle, { color: text }]}
+        >
+          Accesos Rápidos
+        </Text>
       </View>
 
-      <Animatable.View animation="fadeInUp" duration={900} delay={200} style={styles.actionsContainer}>
+      <Animatable.View
+        animation={reducedMotion ? undefined : "fadeInUp"}
+        duration={reducedMotion ? 0 : 600}
+        delay={reducedMotion ? 0 : 200}
+        style={styles.actionsContainer}
+      >
         {/* Acciones Cliente */}
         {userInfo?.perfil === "usuarioCliente" && (
           <>
-            <Pressable
-              style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
+            <QuickAction
+              icon="search"
+              title="Buscar Viajes"
+              description="Encontrá salidas y reservá tus asientos"
               onPress={() => router.push("/(tabs)/viajes")}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: "#2563eb20" }]}>
-                <Ionicons name="search" size={24} color="#38bdf8" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Buscar Viajes</Text>
-                <Text style={styles.actionDesc}>Encontrá salidas y reservá tus asientos</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
+              color={primary}
+            />
+            <QuickAction
+              icon="calendar-outline"
+              title="Mis Reservas"
+              description="Revisá el estado y tus pasajes emitidos"
               onPress={() => router.push("/(tabs)/reserva")}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: "#10b98120" }]}>
-                <Ionicons name="calendar-outline" size={24} color="#34d399" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Mis Reservas</Text>
-                <Text style={styles.actionDesc}>Revisá el estado y tus pasajes emitidos</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-            </Pressable>
+              color="#10B981"
+            />
           </>
         )}
 
         {/* Acciones Empresa */}
         {userInfo?.perfil === "usuarioEmpresa" && (
           <>
-            <Pressable
-              style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
+            <QuickAction
+              icon="stats-chart"
+              title="Reportes y Métricas"
+              description="Ganancias, ocupación y ventas de pasajes"
               onPress={() => router.push("/pantallas/reportes/reportesLista")}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: "#f59e0b20" }]}>
-                <Ionicons name="stats-chart" size={24} color="#fbbf24" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Reportes y Métricas</Text>
-                <Text style={styles.actionDesc}>Ganancias, ocupación y ventas de pasajes</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
+              color="#F59E0B"
+            />
+            <QuickAction
+              icon="trail-sign-outline"
+              title="Gestionar Viajes"
+              description="Control de salidas y horarios de la flota"
               onPress={() => router.push("/(tabs)/listarViajes")}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: "#2563eb20" }]}>
-                <Ionicons name="trail-sign-outline" size={24} color="#38bdf8" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Gestionar Viajes</Text>
-                <Text style={styles.actionDesc}>Control de salidas y horarios de la flota</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
+              color={primary}
+            />
+            <QuickAction
+              icon="bus-outline"
+              title="Minibuses y Unidades"
+              description="Flota activa y capacidades de asientos"
               onPress={() => router.push("/(tabs)/listarTransportes")}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: "#10b98120" }]}>
-                <Ionicons name="bus-outline" size={24} color="#34d399" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Minibuses y Unidades</Text>
-                <Text style={styles.actionDesc}>Flota activa y capacidades de asientos</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
+              color="#10B981"
+            />
+            <QuickAction
+              icon="people-outline"
+              title="Choferes y Empleados"
+              description="Gestión de personal de la empresa"
               onPress={() => router.push("/(tabs)/empresaUsuarios")}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: "#8b5cf620" }]}>
-                <Ionicons name="people-outline" size={24} color="#a78bfa" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Choferes y Empleados</Text>
-                <Text style={styles.actionDesc}>Gestión de personal de la empresa</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-            </Pressable>
+              color="#8B5CF6"
+            />
           </>
         )}
 
         {/* Acciones Chofer */}
         {userInfo?.perfil === "usuarioChofer" && (
           <>
-            <Pressable
-              style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
+            <QuickAction
+              icon="trail-sign-outline"
+              title="Mis Viajes Asignados"
+              description="Horarios, rutas y salidas de hoy"
               onPress={() => router.push("/(tabs)/choferViajes")}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: "#2563eb20" }]}>
-                <Ionicons name="trail-sign-outline" size={24} color="#38bdf8" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Mis Viajes Asignados</Text>
-                <Text style={styles.actionDesc}>Horarios, rutas y salidas de hoy</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
+              color={primary}
+            />
+            <QuickAction
+              icon="reader-outline"
+              title="Lista de Reservas"
+              description="Planilla de pasajeros confirmados"
               onPress={() => router.push("/(tabs)/choferReserva")}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: "#10b98120" }]}>
-                <Ionicons name="reader-outline" size={24} color="#34d399" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Lista de Reservas</Text>
-                <Text style={styles.actionDesc}>Planilla de pasajeros confirmados</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-            </Pressable>
+              color="#10B981"
+            />
           </>
         )}
 
         {/* Acciones Mostrador */}
         {userInfo?.perfil === "usuarioMostrador" && (
           <>
-            <Pressable
-              style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
+            <QuickAction
+              icon="add-circle-outline"
+              title="Crear Nuevo Viaje"
+              description="Programar horarios y tarifas"
               onPress={() => router.push("/pantallas/crearViaje")}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: "#2563eb20" }]}>
-                <Ionicons name="add-circle-outline" size={24} color="#38bdf8" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Crear Nuevo Viaje</Text>
-                <Text style={styles.actionDesc}>Programar horarios y tarifas</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
+              color={primary}
+            />
+            <QuickAction
+              icon="clipboard-outline"
+              title="Control de Reservas"
+              description="Emisión y cobro en boletería"
               onPress={() => router.push("/(tabs)/listarReservas")}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: "#10b98120" }]}>
-                <Ionicons name="clipboard-outline" size={24} color="#34d399" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Control de Reservas</Text>
-                <Text style={styles.actionDesc}>Emisión y cobro en boletería</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-            </Pressable>
+              color="#10B981"
+            />
           </>
         )}
 
         {/* Acciones Administrador */}
         {userInfo?.perfil === "usuarioAdministrador" && (
           <>
-            <Pressable
-              style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
+            <QuickAction
+              icon="business-outline"
+              title="Nueva Empresa"
+              description="Alta y configuración de prestadores"
               onPress={() => router.push("/(tabs)/crearEmpresa")}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: "#2563eb20" }]}>
-                <Ionicons name="business-outline" size={24} color="#38bdf8" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Nueva Empresa</Text>
-                <Text style={styles.actionDesc}>Alta y configuración de prestadores</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
+              color={primary}
+            />
+            <QuickAction
+              icon="list-outline"
+              title="Ver Empresas"
+              description="Supervisar empresas registradas"
               onPress={() => router.push("/(tabs)/listarEmpresas")}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: "#f59e0b20" }]}>
-                <Ionicons name="list-outline" size={24} color="#fbbf24" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Ver Empresas</Text>
-                <Text style={styles.actionDesc}>Supervisar empresas registradas</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
+              color="#F59E0B"
+            />
+            <QuickAction
+              icon="people-outline"
+              title="Gestión de Usuarios"
+              description="Permisos y cuentas del sistema"
               onPress={() => router.push("/(tabs)/usuarios")}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: "#8b5cf620" }]}>
-                <Ionicons name="people-outline" size={24} color="#a78bfa" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Gestión de Usuarios</Text>
-                <Text style={styles.actionDesc}>Permisos y cuentas del sistema</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-            </Pressable>
+              color="#8B5CF6"
+            />
           </>
         )}
 
         {/* Acceso a perfil común */}
-        <Pressable
-          style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
+        <QuickAction
+          icon="person-circle-outline"
+          title="Mi Cuenta"
+          description="Datos de perfil y configuración"
           onPress={() => router.push("/(tabs)/perfil")}
-        >
-          <View style={[styles.iconCircle, { backgroundColor: "#64748b20" }]}>
-            <Ionicons name="person-circle-outline" size={24} color="#94a3b8" />
-          </View>
-          <View style={styles.actionInfo}>
-            <Text style={styles.actionTitle}>Mi Cuenta</Text>
-            <Text style={styles.actionDesc}>Datos de perfil y configuración</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-        </Pressable>
+          color="#64748B"
+        />
       </Animatable.View>
     </ScrollView>
   );
@@ -327,42 +357,42 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   heroCard: {
-    backgroundColor: "rgba(30, 41, 59, 0.85)",
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 24,
+    padding: 20,
     marginBottom: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 6,
   },
   heroHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  heroIcon: {
-    width: 52,
-    height: 52,
+  heroIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 14,
-    tintColor: "#38bdf8",
   },
   heroTextContainer: {
     flex: 1,
   },
   greeting: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 22,
+    fontWeight: "800",
     color: "#ffffff",
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   brandSubtitle: {
     fontSize: 14,
-    fontWeight: "500",
-    color: "#94a3b8",
+    fontWeight: "600",
+    color: "#FFFFFF",
     marginTop: 2,
   },
   badgeRow: {
@@ -370,37 +400,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.08)",
-    paddingTop: 10,
+    borderTopColor: "rgba(255,255,255,0.12)",
+    paddingTop: 12,
   },
   badge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: 20,
     borderWidth: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.6)",
   },
   badgeText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   travelText: {
     fontSize: 12,
-    color: "#cbd5e1",
+    color: "#FFFFFF",
+    fontWeight: "500",
     fontStyle: "italic",
+  },
+  searchCard: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 16,
   },
   sectionHeader: {
     marginBottom: 12,
     paddingHorizontal: 4,
   },
-  sectionTitle: {
+  sectionHeaderTitle: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#f8fafc",
+    fontWeight: "800",
     textTransform: "uppercase",
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
   },
   actionsContainer: {
     gap: 10,
@@ -408,21 +445,14 @@ const styles = StyleSheet.create({
   actionCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(30, 41, 59, 0.88)",
     padding: 14,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.04,
     shadowRadius: 4,
-    elevation: 3,
-  },
-  actionCardPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.985 }],
-    backgroundColor: "rgba(51, 65, 85, 0.95)",
+    elevation: 2,
   },
   iconCircle: {
     width: 44,
@@ -438,11 +468,10 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#ffffff",
     marginBottom: 2,
   },
   actionDesc: {
     fontSize: 12,
-    color: "#94a3b8",
+    lineHeight: 17,
   },
 });

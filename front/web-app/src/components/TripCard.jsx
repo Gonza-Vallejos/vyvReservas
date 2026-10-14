@@ -78,9 +78,9 @@ const TripCard = ({ trip, onSelect }) => {
           size="lg"
           className="trip-card__cta"
           onClick={() => onSelect(trip)}
-          aria-label={`Reservar viaje de ${origenLocalidad} a ${destinoLocalidad} por ${precio.toLocaleString('es-AR')} pesos`}
+          aria-label={`Ver detalles del viaje de ${origenLocalidad} a ${destinoLocalidad} por ${precio.toLocaleString('es-AR')} pesos`}
         >
-          Reservar ahora
+          Ver detalles
           <ChevronRight size={18} aria-hidden="true" />
         </Button>
       </article>

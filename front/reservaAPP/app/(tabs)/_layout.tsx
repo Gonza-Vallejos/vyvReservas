@@ -1,11 +1,14 @@
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, useColorScheme } from 'react-native';
 import { Tabs, Redirect } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import Colors from '@/constants/Colors';
 
 export default function TabLayout() {
   const { isLoggedIn, isLoading, userInfo } = useAuth();
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
 
   if (isLoading) return null;
   if (!isLoggedIn) return <Redirect href="/login" />;
@@ -14,28 +17,26 @@ export default function TabLayout() {
     <Tabs
       screenOptions={({ route }) => ({
         tabBarShowLabel: true,
-        headerStyle: { backgroundColor: "#0f172a" },
-        headerTintColor: "#38bdf8",
-        tabBarActiveTintColor: "#38bdf8",
-        tabBarInactiveTintColor: "#94a3b8",
         headerShown: false,
         tabBarHideOnKeyboard: false,
+        tabBarActiveTintColor: theme.tabIconSelected,
+        tabBarInactiveTintColor: theme.tabIconDefault,
         tabBarStyle: {
           position: "relative",
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: "#0f172a",
-          borderTopColor: "#1e293b",
+          backgroundColor: theme.surface,
+          borderTopColor: theme.border,
           borderTopWidth: 1,
-          height: Platform.OS === "ios" ? 82 : 64,
-          paddingBottom: Platform.OS === "ios" ? 22 : 6,
+          height: Platform.OS === "ios" ? 84 : 64,
+          paddingBottom: Platform.OS === "ios" ? 24 : 6,
           paddingTop: 6,
           elevation: 8,
           shadowColor: "#000",
-          shadowOpacity: 0.25,
+          shadowOpacity: 0.06,
           shadowOffset: { width: 0, height: -2 },
-          shadowRadius: 4,
+          shadowRadius: 6,
         },
         tabBarLabelStyle: {
           fontSize: 11,

@@ -8,6 +8,8 @@ import TripCard from './components/TripCard';
 import DateSelectorBar from './components/DateSelectorBar';
 import EmptyState from './components/ui/EmptyState';
 import BookingPage from './pages/BookingPage';
+import BookingConfirmationPage from './pages/BookingConfirmationPage';
+import TripDetailPage from './pages/TripDetailPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
@@ -135,14 +137,7 @@ const Home = () => {
                   key={trip.id}
                   trip={trip}
                   onSelect={(t) => {
-                    if (!user) {
-                      toast.error('Inicia sesión para reservar');
-                      navigate('/login');
-                    } else if (user.perfil_id === 5) {
-                      toast.info('Las empresas no realizan reservas.');
-                    } else {
-                      navigate('/booking', { state: { trip: t } });
-                    }
+                    navigate(`/viaje/${t.id}`);
                   }}
                 />
               ))}
@@ -239,7 +234,9 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              <Route path="/booking" element={<BookingPage />} />
+              <Route path="/viaje/:id" element={<TripDetailPage />} />
+              <Route path="/reservar/:id" element={<BookingPage />} />
+              <Route path="/confirmacion/:reservaId" element={<BookingConfirmationPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/chofer" element={<ChoferDashboardPage />} />
               <Route path="/mis-reservas" element={<MyReservationsPage />} />

@@ -6,7 +6,6 @@ import {
   Pressable,
   StyleSheet,
   useColorScheme,
-  ImageBackground,
 } from "react-native";
 import { AuthProvider } from "../context/AuthContext";
 import BackButton from "@/components/BackButton";
@@ -14,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import Colors from "@/constants/Colors";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -21,6 +21,8 @@ export default function RootLayout() {
   const pathname = usePathname();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const router = useRouter();
+
+  const theme = Colors[isDark ? "dark" : "light"];
 
   const esPrincipal =
     pathname === "/login" ||
@@ -69,20 +71,16 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: theme.background }]}
+        edges={["top", "left", "right"]}
+      >
         <StatusBar
           style={isDark ? "light" : "dark"}
           backgroundColor="transparent"
         />
 
-        {/* Imagen de fondo */}
-        <ImageBackground
-          source={require("../assets/images/fondo3.jpg")} // coloca tu imagen aquí
-          style={styles.background}
-          resizeMode="cover"
-        >
-          <View style={styles.overlay} />{" "}
-          {/* Oscurece un poco la imagen para mejorar el contraste */}
+        <View style={[styles.background, { backgroundColor: theme.background }]}>
           {!esPrincipal && (
             <>
               <LinearGradient
@@ -97,6 +95,7 @@ export default function RootLayout() {
                     style={[styles.title, { opacity: fadeAnim }]}
                     numberOfLines={1}
                     adjustsFontSizeToFit
+                    allowFontScaling
                   >
                     {tituloHeader}
                   </Animated.Text>
@@ -105,6 +104,9 @@ export default function RootLayout() {
                   <Pressable
                     onPress={() => router.push("/perfil")}
                     style={styles.profileBtn}
+                    accessibilityLabel="Ir a mi perfil"
+                    accessibilityRole="button"
+                    hitSlop={8}
                   >
                     <Ionicons
                       name="person-circle-outline"
@@ -125,7 +127,7 @@ export default function RootLayout() {
           <View style={styles.content}>
             <Slot />
           </View>
-        </ImageBackground>
+        </View>
       </SafeAreaView>
     </AuthProvider>
   );
@@ -134,18 +136,12 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#1e3a8a",
   },
   background: {
     flex: 1,
     position: "relative",
     width: "100%",
     height: "100%",
-    resizeMode: "cover",
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(15, 23, 42, 0.65)", // elegante tinte oscuro slate
   },
   header: {
     paddingVertical: 14,
@@ -169,6 +165,10 @@ const styles = StyleSheet.create({
   profileBtn: {
     padding: 4,
     borderRadius: 20,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   center: {
     flex: 1,
