@@ -1,5 +1,6 @@
 const { Reserva, Pasajeros, Viajes, MedioTransporte, Pago, sequelize } = require("../models");
 const { Op } = require("sequelize");
+const { NoAvailabilityError, ValidationError, NotFoundError } = require("../utils/AppError");
 
 class ReservaService {
   /**
@@ -116,7 +117,7 @@ class ReservaService {
       });
 
       if (!viaje || viaje.cantPasajeros < cantPasajerosSolicitados) {
-        throw new Error("NO_AVAILABILITY");
+        throw new NoAvailabilityError('No hay suficientes asientos disponibles');
       }
 
       // 1. Crear reserva
@@ -134,7 +135,7 @@ class ReservaService {
       // 2. Asignar números de asiento disponibles
       const totalLugares = viaje.MedioTransporte?.cantLugares;
       if (!totalLugares) {
-        throw new Error("INVALID_TRIP");
+        throw new ValidationError('Viaje inválido o sin medio de transporte asignado');
       }
       const ocupados = await this.getNumerosAsientoOcupados(viajes_id, t);
       const libres = [];
@@ -143,7 +144,7 @@ class ReservaService {
       }
 
       if (libres.length < cantPasajerosSolicitados) {
-        throw new Error("NO_AVAILABILITY");
+        throw new NoAvailabilityError('No hay suficientes asientos disponibles');
       }
 
       // 3. Registrar pasajeros asociados con número de asiento

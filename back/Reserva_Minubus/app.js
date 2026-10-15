@@ -3,11 +3,13 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const cors = require('cors');
+const helmet = require('helmet');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./config/swagger');
 const { sendError } = require('./utils/responseHandler');
 const { randomUUID } = require('crypto');
 const appLogger = require('./utils/logger');
+const rateLimit = require('express-rate-limit');
 
 require('dotenv').config();
 
@@ -35,7 +37,53 @@ db.sequelize.authenticate()
   .catch((error) => console.error('❌ Error al conectar con la base de datos:', error));
 
 // Middlewares
-app.use(cors());
+// Rate limiting general
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // 100 requests por ventana
+  message: { success: false, message: 'Demasiadas solicitudes, intenta más tarde', code: 'RATE_LIMITED' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiting para auth (más estricto)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10, // 10 intentos de login por ventana
+  message: { success: false, message: 'Demasiados intentos de login', code: 'AUTH_RATE_LIMITED' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiting para pagos
+const paymentLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minuto
+  max: 20, // 20 requests por minuto
+  message: { success: false, message: 'Demasiadas solicitudes de pago', code: 'PAYMENT_RATE_LIMITED' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// CORS configurado
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*', // Configurar en .env para producción
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}));
+
+// Helmet para headers de seguridad
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+    },
+  },
+}));
+
+app.use(generalLimiter);
 app.use(logger('dev'));
 app.use((req, res, next) => {
   req.requestId = randomUUID();
@@ -65,7 +113,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // API Routes
 app.use('/', indexRouter);
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/usuarios', usuariosRouter);
 app.use('/api/empresa', empresaRouter);
 app.use('/api/medio-transporte', medioTransporteRouter);
@@ -76,23 +124,14 @@ app.use('/api/detalle-venta', detalleVentaRouter);
 app.use('/api/ubicacion', ubicacionRouter);
 app.use('/api/usuario-empresa', usuarioEmpresaRouter);
 app.use('/api/reportes', reportesRouter);
-app.use('/api/pagos', pagosRouter);
+app.use('/api/pagos', paymentLimiter, pagosRouter);
 
-// Compatibilidad directa para reservaAPP (rutas que llaman sin prefijo /api)
-app.use('/auth', authRoutes);
-app.use('/usuarios', usuariosRouter);
-app.use('/empresa', empresaRouter);
-app.use('/medioTransporte', medioTransporteRouter);
-app.use('/medio-transporte', medioTransporteRouter);
-app.use('/reserva', reservaRouter);
-app.use('/ventas', ventasRouter);
+// Deprecated: rutas sin prefijo /api (solo para backwards compatibility con app móvil)
+// Si la app móvil se actualiza, eliminar estas líneas
+app.use('/auth', authLimiter, authRoutes);
 app.use('/viajes', viajesRouter);
-app.use('/detalle-venta', detalleVentaRouter);
+app.use('/reserva', reservaRouter);
 app.use('/ubicacion', ubicacionRouter);
-app.use('/usuarioEmpresa', usuarioEmpresaRouter);
-app.use('/usuario-empresa', usuarioEmpresaRouter);
-app.use('/reportes', reportesRouter);
-app.use('/pagos', pagosRouter);
 
 // 404 Handler
 app.use((req, res) => {

@@ -3,6 +3,7 @@ const router = express.Router();
 const empresaController = require("../controllers/empresaController");
 const validateEmpresa = require("../middlewares/validateEmpresa");
 const validateUpdateEmpresa = require("../middlewares/validateUpdateEmpresa");
+const validateAsignarDueno = require("../middlewares/validateAsignarDueno");
 const { autenticarToken, permitirPerfiles } = require("../middlewares/authMiddleware");
 
 /**
@@ -145,6 +146,6 @@ router.delete("/:id", autenticarToken, permitirPerfiles("usuarioAdministrador"),
  *               usuarioId:
  *                 type: integer
  */
-router.put("/:id/asignar-dueño", autenticarToken, permitirPerfiles("usuarioAdministrador"), empresaController.asignarDueno);
+router.put("/:id/asignar-dueño", autenticarToken, permitirPerfiles("usuarioAdministrador"), validateAsignarDueno, empresaController.asignarDueno);
 
 module.exports = router;

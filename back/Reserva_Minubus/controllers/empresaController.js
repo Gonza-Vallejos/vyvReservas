@@ -67,20 +67,45 @@ exports.asignarDueno = async (req, res) => {
     const { usuarioId } = req.body;
     const empresaId = req.params.id;
 
+    // Validación
     if (!usuarioId) {
       return sendError(res, "Se requiere usuarioId", 400);
+    }
+
+    const parsedEmpresaId = parseInt(empresaId, 10);
+    const parsedUsuarioId = parseInt(usuarioId, 10);
+
+    if (isNaN(parsedEmpresaId) || isNaN(parsedUsuarioId)) {
+      return sendError(res, "IDs inválidos", 400);
+    }
+
+    // Verificar que la empresa existe
+    const empresa = await empresaService.getById(parsedEmpresaId);
+    if (!empresa) {
+      return sendError(res, "Empresa no encontrada", 404);
+    }
+
+    // Verificar que el usuario existe
+    const usuario = await Usuario.findByPk(parsedUsuarioId);
+    if (!usuario) {
+      return sendError(res, "Usuario no encontrado", 404);
+    }
+
+    // No permitir asignar como dueño a un administrador
+    if (Number(usuario.perfil_id) === 1) {
+      return sendError(res, "No se puede asignar un administrador como dueño de empresa", 400);
     }
 
     // Quitar rol de empresa al dueño actual (si existe)
     await Usuario.update(
       { perfil_id: 2 }, // Cliente
-      { where: { id_empresa: empresaId, perfil_id: 5 } }
+      { where: { id_empresa: parsedEmpresaId, perfil_id: 5 } }
     );
 
     // Asignar como dueño
     await Usuario.update(
-      { id_empresa: empresaId, perfil_id: 5 },
-      { where: { id: usuarioId } }
+      { id_empresa: parsedEmpresaId, perfil_id: 5 },
+      { where: { id: parsedUsuarioId } }
     );
 
     sendSuccess(res, null, "Dueño asignado correctamente");
