@@ -2,17 +2,17 @@
 const { Model } = require("sequelize");
 
 module.exports = (sequelize, DataTypes) => {
-  class Detalle_Venta extends Model {
+  class DetalleVenta extends Model {
     static associate(models) {
       // Definir asociaciones aquí
-      Detalle_Venta.belongsTo(models.Ventas, {
+      DetalleVenta.belongsTo(models.Ventas, {
         foreignKey: "ventas_id",
         targetKey: "id",
       });
     }
   }
 
-  Detalle_Venta.init(
+  DetalleVenta.init(
     {
       formaPago: {
         type: DataTypes.STRING,
@@ -46,5 +46,5 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
-  return Detalle_Venta;
+  return DetalleVenta;
 };
