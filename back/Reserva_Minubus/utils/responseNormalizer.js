@@ -35,7 +35,8 @@ const convertKeys = (obj, visited = new WeakSet()) => {
       // Skip Sequelize metadata and internal fields
       if (camelKey === 'dataValues' || camelKey === '_previousDataValues' || 
           camelKey === '_changed' || camelKey === '_options' ||
-          camelKey === '_modelOptions' || camelKey === 'sequelize') continue;
+          camelKey === '_modelOptions' || camelKey === 'sequelize' ||
+          camelKey === 'parent' || camelKey === 'include') continue;
       
       // Recursively convert nested objects and arrays
       if (value && typeof value === 'object') {
@@ -54,11 +55,14 @@ const convertKeys = (obj, visited = new WeakSet()) => {
 const normalize = (data) => {
   if (!data) return data;
   
+  // Create a single visited set to track circular references across all nested objects
+  const visited = new WeakSet();
+  
   if (isArray(data)) {
-    return data.map(item => convertKeys(item));
+    return data.map(item => convertKeys(item, visited));
   }
   
-  return convertKeys(data);
+  return convertKeys(data, visited);
 };
 
 /**
