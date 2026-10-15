@@ -41,7 +41,7 @@ class ViajesService {
       where.destinoLocalidad = { [Op.iLike || Op.like]: `%${destino}%` };
     }
 
-    return await Viajes.findAll({
+    const viajes = await Viajes.findAll({
       where,
       order: [['fechaViaje', 'ASC'], ['horarioSalida', 'ASC']],
       include: [
@@ -51,6 +51,9 @@ class ViajesService {
         }
       ]
     });
+    
+    // Convert to plain objects to avoid circular references
+    return viajes.map(v => v.get({ plain: true }));
   }
 
   async create(viajeData) {
