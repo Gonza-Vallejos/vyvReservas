@@ -4,7 +4,7 @@ const usuarioController = require('../controllers/usuarioController');
 const validateUsuario = require('../middlewares/validateUsuario');
 const validateUpdateUsuario = require('../middlewares/validateUpdateUsuario');
 const validateUpdateContrasenia = require('../middlewares/validateUdateContrasenia');
-const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddleware');
+const { autenticarToken, permitirPerfiles, authorize, PROFILES } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -25,7 +25,7 @@ const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddle
  *       200:
  *         description: Lista de usuarios
  */
-router.get('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa'), usuarioController.obtenerUsuarios);
+router.get('/', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.EMPRESA), usuarioController.obtenerUsuarios);
 
 /**
  * @swagger
@@ -45,7 +45,7 @@ router.get('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuar
  *       200:
  *         description: Datos del usuario
  */
-router.get('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa', 'usuarioCliente', 'usuarioChofer'), usuarioController.obtenerUsuarioPorId);
+router.get('/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.EMPRESA, PROFILES.CLIENTE, PROFILES.CHOFER), usuarioController.obtenerUsuarioPorId);
 
 /**
  * @swagger
@@ -90,7 +90,7 @@ router.get('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'us
  */
 router.post('/', validateUsuario, usuarioController.crearUsuario);
 
-router.post('/registrar-empleado', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioEmpresa'), usuarioController.registrarEmpleado);
+router.post('/registrar-empleado', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.EMPRESA), usuarioController.registrarEmpleado);
 
 /**
  * @swagger
@@ -108,7 +108,7 @@ router.post('/registrar-empleado', autenticarToken, permitirPerfiles('usuarioAdm
  *       200:
  *         description: Usuario actualizado
  */
-router.put('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa', 'usuarioCliente', 'usuarioChofer'), validateUpdateUsuario, usuarioController.actualizarUsuario);
+router.put('/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.EMPRESA, PROFILES.CLIENTE, PROFILES.CHOFER), validateUpdateUsuario, usuarioController.actualizarUsuario);
 
 /**
  * @swagger
@@ -126,7 +126,7 @@ router.put('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'us
  *       200:
  *         description: Usuario eliminado
  */
-router.delete('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioEmpresa'), usuarioController.eliminarUsuario);
+router.delete('/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.EMPRESA), usuarioController.eliminarUsuario);
 
 /**
  * @swagger
@@ -137,7 +137,7 @@ router.delete('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 
  *     security:
  *       - bearerAuth: []
  */
-router.put('/contrasenia/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa', 'usuarioCliente', 'usuarioChofer'), validateUpdateContrasenia, usuarioController.actualizarContrasenia);
+router.put('/contrasenia/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.EMPRESA, PROFILES.CLIENTE, PROFILES.CHOFER), validateUpdateContrasenia, usuarioController.actualizarContrasenia);
 
 /**
  * @swagger

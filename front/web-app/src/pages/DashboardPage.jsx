@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useId } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { PROFILES } from '../constants/profiles';
+import { usePermissions, getProfileInfo } from '../hooks/usePermissions';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Bus, Users, TrendingUp, Plus, Edit, Trash2, X,
@@ -297,6 +298,9 @@ const DashboardPage = () => {
   const currentProfileId = Number(user?.perfil_id);
   const isSuperAdmin = currentProfileId === PROFILES.ADMINISTRADOR;
   const isOwner = currentProfileId === PROFILES.EMPRESA;
+  
+  // Permission helpers
+  const { can, isAdmin, isOwner: isOwnerCheck, isStaff, isAtLeast } = usePermissions();
 
   const viajesDelDia = useMemo(() => {
     return viajes.filter((v) => {

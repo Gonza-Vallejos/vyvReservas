@@ -4,7 +4,7 @@ const empresaController = require("../controllers/empresaController");
 const validateEmpresa = require("../middlewares/validateEmpresa");
 const validateUpdateEmpresa = require("../middlewares/validateUpdateEmpresa");
 const validateAsignarDueno = require("../middlewares/validateAsignarDueno");
-const { autenticarToken, permitirPerfiles } = require("../middlewares/authMiddleware");
+const { autenticarToken, permitirPerfiles, requireOwnership, PROFILES } = require("../middlewares/authMiddleware");
 
 /**
  * @swagger
@@ -30,7 +30,7 @@ const { autenticarToken, permitirPerfiles } = require("../middlewares/authMiddle
  *         $ref: '#/components/responses/ForbiddenError'
  */
 // El listado global de empresas es exclusivo del super administrador.
-router.get("/", autenticarToken, permitirPerfiles("usuarioAdministrador"), empresaController.obtenerEmpresas);
+router.get("/", autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR), empresaController.obtenerEmpresas);
 
 /**
  * @swagger
@@ -45,7 +45,7 @@ router.get("/", autenticarToken, permitirPerfiles("usuarioAdministrador"), empre
  *         name: id
  *         required: true
  */
-router.get("/:id", autenticarToken, permitirPerfiles("usuarioAdministrador", "usuarioEmpresa"), empresaController.obtenerEmpresaId);
+router.get("/:id", autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.EMPRESA), empresaController.obtenerEmpresaId);
 
 /**
  * @swagger
@@ -76,7 +76,7 @@ router.get("/:id", autenticarToken, permitirPerfiles("usuarioAdministrador", "us
  *               localidad_id:
  *                 type: integer
  */
-router.post("/", autenticarToken, permitirPerfiles("usuarioAdministrador"), validateEmpresa, empresaController.crearEmpresa);
+router.post("/", autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR), validateEmpresa, empresaController.crearEmpresa);
 
 /**
  * @swagger
@@ -106,7 +106,7 @@ router.post("/", autenticarToken, permitirPerfiles("usuarioAdministrador"), vali
  *               email:
  *                 type: string
  */
-router.put("/:id", autenticarToken, permitirPerfiles("usuarioAdministrador", "usuarioEmpresa"), validateUpdateEmpresa, empresaController.actualizarEmpresa);
+router.put("/:id", autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.EMPRESA), validateUpdateEmpresa, empresaController.actualizarEmpresa);
 
 /**
  * @swagger
@@ -121,7 +121,7 @@ router.put("/:id", autenticarToken, permitirPerfiles("usuarioAdministrador", "us
  *         name: id
  *         required: true
  */
-router.delete("/:id", autenticarToken, permitirPerfiles("usuarioAdministrador"), empresaController.eliminarEmpresa);
+router.delete("/:id", autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR), empresaController.eliminarEmpresa);
 
 /**
  * @swagger
@@ -146,6 +146,6 @@ router.delete("/:id", autenticarToken, permitirPerfiles("usuarioAdministrador"),
  *               usuarioId:
  *                 type: integer
  */
-router.put("/:id/asignar-dueño", autenticarToken, permitirPerfiles("usuarioAdministrador"), validateAsignarDueno, empresaController.asignarDueno);
+router.put("/:id/asignar-dueño", autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR), validateAsignarDueno, empresaController.asignarDueno);
 
 module.exports = router;
