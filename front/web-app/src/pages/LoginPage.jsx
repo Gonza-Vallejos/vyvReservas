@@ -18,7 +18,7 @@ import AuthLayout from '../components/auth/AuthLayout';
 import Card from '../components/ui/Card';
 import InputField from '../components/ui/InputField';
 import Button from '../components/ui/Button';
-import { PROFILES } from '../constants/profiles';
+import { PROFILES, getProfileId } from '../constants/profiles';
 
 const LoginPage = () => {
   const [form, setForm] = useState({ usuario: '', contrasenia: '' });
@@ -61,14 +61,19 @@ const LoginPage = () => {
       if (success && data) {
         login(data.usuario, data.token);
         toast.success('¡Bienvenido!');
-        const perfilId = Number(data.usuario?.perfil_id);
-        // Redirect to where user was before login if it exists
-        if (from) {
-          navigate(from, { replace: true });
-        } else if ([PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR].includes(perfilId)) {
+        const perfilId = Number(
+          data.usuario?.perfil_id ?? 
+          data.usuario?.perfilId ?? 
+          getProfileId(data.usuario?.perfil)
+        );
+
+        // Los perfiles de gestión y operación van directo a sus paneles
+        if ([PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR].includes(perfilId)) {
           navigate('/dashboard');
         } else if (perfilId === PROFILES.CHOFER) {
           navigate('/chofer');
+        } else if (from) {
+          navigate(from, { replace: true });
         } else {
           navigate('/');
         }

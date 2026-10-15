@@ -60,7 +60,7 @@ class AuthService {
         email: user.email,
         usuario: user.usuario,
         perfil_id: user.perfil_id,
-        perfil: user.Perfil.tipo,
+        perfil: tipoPerfil,
         id_empresa: empresaId
       }
     };

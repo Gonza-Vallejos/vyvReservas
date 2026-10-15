@@ -2,7 +2,7 @@
  * Permission hooks for V&V Frontend
  */
 import { useAuth } from '../context/AuthContext';
-import { PROFILES } from '../constants/profiles';
+import { PROFILES, getProfileId } from '../constants/profiles';
 import { 
   hasPermission, 
   isAtLeastProfile, 
@@ -26,7 +26,7 @@ export { getProfileInfo };
  */
 export const usePermissions = () => {
   const { user } = useAuth();
-  const profileId = Number(user?.perfil_id);
+  const profileId = Number(user?.perfil_id ?? user?.perfilId ?? getProfileId(user?.perfil));
   
   /**
    * Check if current user has a specific permission

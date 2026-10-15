@@ -38,7 +38,7 @@ const BOOKING_STORAGE_KEY = 'vyv_booking_state';
 const BookingPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   // Restore saved state or init empty
   const [savedState, setSavedState] = useState(() => {
@@ -85,6 +85,7 @@ const BookingPage = () => {
   };
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       // Save current state before redirecting
       saveBookingState();
@@ -92,17 +93,18 @@ const BookingPage = () => {
       navigate('/login', { state: { from: `/reservar/${id}` } });
       return;
     }
-    if (Number(user.perfil_id) === PROFILES.EMPRESA) {
+    const perfilId = Number(user.perfil_id ?? user.perfilId);
+    if (perfilId === PROFILES.EMPRESA || perfilId === PROFILES.ADMINISTRADOR) {
       toast.info('El perfil empresa gestiona la operación. Las reservas se realizan desde una cuenta cliente o mostrador.');
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
       return;
     }
-    if (Number(user.perfil_id) === PROFILES.CHOFER) {
+    if (perfilId === PROFILES.CHOFER) {
       toast.info('Los choferes gestionan sus viajes desde el panel de chofer.');
-      navigate('/chofer');
+      navigate('/chofer', { replace: true });
       return;
     }
-  }, [user, navigate, id]);
+  }, [user, authLoading, navigate, id]);
 
   useEffect(() => {
     let cancelled = false;

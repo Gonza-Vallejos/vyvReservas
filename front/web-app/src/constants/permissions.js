@@ -3,7 +3,7 @@
  * Mirrors backend permission system
  */
 
-import { PROFILES } from './profiles';
+import { PROFILES, getProfileId } from './profiles';
 
 // Permission definitions (resource:action pattern)
 // These should match the backend constants/permissions.js
@@ -128,19 +128,20 @@ export const isAtLeastProfile = (userProfileId, minProfileId) => {
  * Check if user can access a resource based on ownership
  */
 export const canAccessResource = (user, resourceOwnerId) => {
-  const profileId = Number(user?.perfil_id);
+  const profileId = Number(user?.perfil_id ?? user?.perfilId ?? getProfileId(user?.perfil));
+  const userEmpresaId = user?.id_empresa ?? user?.idEmpresa;
   
   // Admin can access everything
   if (profileId === PROFILES.ADMINISTRADOR) return true;
   
   // Owner can access their own resources
-  if (profileId === PROFILES.EMPRESA && user?.id_empresa) {
-    return Number(user.id_empresa) === Number(resourceOwnerId);
+  if (profileId === PROFILES.EMPRESA && userEmpresaId) {
+    return Number(userEmpresaId) === Number(resourceOwnerId);
   }
   
   // Staff can access company's resources
-  if ([PROFILES.MOSTRADOR, PROFILES.CHOFER].includes(profileId) && user?.id_empresa) {
-    return Number(user.id_empresa) === Number(resourceOwnerId);
+  if ([PROFILES.MOSTRADOR, PROFILES.CHOFER].includes(profileId) && userEmpresaId) {
+    return Number(userEmpresaId) === Number(resourceOwnerId);
   }
   
   return false;

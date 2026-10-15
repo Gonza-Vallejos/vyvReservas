@@ -56,7 +56,7 @@ const formatCurrency = (value) =>
 const formatTime = (time) => (time ? time.substring(0, 5) : '--:--');
 
 const getProfileId = (u) => {
-  const value = u?.Usuario?.perfil_id ?? u?.perfil_id;
+  const value = u?.Usuario?.perfil_id ?? u?.Usuario?.perfilId ?? u?.perfil_id ?? u?.perfilId;
   return value == null ? null : Number(value);
 };
 
@@ -220,7 +220,7 @@ const SidebarItem = ({ icon: Icon, label, badgeCount, active, onClick }) => (
 );
 
 const DashboardPage = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('resumen');
@@ -295,7 +295,7 @@ const DashboardPage = () => {
   });
   const [localidades, setLocalidades] = useState([]);
 
-  const currentProfileId = Number(user?.perfil_id);
+  const currentProfileId = Number(user?.perfil_id ?? user?.perfilId);
   const isSuperAdmin = currentProfileId === PROFILES.ADMINISTRADOR;
   const isOwner = currentProfileId === PROFILES.EMPRESA;
   
@@ -353,16 +353,16 @@ const DashboardPage = () => {
     if (!user) return;
     try {
       setLoading(true);
-      let empresaId = user.id_empresa;
+      let empresaId = user.id_empresa ?? user.idEmpresa;
       if (!empresaId) {
         try {
           const empRes = await empresaService.obtenerEmpresaDeUsuario(user.id);
-          empresaId = empRes.data?.data?.empresa_id || empRes.data?.empresa_id;
+          empresaId = empRes.data?.data?.empresa_id || empRes.data?.empresa_id || empRes.data?.data?.empresaId || empRes.data?.empresaId;
         } catch (e) {
           console.warn('No se pudo obtener empresa por usuario:', e);
         }
       }
-      if (!empresaId && Number(user.perfil_id) === PROFILES.EMPRESA) {
+      if (!empresaId && Number(user.perfil_id ?? user.perfilId) === PROFILES.EMPRESA) {
         empresaId = user.id;
       }
 
@@ -404,14 +404,16 @@ const DashboardPage = () => {
   }, [user, isOwner, isSuperAdmin]);
 
   useEffect(() => {
-    if (!user || ![PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR].includes(Number(user.perfil_id))) {
+    if (authLoading) return;
+    const perfilId = Number(user?.perfil_id ?? user?.perfilId);
+    if (!user || ![PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR].includes(perfilId)) {
       navigate('/');
       return;
     }
     // Carga inicial de datos (fetching asíncrono estándar).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
-  }, [user, navigate, fetchData]);
+  }, [user, authLoading, navigate, fetchData]);
 
   const handleDeleteTrip = async (id, routeLabel) => {
     if (!window.confirm(`¿Estás seguro de eliminar el viaje ${routeLabel}?`)) return;
@@ -1140,7 +1142,7 @@ const DashboardPage = () => {
                   ) : (
                     <DashboardTable headers={['Nombre', 'CUIT', 'Contacto', 'Estado', 'Dueño']} caption="Empresas registradas">
                       {empresas.map((emp) => {
-                        const dueno = allUsers.find(u => String(u.id_empresa) === String(emp.id) && Number(u.perfil_id) === PROFILES.EMPRESA);
+                        const dueno = allUsers.find(u => String(u.id_empresa || u.idEmpresa) === String(emp.id) && Number(u.perfil_id || u.perfilId) === PROFILES.EMPRESA);
                         return (
                           <tr key={emp.id}>
                             <td>
@@ -1304,7 +1306,7 @@ const DashboardPage = () => {
             onSubmit={async (e) => {
               e.preventDefault();
               try {
-                const empId = user.id_empresa || miEmpresa?.id || user.id;
+                const empId = user.id_empresa || user.idEmpresa || miEmpresa?.id || user.id;
                 await usuarioService.registrarEmpleado({ ...nuevoEmpleado, empresa_id: empId });
                 toast.success('¡Empleado contratado y registrado!');
                 setShowEmployeeModal(false);
@@ -1512,7 +1514,7 @@ const DashboardPage = () => {
             onSubmit={async (e) => {
               e.preventDefault();
               try {
-                const empId = user.id_empresa || miEmpresa?.id || user.id;
+                const empId = user.id_empresa || user.idEmpresa || miEmpresa?.id || user.id;
                 await transporteService.crear({
                   ...nuevoVehiculo,
                   empresa_id: parseInt(empId, 10),

@@ -76,8 +76,10 @@ const TripDetailPage = () => {
       navigate('/login', { state: { from: `/viaje/${id}` } });
       return;
     }
-    if (user.perfil_id === 5) {
-      toast.info('Las empresas no realizan reservas.');
+    const perfilId = Number(user.perfil_id ?? user.perfilId);
+    if (perfilId === 5 || perfilId === 1) {
+      toast.info('Las empresas no realizan reservas de pasajes.');
+      navigate('/dashboard');
       return;
     }
     navigate(`/reservar/${id}`);

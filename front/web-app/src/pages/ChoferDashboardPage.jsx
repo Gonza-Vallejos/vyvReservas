@@ -13,7 +13,10 @@ import EmptyState from '../components/ui/EmptyState';
 import InputField from '../components/ui/InputField';
 import toast from 'react-hot-toast';
 
-const getProfileId = (u) => u?.Usuario?.perfil_id || u?.perfil_id || null;
+const getProfileId = (u) => {
+  const val = u?.Usuario?.perfil_id ?? u?.Usuario?.perfilId ?? u?.perfil_id ?? u?.perfilId;
+  return val != null ? Number(val) : null;
+};
 
 const getFullName = (u) => {
   const nombre = u?.Usuario?.nombre || u?.nombre || '';
@@ -39,7 +42,7 @@ const getRoleBadgeVariant = (perfilId) => {
 const formatTime = (time) => (time ? String(time).substring(0, 5) : '--:--');
 
 const ChoferDashboardPage = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -112,6 +115,7 @@ const ChoferDashboardPage = () => {
   };
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       navigate('/login');
       return;
@@ -126,7 +130,7 @@ const ChoferDashboardPage = () => {
     fetchDriverTrips();
     // selectedTrip is intentionally omitido para no reiniciar la selección en re-renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   if (!user) return null;
 

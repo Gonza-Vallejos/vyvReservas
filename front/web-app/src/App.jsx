@@ -24,7 +24,7 @@ import { PROFILES } from './constants/profiles';
 import './index.css';
 
 const Home = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const resultsRef = useRef(null);
 
@@ -39,15 +39,16 @@ const Home = () => {
 
   // Si el usuario es Dueño (5), Administrador (1) o Mostrador (3), debe ir directo a su Panel
   useEffect(() => {
+    if (authLoading) return;
     if (user) {
-      const perfilId = Number(user.perfil_id);
+      const perfilId = Number(user.perfil_id ?? user.perfilId);
       if (perfilId === PROFILES.ADMINISTRADOR || perfilId === PROFILES.EMPRESA || perfilId === PROFILES.MOSTRADOR) {
         navigate('/dashboard', { replace: true });
       } else if (perfilId === PROFILES.CHOFER) {
         navigate('/chofer', { replace: true });
       }
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   // Scroll to results when search completes
   useEffect(() => {
@@ -176,7 +177,10 @@ const Navbar = () => {
     setIsMenuOpen(false);
   };
 
-  const canViewMyReservations = user && [PROFILES.CLIENTE, PROFILES.MOSTRADOR].includes(Number(user.perfil_id));
+  const perfilId = Number(user?.perfil_id ?? user?.perfilId);
+  const canViewMyReservations = user && [PROFILES.CLIENTE, PROFILES.MOSTRADOR].includes(perfilId);
+  const canViewDashboard = user && [PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR].includes(perfilId);
+  const isChofer = user && perfilId === PROFILES.CHOFER;
 
   return (
     <nav className={`site-navbar ${isMenuOpen ? 'site-navbar--menu-open' : ''}`} aria-label="Navegación principal">
@@ -191,10 +195,10 @@ const Navbar = () => {
           {user ? (
             <>
               {canViewMyReservations && <Link to="/mis-reservas" className="site-navbar__link">Mis Reservas</Link>}
-              {(Number(user?.perfil_id) === PROFILES.ADMINISTRADOR || Number(user?.perfil_id) === PROFILES.EMPRESA || Number(user?.perfil_id) === PROFILES.MOSTRADOR) && (
+              {canViewDashboard && (
                 <Link to="/dashboard" className="site-navbar__panel"><ShieldCheck size={17} /> Panel</Link>
               )}
-              {Number(user?.perfil_id) === PROFILES.CHOFER && (
+              {isChofer && (
                 <Link to="/chofer" className="site-navbar__panel site-navbar__panel--driver"><Bus size={17} /> Panel Chofer</Link>
               )}
 
@@ -238,7 +242,7 @@ const Navbar = () => {
                 <span className="site-navbar__avatar">{user?.nombre?.charAt(0).toUpperCase()}</span>
                 <div>
                   <strong>{user?.nombre} {user?.apellido}</strong>
-                  <span>{Number(user.perfil_id) === PROFILES.EMPRESA ? 'Empresa' : Number(user.perfil_id) === PROFILES.CHOFER ? 'Chofer' : Number(user.perfil_id) === PROFILES.ADMINISTRADOR ? 'Super administrador' : 'Cuenta personal'}</span>
+                  <span>{perfilId === PROFILES.EMPRESA ? 'Empresa' : perfilId === PROFILES.CHOFER ? 'Chofer' : perfilId === PROFILES.ADMINISTRADOR ? 'Super administrador' : 'Cuenta personal'}</span>
                 </div>
               </div>
 
@@ -246,12 +250,12 @@ const Navbar = () => {
                 <Link to="/" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link">
                   <HomeIcon size={19} /> <span>Inicio</span>
                 </Link>
-              {(Number(user?.perfil_id) === PROFILES.ADMINISTRADOR || Number(user?.perfil_id) === PROFILES.EMPRESA || Number(user?.perfil_id) === PROFILES.MOSTRADOR) && (
+              {canViewDashboard && (
                 <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link site-navbar__mobile-link--accent">
                   <Building2 size={19} /> <span>Panel de gestión</span>
                 </Link>
               )}
-              {Number(user.perfil_id) === PROFILES.CHOFER && (
+              {isChofer && (
                 <Link to="/chofer" onClick={() => setIsMenuOpen(false)} className="site-navbar__mobile-link site-navbar__mobile-link--accent">
                   <Bus size={19} /> <span>Panel de chofer</span>
                 </Link>
