@@ -49,7 +49,8 @@ router.post('/webhook', pagoController.webhook);
  */
 router.get('/ipn', pagoController.webhook);
 
-/**
+/** 
+ * 
  * @swagger
  * /api/pagos/reserva/{reservaId}:
  *   get:
