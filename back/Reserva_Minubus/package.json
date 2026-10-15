@@ -29,7 +29,7 @@
     "nodemon": "^1.14.10",
     "pg": "^8.23.1",
     "pg-hstore": "^2.3.4",
-    "sequelize": "^3.30.0",
+    "sequelize": "^6.37.3",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.1.0"
