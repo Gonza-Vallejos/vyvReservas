@@ -12,6 +12,9 @@ import {
   PERMISSIONS
 } from '../constants/permissions';
 
+// Re-export for convenience
+export { getProfileInfo };
+
 /**
  * Hook to check permissions
  * @example
