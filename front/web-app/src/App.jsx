@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { Bus, LogOut, Menu, X, ArrowRight, ShieldCheck, UserRound, Ticket, Home as HomeIcon, Building2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -26,6 +26,7 @@ import './index.css';
 const Home = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const resultsRef = useRef(null);
 
   // Si el usuario es Dueño (5), Administrador (1) o Mostrador (3), debe ir directo a su Panel
   useEffect(() => {
@@ -40,6 +41,15 @@ const Home = () => {
       }
     }
   }, [user, navigate]);
+
+  // Scroll to results when search completes
+  useEffect(() => {
+    if (searched && !loading && resultsRef.current) {
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [searched, loading]);
 
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -106,7 +116,7 @@ const Home = () => {
       </section>
 
       {searched && (
-        <section className="container home-results animate-fade-in">
+        <section ref={resultsRef} className="container home-results animate-fade-in">
           <DateSelectorBar
             selectedDate={searchParams.fecha}
             onSelectDate={handleDateChange}
