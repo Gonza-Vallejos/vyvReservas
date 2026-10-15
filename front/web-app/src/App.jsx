@@ -28,12 +28,19 @@ const Home = () => {
   const navigate = useNavigate();
   const resultsRef = useRef(null);
 
+  const [trips, setTrips] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [searchParams, setSearchParams] = useState({
+    origen: '',
+    destino: '',
+    fecha: new Date().toISOString().split('T')[0]
+  });
+
   // Si el usuario es Dueño (5), Administrador (1) o Mostrador (3), debe ir directo a su Panel
   useEffect(() => {
     if (user) {
       const perfilId = Number(user.perfil_id);
-      // La empresa puede administrar y también navegar el flujo público de
-      // reservas; no debe quedar atrapada en el dashboard.
       if (perfilId === PROFILES.ADMINISTRADOR || perfilId === PROFILES.EMPRESA || perfilId === PROFILES.MOSTRADOR) {
         navigate('/dashboard', { replace: true });
       } else if (perfilId === PROFILES.CHOFER) {
@@ -50,15 +57,6 @@ const Home = () => {
       }, 100);
     }
   }, [searched, loading]);
-
-  const [trips, setTrips] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [searchParams, setSearchParams] = useState({
-    origen: '',
-    destino: '',
-    fecha: new Date().toISOString().split('T')[0]
-  });
 
   const ejecutarBusqueda = async (origen, destino, fecha) => {
     setLoading(true);
