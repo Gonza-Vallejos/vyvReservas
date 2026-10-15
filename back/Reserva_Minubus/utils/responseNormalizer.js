@@ -12,14 +12,19 @@ const toCamelCase = (str) => {
 
 const isArray = Array.isArray;
 
-const convertKeys = (obj) => {
+// Track visited objects to prevent circular reference infinite loops
+const convertKeys = (obj, visited = new WeakSet()) => {
   if (obj === null || obj === undefined) return obj;
   
   if (isArray(obj)) {
-    return obj.map(convertKeys);
+    return obj.map(item => convertKeys(item, visited));
   }
   
   if (typeof obj !== 'object') return obj;
+  
+  // Prevent infinite recursion for circular references
+  if (visited.has(obj)) return obj;
+  visited.add(obj);
   
   const result = {};
   for (const key in obj) {
@@ -29,11 +34,12 @@ const convertKeys = (obj) => {
       
       // Skip Sequelize metadata and internal fields
       if (camelKey === 'dataValues' || camelKey === '_previousDataValues' || 
-          camelKey === '_changed' || camelKey === '_options') continue;
+          camelKey === '_changed' || camelKey === '_options' ||
+          camelKey === '_modelOptions' || camelKey === 'sequelize') continue;
       
       // Recursively convert nested objects and arrays
       if (value && typeof value === 'object') {
-        result[camelKey] = convertKeys(value);
+        result[camelKey] = convertKeys(value, visited);
       } else {
         result[camelKey] = value;
       }
