@@ -42,6 +42,7 @@ class AuthService {
         nombre: user.nombre,
         usuario: user.usuario,
         perfil: tipoPerfil,
+        perfil_id: user.perfil_id,
         empresa_id: empresaId,
       },
       process.env.JWT_SECRET,

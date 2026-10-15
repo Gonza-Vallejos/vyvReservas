@@ -10,7 +10,8 @@ const {
   hasPermission, 
   canAccessResource,
   isAtLeastProfile,
-  getProfileName 
+  getProfileName,
+  getProfileId
 } = require("../constants/permissions");
 
 /**
@@ -35,11 +36,14 @@ const autenticarToken = (req, res, next) => {
       return sendError(res, "Token inválido o expirado", 403);
     }
 
+    // Normalizar también tokens antiguos que no tenían perfil_id.
+    const perfilId = Number(usuario.perfil_id) || Number(getProfileId(usuario.perfil));
+
     // Attach normalized user to request
     req.usuario = {
       ...usuario,
-      perfil: usuario.perfil || getProfileName(usuario.perfil_id),
-      perfil_id: Number(usuario.perfil_id),
+      perfil: usuario.perfil || getProfileName(perfilId),
+      perfil_id: perfilId,
     };
     next();
   });

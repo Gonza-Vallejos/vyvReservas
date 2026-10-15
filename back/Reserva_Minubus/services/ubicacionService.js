@@ -1,7 +1,7 @@
 const { Localidad, Provincia } = require("../models");
 
 class UbicacionService {
-  async getLcaledades() {
+  async getLocalidades() {
     const localidades = await Localidad.findAll();
     return localidades.map(l => l.get({ plain: true }));
   }
