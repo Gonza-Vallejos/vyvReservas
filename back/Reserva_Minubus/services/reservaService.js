@@ -109,9 +109,20 @@ class ReservaService {
       }
 
       // Bloqueo de fila para evitar race conditions (FOR UPDATE)
+      // Separamos las queries porque PostgreSQL no permite FOR UPDATE en el lado nullable de un LEFT JOIN
       const viaje = await Viajes.findOne({
         where: { id: viajes_id, eliminado: "no" },
-        include: [MedioTransporte],
+        lock: t.LOCK.UPDATE,
+        transaction: t,
+      });
+
+      if (!viaje) {
+        throw new NotFoundError('Viaje');
+      }
+
+      // Obtener el medio de transporte por separado
+      const medioTransporte = await MedioTransporte.findOne({
+        where: { id: viaje.medioTransporte_id },
         lock: t.LOCK.UPDATE,
         transaction: t,
       });
@@ -133,7 +144,7 @@ class ReservaService {
       const nuevaReserva = await Reserva.create(datosParaCrear, { transaction: t });
 
       // 2. Asignar números de asiento disponibles
-      const totalLugares = viaje.MedioTransporte?.cantLugares;
+      const totalLugares = medioTransporte?.cantLugares;
       if (!totalLugares) {
         throw new ValidationError('Viaje inválido o sin medio de transporte asignado');
       }
