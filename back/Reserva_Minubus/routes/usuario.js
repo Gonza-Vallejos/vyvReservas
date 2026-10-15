@@ -148,7 +148,7 @@ router.put('/contrasenia/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINI
  *     security:
  *       - bearerAuth: []
  */
-router.get('/choferes/asociados', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa'), usuarioController.obtenerUsuariosChoferAsociados);
+router.get('/choferes/asociados', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.EMPRESA), usuarioController.obtenerUsuariosChoferAsociados);
 
 /**
  * @swagger
@@ -159,7 +159,7 @@ router.get('/choferes/asociados', autenticarToken, permitirPerfiles('usuarioAdmi
  *     security:
  *       - bearerAuth: []
  */
-router.get('/choferes/empresa/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa'), usuarioController.obtenerUsuariosChoferPorEmpresa);
+router.get('/choferes/empresa/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.EMPRESA), usuarioController.obtenerUsuariosChoferPorEmpresa);
 
 // Alias de compatibilidad para app móvil
 router.post('/crearUsuario', validateUsuario, usuarioController.crearUsuario);

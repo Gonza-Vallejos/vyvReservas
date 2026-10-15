@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ventasController = require('../controllers/ventasController');
-const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddleware');
+const { autenticarToken, permitirPerfiles, PROFILES } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -19,7 +19,7 @@ const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddle
  *     security:
  *       - bearerAuth: []
  */
-router.get('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioEmpresa', 'usuarioMostrador'), ventasController.obtenerVentas);
+router.get('/', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR), ventasController.obtenerVentas);
 
 /**
  * @swagger
@@ -34,7 +34,7 @@ router.get('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuar
  *         name: id
  *         required: true
  */
-router.get('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioEmpresa', 'usuarioMostrador'), ventasController.obtenerVentasPorId);
+router.get('/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR), ventasController.obtenerVentasPorId);
 
 /**
  * @swagger
@@ -60,7 +60,7 @@ router.get('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'us
  *                 type: string
  *                 example: "Efectivo"
  */
-router.post('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioCliente', 'usuarioChofer'), ventasController.crearVenta);
+router.post('/', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.CLIENTE, PROFILES.CHOFER), ventasController.crearVenta);
 
 /**
  * @swagger
@@ -71,7 +71,7 @@ router.post('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usua
  *     security:
  *       - bearerAuth: []
  */
-router.put('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador'), ventasController.actualizarVentas);
+router.put('/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR), ventasController.actualizarVentas);
 
 /**
  * @swagger
@@ -82,7 +82,7 @@ router.put('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador'), ve
  *     security:
  *       - bearerAuth: []
  */
-router.delete('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador'), ventasController.eliminarVentas);
+router.delete('/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR), ventasController.eliminarVentas);
 
 /**
  * @swagger
@@ -93,7 +93,7 @@ router.delete('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador'),
  *     security:
  *       - bearerAuth: []
  */
-router.get('/detalle/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioMostrador'), ventasController.obtenerVentaDetalle);
+router.get('/detalle/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE, PROFILES.MOSTRADOR), ventasController.obtenerVentaDetalle);
 
 /**
  * @swagger
@@ -104,7 +104,7 @@ router.get('/detalle/:id', autenticarToken, permitirPerfiles('usuarioAdministrad
  *     security:
  *       - bearerAuth: []
  */
-router.get('/detalle-general/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioMostrador', 'usuarioChofer'), ventasController.obtenerVentaDetalleGeneral);
+router.get('/detalle-general/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE, PROFILES.MOSTRADOR, PROFILES.CHOFER), ventasController.obtenerVentaDetalleGeneral);
 
 /**
  * @swagger
@@ -115,7 +115,7 @@ router.get('/detalle-general/:id', autenticarToken, permitirPerfiles('usuarioAdm
  *     security:
  *       - bearerAuth: []
  */
-router.get('/existe/reserva/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioMostrador', 'usuarioChofer'), ventasController.existeReservaVenta);
+router.get('/existe/reserva/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE, PROFILES.MOSTRADOR, PROFILES.CHOFER), ventasController.existeReservaVenta);
 
 /**
  * @swagger
@@ -126,6 +126,6 @@ router.get('/existe/reserva/:id', autenticarToken, permitirPerfiles('usuarioAdmi
  *     security:
  *       - bearerAuth: []
  */
-router.get('/existe/pasajero/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioMostrador', 'usuarioChofer'), ventasController.existeVentaPorPasajero);
+router.get('/existe/pasajero/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE, PROFILES.MOSTRADOR, PROFILES.CHOFER), ventasController.existeVentaPorPasajero);
 
 module.exports = router;

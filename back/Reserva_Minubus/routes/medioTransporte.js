@@ -3,7 +3,7 @@ const router = express.Router();
 const transporteController = require('../controllers/medio_transporteController');
 const validateMedioTransporte = require('../middlewares/validateMedio_Transporte');
 const validateUpdateTransporte = require('../middlewares/validateUpdateMedio_Transporte');
-const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddleware');
+const { autenticarToken, permitirPerfiles, PROFILES } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -21,7 +21,7 @@ const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddle
  *     security:
  *       - bearerAuth: []
  */
-router.get('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioEmpresa', 'usuarioMostrador'), transporteController.obtenerTransportes);
+router.get('/', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR), transporteController.obtenerTransportes);
 
 /**
  * @swagger
@@ -36,7 +36,7 @@ router.get('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuar
  *         name: id
  *         required: true
  */
-router.get('/empresa/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioEmpresa', 'usuarioMostrador'), transporteController.obtenerTransportesPorEmpresa);
+router.get('/empresa/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR), transporteController.obtenerTransportesPorEmpresa);
 
 /**
  * @swagger
@@ -65,7 +65,7 @@ router.get('/empresa/:id', autenticarToken, permitirPerfiles('usuarioAdministrad
  *               empresa_id:
  *                 type: integer
  */
-router.post('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa'), validateMedioTransporte, transporteController.crearTransporte);
+router.post('/', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.EMPRESA), validateMedioTransporte, transporteController.crearTransporte);
 
 /**
  * @swagger
@@ -80,7 +80,7 @@ router.post('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usua
  *         name: id
  *         required: true
  */
-router.get('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioEmpresa', 'usuarioMostrador'), transporteController.obtenerTransportePorId);
+router.get('/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR), transporteController.obtenerTransportePorId);
 
 /**
  * @swagger
@@ -110,7 +110,7 @@ router.get('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'us
  *               cantLugares:
  *                 type: integer
  */
-router.put('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa'), validateUpdateTransporte, transporteController.actualizarTransporte);
+router.put('/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.EMPRESA), validateUpdateTransporte, transporteController.actualizarTransporte);
 
 /**
  * @swagger
@@ -121,7 +121,7 @@ router.put('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'us
  *     security:
  *       - bearerAuth: []
  */
-router.delete('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa'), transporteController.eliminarTransporte);
+router.delete('/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.EMPRESA), transporteController.eliminarTransporte);
 
 /**
  * @swagger
@@ -132,7 +132,7 @@ router.delete('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 
  *     security:
  *       - bearerAuth: []
  */
-router.get('/:id/viajes', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador'), transporteController.obtenerViajesPorTransporte);
+router.get('/:id/viajes', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR), transporteController.obtenerViajesPorTransporte);
 
 /**
  * @swagger
@@ -143,6 +143,6 @@ router.get('/:id/viajes', autenticarToken, permitirPerfiles('usuarioAdministrado
  *     security:
  *       - bearerAuth: []
  */
-router.get('/:id/sin-reservas', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador'), transporteController.verificarTransporteSinReservas);
+router.get('/:id/sin-reservas', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR), transporteController.verificarTransporteSinReservas);
 
 module.exports = router;

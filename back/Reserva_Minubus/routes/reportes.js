@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const reportesController = require('../controllers/reportesController');
-const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddleware');
+const { autenticarToken, permitirPerfiles, PROFILES } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -24,7 +24,7 @@ const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddle
  *         required: true
  *         description: ID de la Empresa
  */
-router.get('/empresa/:id/top-clientes', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioEmpresa', 'usuarioMostrador'), reportesController.obtenerClientesConVentasConfirmadasPorEmpresa);
+router.get('/empresa/:id/top-clientes', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR), reportesController.obtenerClientesConVentasConfirmadasPorEmpresa);
 
 /**
  * @swagger
@@ -39,7 +39,7 @@ router.get('/empresa/:id/top-clientes', autenticarToken, permitirPerfiles('usuar
  *         name: id
  *         required: true
  */
-router.get('/empresa/:id/ganancia-total', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioEmpresa', 'usuarioMostrador'), reportesController.obtenerGananciaTotalPorEmpresa);
+router.get('/empresa/:id/ganancia-total', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR), reportesController.obtenerGananciaTotalPorEmpresa);
 
 /**
  * @swagger
@@ -54,7 +54,7 @@ router.get('/empresa/:id/ganancia-total', autenticarToken, permitirPerfiles('usu
  *         name: id
  *         required: true
  */
-router.get('/empresa/:id/ganancia-viajes', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioEmpresa', 'usuarioMostrador'), reportesController.obtenerGananciasPorViajePorEmpresa);
+router.get('/empresa/:id/ganancia-viajes', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR), reportesController.obtenerGananciasPorViajePorEmpresa);
 
 /**
  * @swagger
@@ -69,6 +69,6 @@ router.get('/empresa/:id/ganancia-viajes', autenticarToken, permitirPerfiles('us
  *         name: id
  *         required: true
  */
-router.get('/empresa/:id/reservas-sin-venta', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioEmpresa', 'usuarioMostrador'), reportesController.obtenerUsuariosConReservasSinVenta);
+router.get('/empresa/:id/reservas-sin-venta', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR), reportesController.obtenerUsuariosConReservasSinVenta);
 
 module.exports = router;

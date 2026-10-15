@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pagoController = require('../controllers/pagoController');
-const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddleware');
+const { autenticarToken, permitirPerfiles, PROFILES } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -29,7 +29,7 @@ const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddle
  *               reserva_id:
  *                 type: integer
  */
-router.post('/crear-preferencia', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioMostrador'), pagoController.crearPreferencia);
+router.post('/crear-preferencia', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE, PROFILES.MOSTRADOR), pagoController.crearPreferencia);
 
 /**
  * @swagger
@@ -59,7 +59,7 @@ router.get('/ipn', pagoController.webhook);
  *     security:
  *       - bearerAuth: []
  */
-router.get('/reserva/:reservaId', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioMostrador'), pagoController.obtenerPagosPorReserva);
+router.get('/reserva/:reservaId', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE, PROFILES.MOSTRADOR), pagoController.obtenerPagosPorReserva);
 
 /**
  * @swagger
@@ -70,7 +70,7 @@ router.get('/reserva/:reservaId', autenticarToken, permitirPerfiles('usuarioAdmi
  *     security:
  *       - bearerAuth: []
  */
-router.get('/estado/:reservaId', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioMostrador'), pagoController.obtenerEstadoPago);
+router.get('/estado/:reservaId', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE, PROFILES.MOSTRADOR), pagoController.obtenerEstadoPago);
 
 /**
  * @swagger
@@ -81,6 +81,6 @@ router.get('/estado/:reservaId', autenticarToken, permitirPerfiles('usuarioAdmin
  *     security:
  *       - bearerAuth: []
  */
-router.post('/reintentar/:reservaId', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioMostrador'), pagoController.reintentarPago);
+router.post('/reintentar/:reservaId', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE, PROFILES.MOSTRADOR), pagoController.reintentarPago);
 
 module.exports = router;

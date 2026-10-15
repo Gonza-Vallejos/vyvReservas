@@ -70,7 +70,22 @@ const permitirPerfiles = (...perfilesPermitidos) => {
     // Convert names to IDs if needed
     const allowedIds = perfilesPermitidos.map(p => {
       if (typeof p === 'string') {
-        return Number(Object.keys(PROFILES).find(k => PROFILES[k] === p || k.toLowerCase() === p.toLowerCase()));
+        // Try exact match with "usuario" prefix
+        const nameMap = {
+          'usuarioadministrador': 1,
+          'usuariocliente': 2,
+          'usuariomostrador': 3,
+          'usuariochofer': 4,
+          'usuarioempresa': 5,
+          // Also try without "usuario" prefix
+          'administrador': 1,
+          'cliente': 2,
+          'mostrador': 3,
+          'chofer': 4,
+          'empresa': 5,
+        };
+        const normalized = p.toLowerCase().replace(/\s/g, '');
+        return nameMap[normalized] || Number(Object.keys(PROFILES).find(k => PROFILES[k] === p));
       }
       return Number(p);
     }).filter(Boolean);

@@ -4,7 +4,7 @@ const reservaController = require('../controllers/reservaController');
 const validateReserva = require('../middlewares/validateReserva');
 const validatePasajero = require('../middlewares/validatePasajero');
 const validateUpdatePasajero = require('../middlewares/validarUpdatePasajero');
-const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddleware');
+const { autenticarToken, permitirPerfiles, PROFILES } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -22,7 +22,7 @@ const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddle
  *     security:
  *       - bearerAuth: []
  */
-router.get('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioEmpresa', 'usuarioMostrador'), reservaController.obtenerReservas);
+router.get('/', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR), reservaController.obtenerReservas);
 
 /**
  * @swagger
@@ -33,7 +33,7 @@ router.get('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuar
  *     security:
  *       - bearerAuth: []
  */
-router.get('/usuario', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioEmpresa', 'usuarioMostrador'), reservaController.obtenerReservasPorUsuario);
+router.get('/usuario', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE, PROFILES.EMPRESA, PROFILES.MOSTRADOR), reservaController.obtenerReservasPorUsuario);
 
 /**
  * @swagger
@@ -48,7 +48,7 @@ router.get('/usuario', autenticarToken, permitirPerfiles('usuarioAdministrador',
  *         name: id
  *         required: true
  */
-router.get('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioEmpresa', 'usuarioMostrador'), reservaController.obtenerReservaPorId);
+router.get('/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE, PROFILES.EMPRESA, PROFILES.MOSTRADOR), reservaController.obtenerReservaPorId);
 
 /**
  * @swagger
@@ -87,7 +87,7 @@ router.get('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'us
  *                     dni:
  *                       type: integer
  */
-router.post('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioMostrador'), validateReserva, validatePasajero, reservaController.crearReserva);
+router.post('/', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE, PROFILES.MOSTRADOR), validateReserva, validatePasajero, reservaController.crearReserva);
 
 /**
  * @swagger
@@ -98,7 +98,7 @@ router.post('/', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usua
  *     security:
  *       - bearerAuth: []
  */
-router.put('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente'), validateUpdatePasajero, reservaController.actualizarReserva);
+router.put('/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE), validateUpdatePasajero, reservaController.actualizarReserva);
 
 /**
  * @swagger
@@ -109,7 +109,7 @@ router.put('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'us
  *     security:
  *       - bearerAuth: []
  */
-router.delete('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioCliente'), reservaController.eliminarReserva);
+router.delete('/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.CLIENTE), reservaController.eliminarReserva);
 
 /**
  * @swagger
@@ -120,7 +120,7 @@ router.delete('/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 
  *     security:
  *       - bearerAuth: []
  */
-router.delete('/pasajero/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioCliente', 'usuarioChofer'), reservaController.eliminarPasajero);
+router.delete('/pasajero/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.CLIENTE, PROFILES.CHOFER), reservaController.eliminarPasajero);
 
 /**
  * @swagger
@@ -131,7 +131,7 @@ router.delete('/pasajero/:id', autenticarToken, permitirPerfiles('usuarioAdminis
  *     security:
  *       - bearerAuth: []
  */
-router.get('/:id/pasajeros', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioCliente'), reservaController.listarPasajerosPorReserva);
+router.get('/:id/pasajeros', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.CLIENTE), reservaController.listarPasajerosPorReserva);
 
 /**
  * @swagger
@@ -142,7 +142,7 @@ router.get('/:id/pasajeros', autenticarToken, permitirPerfiles('usuarioAdministr
  *     security:
  *       - bearerAuth: []
  */
-router.get('/pasajeros/all', autenticarToken, permitirPerfiles('usuarioAdministrador'), reservaController.listarTodosLosPasajeros);
+router.get('/pasajeros/all', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR), reservaController.listarTodosLosPasajeros);
 
 /**
  * @swagger
@@ -153,7 +153,7 @@ router.get('/pasajeros/all', autenticarToken, permitirPerfiles('usuarioAdministr
  *     security:
  *       - bearerAuth: []
  */
-router.get('/viaje/:id/pasajeros', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioChofer', 'usuarioEmpresa'), reservaController.listarPasajerosPorViaje);
+router.get('/viaje/:id/pasajeros', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.CHOFER, PROFILES.EMPRESA), reservaController.listarPasajerosPorViaje);
 
 /**
  * @swagger
@@ -164,14 +164,14 @@ router.get('/viaje/:id/pasajeros', autenticarToken, permitirPerfiles('usuarioAdm
  *     security:
  *       - bearerAuth: []
  */
-router.get('/empresa/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa'), reservaController.obtenerReservasPorEmpresa);
+router.get('/empresa/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.EMPRESA), reservaController.obtenerReservasPorEmpresa);
 
 // Rutas de compatibilidad para endpoints de la app móvil
-router.post('/crearReserva', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente'), validateReserva, validatePasajero, reservaController.crearReserva);
-router.get('/obtenerReservasPorUsuario', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioEmpresa', 'usuarioMostrador'), reservaController.obtenerReservasPorUsuario);
-router.put('/actualizarReserva/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente'), validateUpdatePasajero, reservaController.actualizarReserva);
-router.put('/eliminarReserva/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioCliente'), reservaController.eliminarReserva);
-router.put('/eliminarPasajero/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioCliente', 'usuarioChofer'), reservaController.eliminarPasajero);
+router.post('/crearReserva', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE), validateReserva, validatePasajero, reservaController.crearReserva);
+router.get('/obtenerReservasPorUsuario', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE, PROFILES.EMPRESA, PROFILES.MOSTRADOR), reservaController.obtenerReservasPorUsuario);
+router.put('/actualizarReserva/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE), validateUpdatePasajero, reservaController.actualizarReserva);
+router.put('/eliminarReserva/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.CLIENTE), reservaController.eliminarReserva);
+router.put('/eliminarPasajero/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.CLIENTE, PROFILES.CHOFER), reservaController.eliminarPasajero);
 router.get('/listarPasajeroPorId/:id', autenticarToken, reservaController.obtenerReservaPorId);
 router.get('/listarPasajerosPorReserva/:id', autenticarToken, reservaController.listarPasajerosPorReserva);
 router.get('/listarPasajeroPorViaje/:id', autenticarToken, reservaController.listarPasajerosPorViaje);

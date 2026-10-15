@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const usuarioEmpresa = require('../controllers/usuarioEmpresaController');
-const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddleware');
+const { autenticarToken, permitirPerfiles, PROFILES } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -28,7 +28,7 @@ const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddle
  *         required: true
  *         description: ID de la Empresa
  */
-router.post('/asociar/:id/:empresaId', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa'), usuarioEmpresa.asociarUsuarioEmpresa);
+router.post('/asociar/:id/:empresaId', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.EMPRESA), usuarioEmpresa.asociarUsuarioEmpresa);
 
 /**
  * @swagger
@@ -43,7 +43,7 @@ router.post('/asociar/:id/:empresaId', autenticarToken, permitirPerfiles('usuari
  *         name: id
  *         required: true
  */
-router.get('/usuario/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa'), usuarioEmpresa.obtenerEmpresaDeUsuario);
+router.get('/usuario/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.EMPRESA), usuarioEmpresa.obtenerEmpresaDeUsuario);
 
 /**
  * @swagger
@@ -58,7 +58,7 @@ router.get('/usuario/:id', autenticarToken, permitirPerfiles('usuarioAdministrad
  *         name: id
  *         required: true
  */
-router.delete('/desasociar/:id', autenticarToken, permitirPerfiles('usuarioAdministrador'), usuarioEmpresa.desasociarUsuarioEmpresa);
+router.delete('/desasociar/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR), usuarioEmpresa.desasociarUsuarioEmpresa);
 
 /**
  * @swagger
@@ -73,6 +73,6 @@ router.delete('/desasociar/:id', autenticarToken, permitirPerfiles('usuarioAdmin
  *         name: id
  *         required: true
  */
-router.get('/empresa/:id/usuarios', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioMostrador', 'usuarioEmpresa'), usuarioEmpresa.obtenerUsuariosPorEmpresa);
+router.get('/empresa/:id/usuarios', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.EMPRESA), usuarioEmpresa.obtenerUsuariosPorEmpresa);
 
 module.exports = router;

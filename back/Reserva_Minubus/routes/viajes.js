@@ -3,7 +3,7 @@ const router = express.Router();
 const viajesController = require('../controllers/viajesController');
 const validateViaje = require('../middlewares/validateViajes');
 const validateUpdateViaje = require('../middlewares/validateUpdateViajes');
-const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddleware');
+const { autenticarToken, permitirPerfiles, PROFILES } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -21,7 +21,7 @@ const { autenticarToken, permitirPerfiles } = require('../middlewares/authMiddle
  *     security:
  *       - bearerAuth: []
  */
-router.get('/', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa'), viajesController.obtenerViajes);
+router.get('/', autenticarToken, permitirPerfiles(PROFILES.MOSTRADOR, PROFILES.ADMINISTRADOR, PROFILES.EMPRESA), viajesController.obtenerViajes);
 
 /**
  * @swagger
@@ -45,7 +45,7 @@ router.get('/disponibles', viajesController.obtenerViajesDisponibles);
  *         name: id
  *         required: true
  */
-router.get('/:id/asientos', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa', 'usuarioChofer', 'usuarioCliente'), viajesController.obtenerAsientosOcupados);
+router.get('/:id/asientos', autenticarToken, permitirPerfiles(PROFILES.MOSTRADOR, PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.CHOFER, PROFILES.CLIENTE), viajesController.obtenerAsientosOcupados);
 
 /**
  * @swagger
@@ -60,7 +60,7 @@ router.get('/:id/asientos', autenticarToken, permitirPerfiles('usuarioMostrador'
  *         name: id
  *         required: true
  */
-router.get('/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa', 'usuarioCliente'), viajesController.obtenerViajePorId);
+router.get('/:id', autenticarToken, permitirPerfiles(PROFILES.MOSTRADOR, PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.CLIENTE), viajesController.obtenerViajePorId);
 
 /**
  * @swagger
@@ -95,7 +95,7 @@ router.get('/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuari
  *               medioTransporte_id:
  *                 type: integer
  */
-router.post('/', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa'), validateViaje, viajesController.crearViaje);
+router.post('/', autenticarToken, permitirPerfiles(PROFILES.MOSTRADOR, PROFILES.ADMINISTRADOR, PROFILES.EMPRESA), validateViaje, viajesController.crearViaje);
 
 /**
  * @swagger
@@ -106,7 +106,7 @@ router.post('/', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioA
  *     security:
  *       - bearerAuth: []
  */
-router.put('/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa'), validateUpdateViaje, viajesController.actualizarViajes);
+router.put('/:id', autenticarToken, permitirPerfiles(PROFILES.MOSTRADOR, PROFILES.ADMINISTRADOR, PROFILES.EMPRESA), validateUpdateViaje, viajesController.actualizarViajes);
 
 /**
  * @swagger
@@ -117,7 +117,7 @@ router.put('/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuari
  *     security:
  *       - bearerAuth: []
  */
-router.delete('/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa'), viajesController.eliminarViajes);
+router.delete('/:id', autenticarToken, permitirPerfiles(PROFILES.MOSTRADOR, PROFILES.ADMINISTRADOR, PROFILES.EMPRESA), viajesController.eliminarViajes);
 
 /**
  * @swagger
@@ -128,7 +128,7 @@ router.delete('/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usu
  *     security:
  *       - bearerAuth: []
  */
-router.get('/empresa/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioEmpresa', 'usuarioMostrador'), viajesController.obtenerViajesPorEmpresa);
+router.get('/empresa/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR), viajesController.obtenerViajesPorEmpresa);
 
 /**
  * @swagger
@@ -139,7 +139,7 @@ router.get('/empresa/:id', autenticarToken, permitirPerfiles('usuarioAdministrad
  *     security:
  *       - bearerAuth: []
  */
-router.get('/chofer/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioChofer', 'usuarioEmpresa'), viajesController.obtenerViajesPorChofer);
+router.get('/chofer/:id', autenticarToken, permitirPerfiles(PROFILES.MOSTRADOR, PROFILES.ADMINISTRADOR, PROFILES.CHOFER, PROFILES.EMPRESA), viajesController.obtenerViajesPorChofer);
 
 /**
  * @swagger
@@ -150,12 +150,12 @@ router.get('/chofer/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 
  *     security:
  *       - bearerAuth: []
  */
-router.get('/existe-reserva/:id', autenticarToken, permitirPerfiles('usuarioAdministrador', 'usuarioCliente', 'usuarioMostrador', 'usuarioChofer'), viajesController.existeReservaParaViaje);
+router.get('/existe-reserva/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE, PROFILES.MOSTRADOR, PROFILES.CHOFER), viajesController.existeReservaParaViaje);
 
 // Rutas de compatibilidad para app móvil
 router.get('/viajesDisponible', viajesController.obtenerViajesDisponibles);
-router.get('/obtenerViajesId/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa', 'usuarioCliente'), viajesController.obtenerViajePorId);
-router.get('/asientos/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa', 'usuarioChofer', 'usuarioCliente'), viajesController.obtenerAsientosOcupados);
-router.get('/obtenerAsientosOcupados/:id', autenticarToken, permitirPerfiles('usuarioMostrador', 'usuarioAdministrador', 'usuarioEmpresa', 'usuarioChofer', 'usuarioCliente'), viajesController.obtenerAsientosOcupados);
+router.get('/obtenerViajesId/:id', autenticarToken, permitirPerfiles(PROFILES.MOSTRADOR, PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.CLIENTE), viajesController.obtenerViajePorId);
+router.get('/asientos/:id', autenticarToken, permitirPerfiles(PROFILES.MOSTRADOR, PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.CHOFER, PROFILES.CLIENTE), viajesController.obtenerAsientosOcupados);
+router.get('/obtenerAsientosOcupados/:id', autenticarToken, permitirPerfiles(PROFILES.MOSTRADOR, PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.CHOFER, PROFILES.CLIENTE), viajesController.obtenerAsientosOcupados);
 
 module.exports = router;
