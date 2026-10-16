@@ -29,8 +29,18 @@ const PagoExitosoPage = () => {
     }
 
     // Obtener reserva_id de la URL o del sessionStorage
-    const reservaId = sessionStorage.getItem('ultimaReservaId');
+    const urlParams = new URLSearchParams(window.location.search);
+    let reservaId = urlParams.get('reserva_id') || sessionStorage.getItem('ultimaReservaId');
+    if (!reservaId) {
+      const extRef = urlParams.get('external_reference');
+      if (extRef) {
+        const match = extRef.match(/RESERVA-(\d+)/);
+        if (match) reservaId = match[1];
+      }
+    }
+
     if (reservaId) {
+      sessionStorage.setItem('ultimaReservaId', reservaId);
       const fetchPagoEstado = async () => {
         try {
           const response = await pagoService.obtenerEstado(reservaId);

@@ -2,8 +2,13 @@ const { MercadoPagoConfig, Preference } = require("mercadopago");
 const { Reserva, Pasajeros, Viajes, Pago, WebhookEvent } = require("../models");
 const { NotFoundError, ConflictError, ExternalServiceError, AppError } = require("../utils/AppError");
 
-const mpAccessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-const client = mpAccessToken ? new MercadoPagoConfig({ accessToken: mpAccessToken }) : null;
+const getClient = () => {
+  const mpAccessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+  if (!mpAccessToken || mpAccessToken.trim() === '' || mpAccessToken.includes('0000000000000000')) {
+    return null;
+  }
+  return new MercadoPagoConfig({ accessToken: mpAccessToken.trim() });
+};
 
 // Circuit breaker state
 const circuitState = {
@@ -81,14 +86,9 @@ class PagoService {
    * Crea una preferencia de pago en Mercado Pago para una reserva.
    * Si ya existe una preferencia pendiente reciente, la reutiliza.
    */
-  async crearPreferencia(reservaId, baseUrl) {
-    if (!client) {
-      throw new AppError('Mercado Pago no está configurado', 500, 'MP_NOT_CONFIGURED');
-    }
-
-    if (!canMakeRequest()) {
-      throw new ExternalServiceError('Mercado Pago no disponible, intente más tarde');
-    }
+  async crearPreferencia(reservaId, apiBaseUrl, frontendUrl = null) {
+    const client = getClient();
+    const effectiveFrontendUrl = frontendUrl || process.env.FRONTEND_URL || 'http://localhost:5173';
 
     const reserva = await Reserva.findOne({
       where: { id: reservaId, eliminado: "no" },
@@ -103,7 +103,38 @@ class PagoService {
 
     const pasajeros = reserva.Pasajeros || [];
     const cantidad = pasajeros.length || 1;
-    const monto = reserva.Viaje.precio * cantidad;
+    const monto = Number(reserva.Viaje.precio) * cantidad;
+
+    // Si no hay credenciales de Mercado Pago configuradas, permitir modo simulación en desarrollo/demo
+    if (!client) {
+      const allowMock = process.env.ALLOW_MOCK_PAYMENTS !== 'false';
+      if (allowMock) {
+        const externalReference = `MOCK-RESERVA-${reservaId}-${Date.now()}`;
+        const nuevoPago = await Pago.create({
+          reserva_id: reservaId,
+          monto,
+          estado: "aprobado",
+          mp_preference_id: `mock-pref-${Date.now()}`,
+          mp_external_reference: externalReference,
+          mp_init_point: `${effectiveFrontendUrl}/pagos/exitoso?mock=true&reserva_id=${reservaId}`,
+          fechaCreacion: new Date(),
+          fechaActualizacion: new Date()
+        });
+        return {
+          pagoId: nuevoPago.id,
+          initPoint: `${effectiveFrontendUrl}/pagos/exitoso?mock=true&reserva_id=${reservaId}`,
+          sandboxInitPoint: `${effectiveFrontendUrl}/pagos/exitoso?mock=true&reserva_id=${reservaId}`,
+          externalReference,
+          monto,
+          isMock: true
+        };
+      }
+      throw new AppError('Mercado Pago no está configurado. Por favor define MERCADO_PAGO_ACCESS_TOKEN.', 500, 'MP_NOT_CONFIGURED');
+    }
+
+    if (!canMakeRequest()) {
+      throw new ExternalServiceError('Mercado Pago no disponible, intente más tarde');
+    }
 
     // Reutilizar preferencia pendiente reciente (idempotencia)
     const preferenciaExistente = await Pago.findOne({
@@ -139,18 +170,18 @@ class PagoService {
               title: `Pasaje ${reserva.Viaje.origenLocalidad} → ${reserva.Viaje.destinoLocalidad}`,
               description: `Reserva #${reservaId}`,
               quantity: cantidad,
-              unit_price: reserva.Viaje.precio,
+              unit_price: Number(reserva.Viaje.precio),
               currency_id: "ARS"
             }
           ],
           external_reference: externalReference,
           back_urls: {
-            success: `${baseUrl}/pagos/exitoso`,
-            failure: `${baseUrl}/pagos/fallido`,
-            pending: `${baseUrl}/pagos/pendiente`
+            success: `${effectiveFrontendUrl}/pagos/exitoso`,
+            failure: `${effectiveFrontendUrl}/pagos/fallido`,
+            pending: `${effectiveFrontendUrl}/pagos/exitoso`
           },
           auto_return: "approved",
-          notification_url: `${baseUrl}/api/pagos/webhook`
+          notification_url: `${apiBaseUrl}/api/pagos/webhook`
         }
       }), 3, 1000);
 
@@ -186,6 +217,7 @@ class PagoService {
    * Si el evento ya fue procesado, se ignora.
    */
   async procesarWebhook(topic, resourceId, rawPayload = null) {
+    const client = getClient();
     if (!client) throw new AppError('Mercado Pago no está configurado', 500, 'MP_NOT_CONFIGURED');
 
     const eventKey = `${topic}-${resourceId}`;
@@ -308,10 +340,10 @@ class PagoService {
     };
   }
 
-  async reintentarPago(reservaId, baseUrl) {
+  async reintentarPago(reservaId, apiBaseUrl, frontendUrl = null) {
     const estado = await this.obtenerEstadoPago(reservaId);
     if (estado.pagado) throw new ConflictError('La reserva ya tiene un pago aprobado');
-    return await this.crearPreferencia(reservaId, baseUrl);
+    return await this.crearPreferencia(reservaId, apiBaseUrl, frontendUrl);
   }
 }
 

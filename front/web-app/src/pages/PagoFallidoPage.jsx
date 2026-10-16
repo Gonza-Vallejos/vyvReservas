@@ -24,7 +24,15 @@ const PagoFallidoPage = () => {
     }
   }, [user, navigate]);
 
-  const reservaId = sessionStorage.getItem('ultimaReservaId');
+  const urlParams = new URLSearchParams(window.location.search);
+  let reservaId = urlParams.get('reserva_id') || sessionStorage.getItem('ultimaReservaId');
+  if (!reservaId) {
+    const extRef = urlParams.get('external_reference');
+    if (extRef) {
+      const match = extRef.match(/RESERVA-(\d+)/);
+      if (match) reservaId = match[1];
+    }
+  }
 
   const handleReintentar = async () => {
     if (!reservaId) {

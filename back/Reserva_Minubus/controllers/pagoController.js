@@ -4,8 +4,17 @@ const { sendSuccess, sendError } = require("../utils/responseHandler");
 exports.crearPreferencia = async (req, res) => {
   try {
     const { reserva_id } = req.body;
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
-    const resultado = await pagoService.crearPreferencia(reserva_id, baseUrl);
+    const origin = req.get("origin") || req.get("referer");
+    let frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl && origin) {
+      try {
+        frontendUrl = new URL(origin).origin;
+      } catch (_) {}
+    }
+    if (!frontendUrl) frontendUrl = "http://localhost:5173";
+
+    const apiBaseUrl = `${req.protocol}://${req.get("host")}`;
+    const resultado = await pagoService.crearPreferencia(reserva_id, apiBaseUrl, frontendUrl);
     sendSuccess(res, resultado, "Preferencia de pago creada", 201);
   } catch (error) {
     console.error("Error al crear preferencia:", error);
@@ -14,7 +23,7 @@ exports.crearPreferencia = async (req, res) => {
       RESERVA_NO_ENCONTRADA: "Reserva no encontrada",
       VIAJE_NO_ENCONTRADO: "Viaje no encontrado"
     };
-    sendError(res, messages[error.message] || "Error al crear la preferencia de pago", 400, error);
+    sendError(res, messages[error.message] || error.message || "Error al crear la preferencia de pago", error.statusCode || 400, error);
   }
 };
 
@@ -67,8 +76,17 @@ exports.obtenerEstadoPago = async (req, res) => {
 
 exports.reintentarPago = async (req, res) => {
   try {
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
-    const resultado = await pagoService.reintentarPago(req.params.reservaId, baseUrl);
+    const origin = req.get("origin") || req.get("referer");
+    let frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl && origin) {
+      try {
+        frontendUrl = new URL(origin).origin;
+      } catch (_) {}
+    }
+    if (!frontendUrl) frontendUrl = "http://localhost:5173";
+
+    const apiBaseUrl = `${req.protocol}://${req.get("host")}`;
+    const resultado = await pagoService.reintentarPago(req.params.reservaId, apiBaseUrl, frontendUrl);
     sendSuccess(res, resultado, "Nueva preferencia de pago creada", 201);
   } catch (error) {
     console.error("Error al reintentar pago:", error);
@@ -78,6 +96,6 @@ exports.reintentarPago = async (req, res) => {
       PAGO_YA_APROBADO: "La reserva ya tiene un pago aprobado",
       VIAJE_NO_ENCONTRADO: "Viaje no encontrado"
     };
-    sendError(res, messages[error.message] || "Error al reintentar el pago", 400, error);
+    sendError(res, messages[error.message] || error.message || "Error al reintentar el pago", error.statusCode || 400, error);
   }
 };
