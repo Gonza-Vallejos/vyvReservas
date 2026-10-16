@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { authService } from '../services/api';
 import { User, Mail, Phone, CreditCard, Lock, UserRound, ArrowLeft, Check, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -38,6 +38,8 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from || null;
 
   const updatePasswordRequirements = (value) => {
     const next = {
@@ -112,7 +114,7 @@ const RegisterPage = () => {
     try {
       await authService.register(cleanedData);
       toast.success('¡Cuenta creada! Verifica tu email.');
-      navigate('/login');
+      navigate('/login', { state: { from } });
     } catch (error) {
       const serverErrors = error.response?.data?.errors;
       toast.error(serverErrors?.[0]?.msg || 'Revisa los datos ingresados');
@@ -282,7 +284,7 @@ const RegisterPage = () => {
 
         <p className="auth-footer">
           ¿Ya eres parte?
-          <Link to="/login" className="auth-link">
+          <Link to="/login" state={{ from }} className="auth-link">
             Inicia sesión
           </Link>
         </p>

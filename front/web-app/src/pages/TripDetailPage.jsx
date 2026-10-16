@@ -23,7 +23,7 @@ import toast from 'react-hot-toast';
 const TripDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +31,16 @@ const TripDetailPage = () => {
   const [occupiedSeats, setOccupiedSeats] = useState([]);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      toast.error('Iniciá sesión para ver los detalles del viaje');
+      navigate('/login', { state: { from: `/viaje/${id}` } });
+      return;
+    }
+  }, [user, authLoading, navigate, id]);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
     let cancelled = false;
 
     const fetchTrip = async () => {
@@ -56,8 +66,13 @@ const TripDetailPage = () => {
         } catch {
           setOccupiedSeats(generateMockOccupiedSeats(id, tripData?.cantPasajeros));
         }
-      } catch {
+      } catch (err) {
         if (!cancelled) {
+          if (err.response?.status === 401) {
+            toast.error('Iniciá sesión para ver los detalles del viaje');
+            navigate('/login', { state: { from: `/viaje/${id}` } });
+            return;
+          }
           setError('No pudimos cargar los detalles del viaje.');
           toast.error('Error al cargar el viaje');
         }
@@ -68,7 +83,7 @@ const TripDetailPage = () => {
 
     fetchTrip();
     return () => { cancelled = true; };
-  }, [id]);
+  }, [id, user, authLoading, navigate]);
 
   const handleSelectSeats = () => {
     if (!user) {

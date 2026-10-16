@@ -153,7 +153,12 @@ const Home = () => {
                   key={trip.id}
                   trip={trip}
                   onSelect={(t) => {
-                    navigate(`/viaje/${t.id}`);
+                    if (!user) {
+                      toast.error('Iniciá sesión para ver los detalles del viaje');
+                      navigate('/login', { state: { from: `/viaje/${t.id}` } });
+                    } else {
+                      navigate(`/viaje/${t.id}`);
+                    }
                   }}
                 />
               ))}

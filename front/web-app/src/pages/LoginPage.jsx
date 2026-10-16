@@ -67,13 +67,13 @@ const LoginPage = () => {
           getProfileId(data.usuario?.perfil)
         );
 
-        // Los perfiles de gestión y operación van directo a sus paneles
-        if ([PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR].includes(perfilId)) {
+        // Si venía redirigido de un viaje o reserva específica, volver allí
+        if (from) {
+          navigate(from, { replace: true });
+        } else if ([PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR].includes(perfilId)) {
           navigate('/dashboard');
         } else if (perfilId === PROFILES.CHOFER) {
           navigate('/chofer');
-        } else if (from) {
-          navigate(from, { replace: true });
         } else {
           navigate('/');
         }
@@ -182,7 +182,7 @@ const LoginPage = () => {
 
         <p className="auth-footer">
           ¿Eres nuevo por aquí?
-          <Link to="/register" className="auth-link">
+          <Link to="/register" state={{ from }} className="auth-link">
             Crea una cuenta gratis
           </Link>
         </p>
