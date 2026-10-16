@@ -1511,11 +1511,14 @@ const DashboardPage = () => {
                 required
                 placeholder="Seleccionar unidad..."
               >
-                {vehiculos.map((veh) => (
-                  <option key={veh.id} value={veh.id}>
-                    {veh.nombre} - {veh.patente}
-                  </option>
-                ))}
+                {vehiculos.map((veh) => {
+                  const label = [veh.nombre, veh.patente].filter(Boolean).join(' - ') || veh.marca || `Unidad #${veh.id}`;
+                  return (
+                    <option key={veh.id} value={veh.id}>
+                      {label}
+                    </option>
+                  );
+                })}
               </SelectField>
               <div className="dashboard-form-grid-full">
                 <SelectField
@@ -1723,11 +1726,14 @@ const DashboardPage = () => {
                 required
                 placeholder="Seleccionar unidad..."
               >
-                {vehiculos.map((veh) => (
-                  <option key={veh.id} value={veh.id}>
-                    {veh.nombre} - {veh.patente}
-                  </option>
-                ))}
+                {vehiculos.map((veh) => {
+                  const label = [veh.nombre, veh.patente].filter(Boolean).join(' - ') || veh.marca || `Unidad #${veh.id}`;
+                  return (
+                    <option key={veh.id} value={veh.id}>
+                      {label}
+                    </option>
+                  );
+                })}
               </SelectField>
               <div className="dashboard-form-grid-full">
                 <SelectField

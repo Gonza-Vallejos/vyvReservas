@@ -3,24 +3,27 @@ const { Op } = require("sequelize");
 
 class MedioTransporteService {
   async getAll() {
-    return await MedioTransporte.findAll({
+    const list = await MedioTransporte.findAll({
       where: { eliminado: "no" },
       attributes: { exclude: ["eliminado"] }
     });
+    return list.map(v => v.get({ plain: true }));
   }
 
   async getById(id) {
-    return await MedioTransporte.findOne({
+    const item = await MedioTransporte.findOne({
       where: { id, eliminado: "no" },
       attributes: { exclude: ["eliminado"] }
     });
+    return item ? item.get({ plain: true }) : null;
   }
 
   async getByEmpresa(empresaId) {
-    return await MedioTransporte.findAll({
+    const list = await MedioTransporte.findAll({
       where: { empresa_id: empresaId, eliminado: "no" },
       attributes: { exclude: ["eliminado"] }
     });
+    return list.map(v => v.get({ plain: true }));
   }
 
   async create(data) {

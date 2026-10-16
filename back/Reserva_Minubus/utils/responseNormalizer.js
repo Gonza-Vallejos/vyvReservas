@@ -25,6 +25,13 @@ const convertKeys = (obj, visited = new WeakSet()) => {
   // Prevent infinite recursion for circular references
   if (visited.has(obj)) return obj;
   visited.add(obj);
+
+  // If it is a Sequelize Model instance, extract plain object or dataValues
+  if (typeof obj.get === 'function') {
+    obj = obj.get({ plain: true });
+  } else if (obj.dataValues) {
+    obj = obj.dataValues;
+  }
   
   const result = {};
   for (const key in obj) {
