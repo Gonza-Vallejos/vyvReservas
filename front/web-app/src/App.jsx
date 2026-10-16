@@ -21,6 +21,7 @@ import ProfilePage from './pages/ProfilePage';
 import MinibusLoader from './components/MinibusLoader';
 import { viajeService } from './services/api';
 import { PROFILES } from './constants/profiles';
+import { RouteMetadataWatcher } from './hooks/useSEO';
 import './index.css';
 
 const Home = () => {
@@ -301,6 +302,7 @@ function App() {
     <AuthProvider>
       {initialLoading && <MinibusLoader onFinish={() => setInitialLoading(false)} />}
       <Router>
+        <RouteMetadataWatcher />
         <Toaster position="top-center" limit={1} />
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
           <Navbar />

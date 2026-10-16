@@ -19,6 +19,7 @@ import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import toast from 'react-hot-toast';
+import { useSEO } from '../hooks/useSEO';
 
 const TripDetailPage = () => {
   const { id } = useParams();
@@ -29,6 +30,11 @@ const TripDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [occupiedSeats, setOccupiedSeats] = useState([]);
+
+  useSEO({
+    title: trip ? `${trip.origenLocalidad} ➔ ${trip.destinoLocalidad} | V&V Reservas` : undefined,
+    description: trip ? `Salida de ${trip.origenLocalidad} hacia ${trip.destinoLocalidad}. Horario: ${trip.horarioSalida?.substring(0, 5)}hs. Reservá tu pasaje online.` : undefined,
+  });
 
   useEffect(() => {
     if (authLoading) return;

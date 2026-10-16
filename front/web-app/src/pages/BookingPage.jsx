@@ -23,6 +23,7 @@ import {
   Flag,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useSEO } from '../hooks/useSEO';
 import { PROFILES } from '../constants/profiles';
 
 const STEPS = [
@@ -59,6 +60,11 @@ const BookingPage = () => {
   const [loadingTrip, setLoadingTrip] = useState(true);
   const [tripError, setTripError] = useState(null);
   const [occupiedSeats, setOccupiedSeats] = useState([]);
+
+  useSEO({
+    title: trip ? `Reservar ${trip.origenLocalidad} ➔ ${trip.destinoLocalidad} | V&V Reservas` : 'Reservar Asiento | V&V Reservas',
+    description: trip ? `Elegí tus asientos para viajar de ${trip.origenLocalidad} a ${trip.destinoLocalidad}. Tarifa oficial y pago seguro con V&V Reservas.` : undefined,
+  });
 
   const [step, setStep] = useState(savedState?.step || 1);
   const [selectedSeats, setSelectedSeats] = useState(savedState?.selectedSeats || []);
