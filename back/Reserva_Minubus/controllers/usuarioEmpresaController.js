@@ -34,8 +34,7 @@ exports.obtenerEmpresaDeUsuario = async (req, res) => {
 exports.obtenerUsuariosPorEmpresa = async (req, res) => {
   try {
     const usuarios = await usuarioEmpresaService.getUsuariosByEmpresa(req.params.id);
-    if (usuarios.length === 0) return sendError(res, "No hay usuarios asociados a la empresa", 404);
-    sendSuccess(res, usuarios);
+    sendSuccess(res, usuarios || []);
   } catch (error) {
     sendError(res, "Error al obtener los usuarios de la empresa", 500, error);
   }

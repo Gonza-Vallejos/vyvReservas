@@ -122,11 +122,12 @@ class UsuarioService {
   }
 
   async getChoferesAsociados() {
-    return await Usuario.findAll({
+    const list = await Usuario.findAll({
       where: {
         perfil_id: PROFILES.CHOFER,
         eliminado: "no",
       },
+      attributes: { exclude: ["contrasenia", "tokenVerificacion", "recuperacionToken"] },
       include: [
         {
           model: UsuarioEmpresa,
@@ -135,14 +136,28 @@ class UsuarioService {
         },
       ],
     });
+
+    return list.map((u) => {
+      const plain = u.get({ plain: true });
+      const ue = plain.UsuarioEmpresas?.[0];
+      return {
+        ...plain,
+        usuarioEmpresa_id: ue ? ue.id : null,
+        usuarioEmpresaId: ue ? ue.id : null,
+        empresa_id: ue ? ue.id_empresa : null,
+        empresaId: ue ? ue.id_empresa : null,
+        empresaNombre: ue?.Empresa?.nombre || null,
+      };
+    });
   }
 
   async getChoferesByEmpresa(empresaId) {
-    return await Usuario.findAll({
+    const list = await Usuario.findAll({
       where: {
         perfil_id: PROFILES.CHOFER,
         eliminado: "no",
       },
+      attributes: { exclude: ["contrasenia", "tokenVerificacion", "recuperacionToken"] },
       include: [
         {
           model: UsuarioEmpresa,
@@ -151,6 +166,19 @@ class UsuarioService {
           include: [{ model: Empresa }],
         },
       ],
+    });
+
+    return list.map((u) => {
+      const plain = u.get({ plain: true });
+      const ue = plain.UsuarioEmpresas?.[0];
+      return {
+        ...plain,
+        usuarioEmpresa_id: ue ? ue.id : null,
+        usuarioEmpresaId: ue ? ue.id : null,
+        empresa_id: ue ? ue.id_empresa : null,
+        empresaId: ue ? ue.id_empresa : null,
+        empresaNombre: ue?.Empresa?.nombre || null,
+      };
     });
   }
 }

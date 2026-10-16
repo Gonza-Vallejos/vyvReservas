@@ -55,14 +55,21 @@ const formatCurrency = (value) =>
 
 const formatTime = (time) => (time ? time.substring(0, 5) : '--:--');
 
+const getChoferId = (ch) =>
+  ch?.usuarioEmpresaId ??
+  ch?.usuarioEmpresa_id ??
+  ch?.usuarioEmpresas?.[0]?.id ??
+  ch?.UsuarioEmpresas?.[0]?.id ??
+  ch?.id;
+
 const getProfileId = (u) => {
-  const value = u?.Usuario?.perfil_id ?? u?.Usuario?.perfilId ?? u?.perfil_id ?? u?.perfilId;
+  const value = u?.Usuario?.perfil_id ?? u?.Usuario?.perfilId ?? u?.usuario?.perfilId ?? u?.perfil_id ?? u?.perfilId;
   return value == null ? null : Number(value);
 };
 
 const getFullName = (u) => {
-  const nombre = u?.Usuario?.nombre || u?.nombre || '';
-  const apellido = u?.Usuario?.apellido || u?.apellido || '';
+  const nombre = u?.Usuario?.nombre || u?.usuario?.nombre || u?.nombre || '';
+  const apellido = u?.Usuario?.apellido || u?.usuario?.apellido || u?.apellido || '';
   return `${nombre} ${apellido}`.trim() || 'Sin nombre';
 };
 
@@ -369,7 +376,7 @@ const DashboardPage = () => {
       const [vRes, tRes, cRes, eRes, rRes, empListRes, locRes, usersRes] = await Promise.allSettled([
         isSuperAdmin ? viajeService.listarTodas() : (empresaId ? viajeService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } })),
         isSuperAdmin ? transporteService.listarTodas() : (empresaId ? transporteService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } })),
-        empresaId ? empresaService.obtenerUsuarios(empresaId) : Promise.resolve({ data: { data: [] } }),
+        isSuperAdmin ? usuarioService.obtenerChoferesAsociados() : (empresaId ? empresaService.obtenerUsuarios(empresaId) : Promise.resolve({ data: { data: [] } })),
         isSuperAdmin ? Promise.resolve({ data: { data: null } }) : (empresaId ? empresaService.obtenerPorId(empresaId) : Promise.resolve({ data: { data: null } })),
         isSuperAdmin ? reservaService.listarTodas() : (empresaId ? reservaService.obtenerPorEmpresa(empresaId) : Promise.resolve({ data: { data: [] } })),
         isSuperAdmin ? empresaService.listarTodas() : Promise.resolve({ data: { data: [] } }),
@@ -386,7 +393,28 @@ const DashboardPage = () => {
       if (cRes.status === 'fulfilled') {
         const all = cRes.value?.data?.data || cRes.value?.data || [];
         setEmpleados(all.filter((u) => [3, 4].includes(getProfileId(u))));
-        setChoferes(all.filter((u) => getProfileId(u) === 4));
+        let choferList = all.filter((u) => getProfileId(u) === 4);
+        if (choferList.length === 0 && empresaId && !isSuperAdmin) {
+          try {
+            const chFallback = await usuarioService.obtenerChoferesPorEmpresa(empresaId);
+            const fallbackData = chFallback.data?.data || chFallback.data || [];
+            if (fallbackData.length > 0) choferList = fallbackData;
+          } catch (e) {
+            console.warn('Fallback choferes error:', e);
+          }
+        }
+        setChoferes(choferList);
+      } else {
+        try {
+          const chRes = isSuperAdmin
+            ? await usuarioService.obtenerChoferesAsociados()
+            : (empresaId ? await usuarioService.obtenerChoferesPorEmpresa(empresaId) : null);
+          if (chRes) {
+            setChoferes(chRes.data?.data || chRes.data || []);
+          }
+        } catch (e) {
+          console.warn('Error cargando choferes:', e);
+        }
       }
       if (rRes.status === 'fulfilled') setReservas(rRes.value?.data?.data || rRes.value?.data || []);
       if (empListRes.status === 'fulfilled')
@@ -748,8 +776,15 @@ const DashboardPage = () => {
                       caption="Viajes del día seleccionado"
                     >
                       {viajesDelDia.map((v) => {
-                        const vehicle = v.MedioTransporte || vehiculos.find((ve) => ve.id === v.medioTransporte_id);
-                        const driver = v.UsuarioEmpresa || empleados.find((e) => e.id === v.usuarioEmpresa_id);
+                        const vehicle = v.MedioTransporte || v.medioTransporte || vehiculos.find((ve) => String(ve.id) === String(v.medioTransporte_id ?? v.medioTransporteId));
+                        const tripUeId = v.usuarioEmpresa_id ?? v.usuarioEmpresaId ?? v.UsuarioEmpresa?.id ?? v.usuarioEmpresa?.id;
+                        const driver =
+                          v.UsuarioEmpresa?.Usuario ||
+                          v.usuarioEmpresa?.usuario ||
+                          v.UsuarioEmpresa ||
+                          v.usuarioEmpresa ||
+                          choferes.find((c) => String(getChoferId(c)) === String(tripUeId)) ||
+                          empleados.find((e) => String(getChoferId(e)) === String(tripUeId) || String(e.id) === String(tripUeId));
                         const passengerCount = v.cantPasajeros ?? v.Pasajeros?.length ?? 0;
                         return (
                           <tr key={v.id}>
@@ -797,8 +832,8 @@ const DashboardPage = () => {
                                       fechaViaje: v.fechaViaje,
                                       horarioSalida: v.horarioSalida?.substring(0, 5) || '',
                                       precio: v.precio,
-                                      medioTransporte_id: v.medioTransporte_id || v.MedioTransporte?.id || '',
-                                      usuarioEmpresa_id: v.usuarioEmpresa_id || '',
+                                      medioTransporte_id: v.medioTransporte_id ?? v.medioTransporteId ?? v.MedioTransporte?.id ?? '',
+                                      usuarioEmpresa_id: v.usuarioEmpresa_id ?? v.usuarioEmpresaId ?? v.UsuarioEmpresa?.id ?? '',
                                     });
                                     setShowEditTripModal(true);
                                   }}
@@ -1488,14 +1523,23 @@ const DashboardPage = () => {
                   value={nuevoViaje.usuarioEmpresa_id}
                   onChange={(e) => setNuevoViaje({ ...nuevoViaje, usuarioEmpresa_id: e.target.value })}
                   required
-                  placeholder="Seleccionar chofer..."
+                  placeholder={choferes.length === 0 ? 'No hay choferes disponibles' : 'Seleccionar chofer...'}
                 >
-                  {choferes.map((ch) => (
-                    <option key={ch.usuarioEmpresa_id} value={ch.usuarioEmpresa_id}>
-                      {getFullName(ch)}
-                    </option>
-                  ))}
+                  {choferes.map((ch) => {
+                    const chId = getChoferId(ch);
+                    const tag = ch.empresaNombre || ch.Empresa?.nombre ? ` (${ch.empresaNombre || ch.Empresa?.nombre})` : '';
+                    return (
+                      <option key={chId} value={chId}>
+                        {getFullName(ch)}{tag}
+                      </option>
+                    );
+                  })}
                 </SelectField>
+                {choferes.length === 0 && (
+                  <p className="dashboard-form-hint" style={{ color: 'var(--vv-warning)', marginTop: '0.25rem', fontSize: '0.85rem' }}>
+                    No se encontraron choferes registrados. Podés registrar uno en la pestaña <strong>Personal</strong>.
+                  </p>
+                )}
               </div>
             </div>
             <div className="dashboard-modal-actions">
@@ -1691,14 +1735,23 @@ const DashboardPage = () => {
                   value={editingTrip.usuarioEmpresa_id}
                   onChange={(e) => setEditingTrip({ ...editingTrip, usuarioEmpresa_id: e.target.value })}
                   required
-                  placeholder="Seleccionar chofer..."
+                  placeholder={choferes.length === 0 ? 'No hay choferes disponibles' : 'Seleccionar chofer...'}
                 >
-                  {choferes.map((ch) => (
-                    <option key={ch.usuarioEmpresa_id} value={ch.usuarioEmpresa_id}>
-                      {getFullName(ch)}
-                    </option>
-                  ))}
+                  {choferes.map((ch) => {
+                    const chId = getChoferId(ch);
+                    const tag = ch.empresaNombre || ch.Empresa?.nombre ? ` (${ch.empresaNombre || ch.Empresa?.nombre})` : '';
+                    return (
+                      <option key={chId} value={chId}>
+                        {getFullName(ch)}{tag}
+                      </option>
+                    );
+                  })}
                 </SelectField>
+                {choferes.length === 0 && (
+                  <p className="dashboard-form-hint" style={{ color: 'var(--vv-warning)', marginTop: '0.25rem', fontSize: '0.85rem' }}>
+                    No se encontraron choferes registrados.
+                  </p>
+                )}
               </div>
             </div>
             <div className="dashboard-modal-actions dashboard-modal-actions--split">

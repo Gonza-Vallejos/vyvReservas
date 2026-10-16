@@ -50,6 +50,8 @@ export const empresaService = {
 
 export const usuarioService = {
   listarTodos: () => api.get('/usuarios'),
+  obtenerChoferesAsociados: () => api.get('/usuarios/choferes/asociados'),
+  obtenerChoferesPorEmpresa: (empresaId) => api.get(`/usuarios/choferes/empresa/${empresaId}`),
   registrarEmpleado: (data) => api.post('/usuarios/registrar-empleado', data),
   actualizar: (id, data) => api.put(`/usuarios/${id}`, data),
 };

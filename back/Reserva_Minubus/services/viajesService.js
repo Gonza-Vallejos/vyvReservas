@@ -4,10 +4,17 @@ const appLogger = require("../utils/logger");
 
 class ViajesService {
   async getAll() {
-    return await Viajes.findAll({
+    const list = await Viajes.findAll({
       where: { eliminado: "no" },
-      include: [MedioTransporte]
+      include: [
+        MedioTransporte,
+        {
+          model: UsuarioEmpresa,
+          include: [{ model: Usuario, attributes: ['id', 'nombre', 'apellido', 'email', 'telefono'] }]
+        }
+      ]
     });
+    return list.map(v => v.get({ plain: true }));
   }
 
   async getById(id) {
@@ -173,15 +180,20 @@ class ViajesService {
   }
 
   async getByEmpresa(empresaId) {
-    return await Viajes.findAll({
+    const list = await Viajes.findAll({
       where: { eliminado: "no" },
       include: [
         {
           model: MedioTransporte,
           where: { empresa_id: empresaId }
+        },
+        {
+          model: UsuarioEmpresa,
+          include: [{ model: Usuario, attributes: ['id', 'nombre', 'apellido', 'email', 'telefono'] }]
         }
       ]
     });
+    return list.map(v => v.get({ plain: true }));
   }
 
   async getByChofer(id) {

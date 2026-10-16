@@ -39,6 +39,9 @@ class UsuarioEmpresaService {
     return items.map(i => ({
       ...i.Usuario.toJSON(),
       usuarioEmpresa_id: i.id,
+      usuarioEmpresaId: i.id,
+      empresa_id: i.id_empresa,
+      empresaId: i.id_empresa,
     }));
   }
 }

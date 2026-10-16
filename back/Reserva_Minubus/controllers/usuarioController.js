@@ -111,10 +111,7 @@ exports.obtenerUsuariosChoferAsociados = async (req, res) => {
 exports.obtenerUsuariosChoferPorEmpresa = async (req, res) => {
   try {
     const usuarios = await usuarioService.getChoferesByEmpresa(req.params.id);
-    if (usuarios.length === 0) {
-      return sendError(res, "No hay usuarios chofer asociados a esta empresa.", 404);
-    }
-    sendSuccess(res, usuarios);
+    sendSuccess(res, usuarios || []);
   } catch (error) {
     sendError(res, "Error al obtener los choferes de la empresa.", 500, error);
   }
