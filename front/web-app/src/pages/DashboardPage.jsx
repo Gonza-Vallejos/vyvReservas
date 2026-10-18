@@ -726,9 +726,12 @@ const DashboardPage = () => {
           <SidebarItem id="resumen" icon={LayoutDashboard} label="Resumen" active={activeTab === 'resumen'} onClick={() => { setActiveTab('resumen'); setMobileSidebarOpen(false); }} />
           {isSuperAdmin ? (
             <>
-              <SidebarItem id="estadisticas" icon={TrendingUp} label="Estadísticas" active={activeTab === 'estadisticas'} onClick={() => { setActiveTab('estadisticas'); setMobileSidebarOpen(false); }} />
+              <SidebarItem id="empresas" icon={Building2} label="Empresas" badgeCount={empresas.length} active={activeTab === 'empresas'} onClick={() => { setActiveTab('empresas'); setMobileSidebarOpen(false); }} />
               <SidebarItem id="comisiones" icon={DollarSign} label="Comisiones & MP" active={activeTab === 'comisiones'} onClick={() => { setActiveTab('comisiones'); setMobileSidebarOpen(false); fetchMetricasComisiones(); }} />
               <SidebarItem id="usuarios" icon={Users} label="Usuarios" badgeCount={allUsers.length} active={activeTab === 'usuarios'} onClick={() => { setActiveTab('usuarios'); setMobileSidebarOpen(false); }} />
+              <SidebarItem id="viajes" icon={Bus} label="Todos los Viajes" badgeCount={viajes.length} active={activeTab === 'viajes'} onClick={() => { setActiveTab('viajes'); setMobileSidebarOpen(false); }} />
+              <SidebarItem id="reservas" icon={BookmarkCheck} label="Todas las Reservas" badgeCount={reservas.length} active={activeTab === 'reservas'} onClick={() => { setActiveTab('reservas'); setMobileSidebarOpen(false); }} />
+              <SidebarItem id="estadisticas" icon={TrendingUp} label="Estadísticas" active={activeTab === 'estadisticas'} onClick={() => { setActiveTab('estadisticas'); setMobileSidebarOpen(false); }} />
             </>
           ) : (
             <>
@@ -742,7 +745,7 @@ const DashboardPage = () => {
         </div>
         <div className="dashboard-sidebar__footer">
           {!isSuperAdmin && <SidebarItem id="mi-empresa" icon={Building2} label="Mi Empresa" active={activeTab === 'mi-empresa'} onClick={() => { setActiveTab('mi-empresa'); setMobileSidebarOpen(false); }} />}
-          <SidebarItem id="empresas" icon={Settings} label={isSuperAdmin ? 'Empresas' : 'Configuración'} active={activeTab === 'empresas'} onClick={() => { setActiveTab('empresas'); setMobileSidebarOpen(false); }} />
+          {!isSuperAdmin && <SidebarItem id="empresas" icon={Settings} label="Configuración" active={activeTab === 'empresas'} onClick={() => { setActiveTab('empresas'); setMobileSidebarOpen(false); }} />}
         </div>
       </aside>
 
@@ -755,15 +758,15 @@ const DashboardPage = () => {
           <span className="dashboard-active-tab-badge">{
             {
               resumen: 'Resumen',
-              estadisticas: 'Estadísticas',
+              empresas: 'Empresas',
               comisiones: 'Comisiones & MP',
               usuarios: 'Usuarios',
               viajes: 'Viajes',
               reservas: 'Reservas',
               flota: 'Mi Flota',
               choferes: 'Personal',
+              estadisticas: 'Estadísticas',
               'mi-empresa': 'Mi Empresa',
-              empresas: isSuperAdmin ? 'Empresas' : 'Configuración'
             }[activeTab] || activeTab
           }</span>
         </div>
@@ -773,15 +776,15 @@ const DashboardPage = () => {
             <h1 className="dashboard-title">{
               {
                 resumen: 'Panel de Control',
-                estadisticas: 'Estadísticas Globales',
+                empresas: 'Empresas Registradas',
                 comisiones: 'Comisiones & Mercado Pago',
                 usuarios: 'Usuarios del Sistema',
-                viajes: 'Gestión de Viajes',
-                reservas: 'Control de Reservas',
+                viajes: isSuperAdmin ? 'Todos los Viajes del Sistema' : 'Gestión de Viajes',
+                reservas: isSuperAdmin ? 'Todas las Reservas del Sistema' : 'Control de Reservas',
                 flota: 'Flota de Vehículos',
                 choferes: 'Personal y Choferes',
+                estadisticas: 'Estadísticas Globales',
                 'mi-empresa': 'Mi Empresa',
-                empresas: isSuperAdmin ? 'Empresas Registradas' : 'Configuración de Empresa'
               }[activeTab] || activeTab
             }</h1>
             <div className="dashboard-role-badge">
@@ -789,7 +792,13 @@ const DashboardPage = () => {
               <span>{isSuperAdmin ? 'Super Administrador' : isOwner ? 'Dueño de Empresa' : 'Operador Mostrador'}</span>
             </div>
           </div>
-          {!isSuperAdmin && (
+          {isSuperAdmin ? (
+            <div className="dashboard-actions animate-fade-in">
+              <Button onClick={() => setShowCompanyModal(true)}>
+                <Plus size={20} /> Nueva Empresa
+              </Button>
+            </div>
+          ) : (
             <div className="dashboard-actions animate-fade-in">
               <Button onClick={() => setShowTripModal(true)}>
                 <Plus size={20} /> Nuevo Viaje
