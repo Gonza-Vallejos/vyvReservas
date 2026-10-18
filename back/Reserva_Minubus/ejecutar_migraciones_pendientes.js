@@ -99,6 +99,33 @@ async function migrar() {
     `);
     console.log("✅ Tabla 'WebhookEvents' lista.");
 
+    // 6. Campos Marketplace y Comisiones en Empresa y Pagos
+    console.log("⏳ Verificando campos de Marketplace y Comisiones en Empresa y Pagos...");
+    await client.query(`
+      ALTER TABLE "Empresa" 
+      ADD COLUMN IF NOT EXISTS "comision_porcentaje" FLOAT DEFAULT 10.0,
+      ADD COLUMN IF NOT EXISTS "mp_user_id" VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS "mp_access_token" TEXT,
+      ADD COLUMN IF NOT EXISTS "mp_public_key" VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS "mp_refresh_token" TEXT,
+      ADD COLUMN IF NOT EXISTS "mp_vinculado" BOOLEAN DEFAULT FALSE;
+    `);
+
+    await client.query(`
+      ALTER TABLE "Pagos" 
+      ADD COLUMN IF NOT EXISTS "empresa_id" INT REFERENCES "Empresa"(id) ON UPDATE CASCADE ON DELETE SET NULL,
+      ADD COLUMN IF NOT EXISTS "monto_comision" FLOAT DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS "monto_empresa" FLOAT DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS "porcentaje_comision" FLOAT DEFAULT 10.0;
+    `);
+
+    await client.query(`
+      INSERT INTO "SequelizeMeta" (name) 
+      VALUES ('20261017180000-add-marketplace-commission-fields.js')
+      ON CONFLICT (name) DO NOTHING;
+    `);
+    console.log("✅ Campos de Marketplace y Comisiones listos.");
+
     console.log("\n🎉 ¡Todas las migraciones pendientes fueron aplicadas y registradas con éxito!");
   } catch (err) {
     console.error("❌ Error al aplicar las migraciones:", err);

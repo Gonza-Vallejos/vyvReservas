@@ -1,5 +1,5 @@
 const { MercadoPagoConfig, Preference } = require("mercadopago");
-const { Reserva, Pasajeros, Viajes, Pago, WebhookEvent } = require("../models");
+const { Reserva, Pasajeros, Viajes, Pago, WebhookEvent, MedioTransporte, Empresa } = require("../models");
 const { NotFoundError, ConflictError, ExternalServiceError, AppError } = require("../utils/AppError");
 
 const getClient = () => {
@@ -83,17 +83,26 @@ const withRetry = async (fn, maxRetries = 3, baseDelay = 1000) => {
 
 class PagoService {
   /**
-   * Crea una preferencia de pago en Mercado Pago para una reserva.
-   * Si ya existe una preferencia pendiente reciente, la reutiliza.
+   * Crea una preferencia de pago en Mercado Pago para una reserva con soporte Marketplace Split.
+   * Si la empresa tiene cuenta de MP vinculada, usa su token y aplica marketplace_fee para el Super Admin.
+   * Si no, usa las credenciales generales o modo simulación registrando el desglose de comisiones.
    */
   async crearPreferencia(reservaId, apiBaseUrl, frontendUrl = null) {
-    const client = getClient();
+    const defaultClient = getClient();
     const effectiveFrontendUrl = frontendUrl || process.env.FRONTEND_URL || 'http://localhost:5173';
 
     const reserva = await Reserva.findOne({
       where: { id: reservaId, eliminado: "no" },
       include: [
-        { model: Viajes },
+        {
+          model: Viajes,
+          include: [
+            {
+              model: MedioTransporte,
+              include: [{ model: Empresa }]
+            }
+          ]
+        },
         { model: Pasajeros, where: { eliminado: "no" } }
       ]
     });
@@ -105,14 +114,36 @@ class PagoService {
     const cantidad = pasajeros.length || 1;
     const monto = Number(reserva.Viaje.precio) * cantidad;
 
+    // Obtener la empresa proveedora del viaje y calcular su comisión
+    const empresa = reserva.Viaje?.MedioTransporte?.Empresa;
+    const empresaId = empresa?.id || null;
+    const porcentajeComision = Number(empresa?.comision_porcentaje ?? process.env.DEFAULT_PLATFORM_COMMISSION_PERCENT ?? 10);
+    const montoComision = Math.round((monto * (porcentajeComision / 100)) * 100) / 100;
+    const montoEmpresa = Math.round((monto - montoComision) * 100) / 100;
+
+    // Determinar si la empresa tiene su propio token de Mercado Pago (Marketplace OAuth)
+    let effectiveClient = null;
+    let isMarketplaceSplit = false;
+
+    if (empresa?.mp_access_token && empresa.mp_access_token.trim() !== '' && !empresa.mp_access_token.includes('0000000000000000')) {
+      effectiveClient = new MercadoPagoConfig({ accessToken: empresa.mp_access_token.trim() });
+      isMarketplaceSplit = true;
+    } else {
+      effectiveClient = defaultClient;
+    }
+
     // Si no hay credenciales de Mercado Pago configuradas, permitir modo simulación en desarrollo/demo
-    if (!client) {
+    if (!effectiveClient) {
       const allowMock = process.env.ALLOW_MOCK_PAYMENTS !== 'false';
       if (allowMock) {
         const externalReference = `MOCK-RESERVA-${reservaId}-${Date.now()}`;
         const nuevoPago = await Pago.create({
           reserva_id: reservaId,
+          empresa_id: empresaId,
           monto,
+          monto_comision: montoComision,
+          monto_empresa: montoEmpresa,
+          porcentaje_comision: porcentajeComision,
           estado: "aprobado",
           mp_preference_id: `mock-pref-${Date.now()}`,
           mp_external_reference: externalReference,
@@ -126,6 +157,10 @@ class PagoService {
           sandboxInitPoint: `${effectiveFrontendUrl}/pagos/exitoso?mock=true&reserva_id=${reservaId}`,
           externalReference,
           monto,
+          montoComision,
+          montoEmpresa,
+          porcentajeComision,
+          empresaId,
           isMock: true
         };
       }
@@ -154,6 +189,8 @@ class PagoService {
         sandboxInitPoint: preferenciaExistente.mp_init_point,
         externalReference: preferenciaExistente.mp_external_reference,
         monto: preferenciaExistente.monto,
+        montoComision: preferenciaExistente.monto_comision,
+        montoEmpresa: preferenciaExistente.monto_empresa,
         reused: true
       };
     }
@@ -161,35 +198,45 @@ class PagoService {
     const externalReference = `RESERVA-${reservaId}-${Date.now()}`;
 
     try {
-      const preference = new Preference(client);
-      const response = await withRetry(() => preference.create({
-        body: {
-          items: [
-            {
-              id: `viaje-${reserva.Viaje.id}`,
-              title: `Pasaje ${reserva.Viaje.origenLocalidad} → ${reserva.Viaje.destinoLocalidad}`,
-              description: `Reserva #${reservaId}`,
-              quantity: cantidad,
-              unit_price: Number(reserva.Viaje.precio),
-              currency_id: "ARS"
-            }
-          ],
-          external_reference: externalReference,
-          back_urls: {
-            success: `${effectiveFrontendUrl}/pagos/exitoso`,
-            failure: `${effectiveFrontendUrl}/pagos/fallido`,
-            pending: `${effectiveFrontendUrl}/pagos/exitoso`
-          },
-          auto_return: "approved",
-          notification_url: `${apiBaseUrl}/api/pagos/webhook`
-        }
-      }), 3, 1000);
+      const preferenceBody = {
+        items: [
+          {
+            id: `viaje-${reserva.Viaje.id}`,
+            title: `Pasaje ${reserva.Viaje.origenLocalidad} → ${reserva.Viaje.destinoLocalidad}`,
+            description: `Reserva #${reservaId} (${empresa?.nombre || 'V&V Express'})`,
+            quantity: cantidad,
+            unit_price: Number(reserva.Viaje.precio),
+            currency_id: "ARS"
+          }
+        ],
+        external_reference: externalReference,
+        back_urls: {
+          success: `${effectiveFrontendUrl}/pagos/exitoso`,
+          failure: `${effectiveFrontendUrl}/pagos/fallido`,
+          pending: `${effectiveFrontendUrl}/pagos/exitoso`
+        },
+        auto_return: "approved",
+        notification_url: `${apiBaseUrl}/api/pagos/webhook`
+      };
+
+      // Si la empresa tiene vinculada su cuenta (Marketplace Split),
+      // MP retiene marketplace_fee automáticamente y lo transfiere a la cuenta del Super Admin
+      if (isMarketplaceSplit && montoComision > 0) {
+        preferenceBody.marketplace_fee = montoComision;
+      }
+
+      const preference = new Preference(effectiveClient);
+      const response = await withRetry(() => preference.create({ body: preferenceBody }), 3, 1000);
 
       circuitSuccess();
 
       const nuevoPago = await Pago.create({
         reserva_id: reservaId,
+        empresa_id: empresaId,
         monto,
+        monto_comision: montoComision,
+        monto_empresa: montoEmpresa,
+        porcentaje_comision: porcentajeComision,
         estado: "pendiente",
         mp_preference_id: response.id,
         mp_external_reference: externalReference,
@@ -203,7 +250,11 @@ class PagoService {
         initPoint: response.init_point,
         sandboxInitPoint: response.sandbox_init_point,
         externalReference,
-        monto
+        monto,
+        montoComision,
+        montoEmpresa,
+        porcentajeComision,
+        isMarketplaceSplit
       };
     } catch (error) {
       circuitFailure();
@@ -344,6 +395,227 @@ class PagoService {
     const estado = await this.obtenerEstadoPago(reservaId);
     if (estado.pagado) throw new ConflictError('La reserva ya tiene un pago aprobado');
     return await this.crearPreferencia(reservaId, apiBaseUrl, frontendUrl);
+  }
+
+  /**
+   * Obtiene las métricas globales de comisiones y facturación para el Super Admin
+   */
+  async obtenerMetricasComisiones() {
+    const pagosAprobados = await Pago.findAll({
+      where: { estado: 'aprobado', eliminado: 'no' },
+      include: [
+        {
+          model: Empresa,
+          attributes: ['id', 'nombre', 'cuit', 'email', 'comision_porcentaje', 'mp_vinculado', 'mp_user_id']
+        },
+        {
+          model: Reserva,
+          attributes: ['id', 'fechaReserva'],
+          include: [
+            {
+              model: Viajes,
+              attributes: ['id', 'origenLocalidad', 'destinoLocalidad', 'fechaViaje']
+            }
+          ]
+        }
+      ],
+      order: [['fechaCreacion', 'DESC']]
+    });
+
+    let totalRecaudado = 0;
+    let totalComisionesPlataforma = 0;
+    let totalNetoEmpresas = 0;
+
+    const todasLasEmpresas = await Empresa.findAll({
+      where: { eliminado: 'no' },
+      attributes: ['id', 'nombre', 'cuit', 'email', 'comision_porcentaje', 'mp_vinculado', 'mp_user_id']
+    });
+
+    const empresasMap = {};
+    for (const emp of todasLasEmpresas) {
+      empresasMap[emp.id] = {
+        empresaId: emp.id,
+        nombre: emp.nombre,
+        cuit: emp.cuit,
+        email: emp.email,
+        comisionPorcentaje: Number(emp.comision_porcentaje || 10),
+        mpVinculado: Boolean(emp.mp_vinculado),
+        mpUserId: emp.mp_user_id || null,
+        cantidadVentas: 0,
+        totalRecaudado: 0,
+        totalComision: 0,
+        totalNeto: 0
+      };
+    }
+
+    for (const pago of pagosAprobados) {
+      const monto = Number(pago.monto || 0);
+      const porcentaje = Number(pago.porcentaje_comision || 10);
+      const comision = Number(pago.monto_comision > 0 ? pago.monto_comision : Math.round((monto * (porcentaje / 100)) * 100) / 100);
+      const neto = Number(pago.monto_empresa > 0 ? pago.monto_empresa : Math.round((monto - comision) * 100) / 100);
+
+      totalRecaudado += monto;
+      totalComisionesPlataforma += comision;
+      totalNetoEmpresas += neto;
+
+      const empId = pago.empresa_id || pago.Empresa?.id;
+      if (empId && empresasMap[empId]) {
+        empresasMap[empId].cantidadVentas += 1;
+        empresasMap[empId].totalRecaudado += monto;
+        empresasMap[empId].totalComision += comision;
+        empresasMap[empId].totalNeto += neto;
+      }
+    }
+
+    // Redondear totales
+    for (const id in empresasMap) {
+      empresasMap[id].totalRecaudado = Math.round(empresasMap[id].totalRecaudado * 100) / 100;
+      empresasMap[id].totalComision = Math.round(empresasMap[id].totalComision * 100) / 100;
+      empresasMap[id].totalNeto = Math.round(empresasMap[id].totalNeto * 100) / 100;
+    }
+
+    return {
+      resumen: {
+        totalVentas: pagosAprobados.length,
+        totalRecaudado: Math.round(totalRecaudado * 100) / 100,
+        totalComisionesPlataforma: Math.round(totalComisionesPlataforma * 100) / 100,
+        totalNetoEmpresas: Math.round(totalNetoEmpresas * 100) / 100,
+        comisionPromedioPorcentaje: totalRecaudado > 0 
+          ? Math.round((totalComisionesPlataforma / totalRecaudado) * 1000) / 10 
+          : Number(process.env.DEFAULT_PLATFORM_COMMISSION_PERCENT || 10)
+      },
+      empresas: Object.values(empresasMap),
+      ultimasTransacciones: pagosAprobados.slice(0, 20).map(p => ({
+        pagoId: p.id,
+        reservaId: p.reserva_id,
+        fecha: p.fechaCreacion,
+        montoTotal: p.monto,
+        comisionPlataforma: p.monto_comision,
+        netoEmpresa: p.monto_empresa,
+        porcentajeComision: p.porcentaje_comision,
+        empresa: p.Empresa ? { id: p.Empresa.id, nombre: p.Empresa.nombre } : null,
+        viaje: p.Reserva?.Viaje ? `${p.Reserva.Viaje.origenLocalidad} → ${p.Reserva.Viaje.destinoLocalidad}` : null
+      }))
+    };
+  }
+
+  /**
+   * Actualiza el porcentaje de comisión para una empresa (Solo Super Admin)
+   */
+  async actualizarComisionEmpresa(empresaId, comisionPorcentaje) {
+    const num = Number(comisionPorcentaje);
+    if (isNaN(num) || num < 0 || num > 100) {
+      throw new AppError('El porcentaje de comisión debe estar entre 0 y 100', 400);
+    }
+    const [actualizado] = await Empresa.update(
+      { comision_porcentaje: num },
+      { where: { id: empresaId, eliminado: 'no' } }
+    );
+    if (!actualizado) throw new NotFoundError('Empresa');
+    return { empresaId, comisionPorcentaje: num };
+  }
+
+  /**
+   * Genera el enlace de autorización OAuth para que la empresa vincule su cuenta de Mercado Pago
+   */
+  generarUrlOAuth(empresaId, redirectUri = null) {
+    const clientId = process.env.MERCADO_PAGO_CLIENT_ID;
+    const effectiveRedirectUri = redirectUri || process.env.MERCADO_PAGO_REDIRECT_URI || `${process.env.BASE_URL || 'http://localhost:3000'}/api/pagos/oauth/callback`;
+    
+    if (!clientId) {
+      return {
+        configured: false,
+        message: "Para habilitar la vinculación automática OAuth, define MERCADO_PAGO_CLIENT_ID y MERCADO_PAGO_CLIENT_SECRET en las variables de entorno.",
+        urlManualConfig: true
+      };
+    }
+
+    const authUrl = `https://auth.mercadopago.com.ar/authorization?client_id=${clientId}&response_type=code&platform_id=mp&state=${empresaId}&redirect_uri=${encodeURIComponent(effectiveRedirectUri)}`;
+    return {
+      configured: true,
+      url: authUrl,
+      clientId,
+      redirectUri: effectiveRedirectUri
+    };
+  }
+
+  /**
+   * Vincula la cuenta de Mercado Pago de una empresa procesando el código devuelto por OAuth
+   */
+  async vincularCuentaEmpresa(empresaId, code, redirectUri = null) {
+    const clientId = process.env.MERCADO_PAGO_CLIENT_ID;
+    const clientSecret = process.env.MERCADO_PAGO_CLIENT_SECRET;
+    if (!clientId || !clientSecret) {
+      throw new AppError("Variables MERCADO_PAGO_CLIENT_ID y MERCADO_PAGO_CLIENT_SECRET no configuradas", 500, "MP_CONFIG_MISSING");
+    }
+
+    const effectiveRedirectUri = redirectUri || process.env.MERCADO_PAGO_REDIRECT_URI || `${process.env.BASE_URL || 'http://localhost:3000'}/api/pagos/oauth/callback`;
+
+    const response = await fetch("https://api.mercadopago.com/oauth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_secret: clientSecret,
+        client_id: clientId,
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: effectiveRedirectUri
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new ExternalServiceError(`Error en autorización con Mercado Pago: ${data.message || JSON.stringify(data)}`);
+    }
+
+    await Empresa.update({
+      mp_access_token: data.access_token,
+      mp_public_key: data.public_key,
+      mp_refresh_token: data.refresh_token,
+      mp_user_id: String(data.user_id),
+      mp_vinculado: true
+    }, { where: { id: empresaId } });
+
+    return {
+      empresaId,
+      userId: data.user_id,
+      vinculado: true
+    };
+  }
+
+  /**
+   * Permite configurar o actualizar manualmente las credenciales de MP de una empresa (para desarrollo/pruebas)
+   */
+  async configurarCredencialesEmpresa(empresaId, { accessToken, publicKey, userId }) {
+    const empresa = await Empresa.findByPk(empresaId);
+    if (!empresa) throw new NotFoundError('Empresa');
+
+    await Empresa.update({
+      mp_access_token: accessToken || null,
+      mp_public_key: publicKey || null,
+      mp_user_id: userId || null,
+      mp_vinculado: Boolean(accessToken && accessToken.trim())
+    }, { where: { id: empresaId } });
+
+    return { empresaId, vinculado: Boolean(accessToken && accessToken.trim()) };
+  }
+
+  /**
+   * Desvincula la cuenta de Mercado Pago de una empresa
+   */
+  async desvincularEmpresa(empresaId) {
+    const empresa = await Empresa.findByPk(empresaId);
+    if (!empresa) throw new NotFoundError('Empresa');
+
+    await Empresa.update({
+      mp_access_token: null,
+      mp_public_key: null,
+      mp_refresh_token: null,
+      mp_user_id: null,
+      mp_vinculado: false
+    }, { where: { id: empresaId } });
+
+    return { empresaId, desvinculado: true };
   }
 }
 

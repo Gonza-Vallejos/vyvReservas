@@ -18,6 +18,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "id_empresa",
         otherKey: "id_usuario",
       });
+
+      Empresa.hasMany(models.Pago, {
+        foreignKey: "empresa_id",
+      });
     }
   }
 
@@ -50,6 +54,32 @@ module.exports = (sequelize, DataTypes) => {
       localidad_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
+      },
+      comision_porcentaje: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 10.0,
+      },
+      mp_user_id: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      mp_access_token: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      mp_public_key: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      mp_refresh_token: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      mp_vinculado: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
       },
       eliminado: {
         type: DataTypes.STRING,

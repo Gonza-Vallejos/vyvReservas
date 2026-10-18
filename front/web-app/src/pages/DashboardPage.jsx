@@ -6,9 +6,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Bus, Users, TrendingUp, Plus, Edit, Trash2, X,
   UserCheck, Truck, Building2, Settings, DollarSign, UserPlus, ShieldCheck,
-  BookmarkCheck, ArrowRight, Menu, MapPin, Phone, Mail, IdCard
+  BookmarkCheck, ArrowRight, Menu, MapPin, Phone, Mail, IdCard, CreditCard, Link2
 } from 'lucide-react';
-import { viajeService, transporteService, empresaService, reservaService, usuarioService } from '../services/api';
+import { viajeService, transporteService, empresaService, reservaService, usuarioService, pagoService } from '../services/api';
 import InteractiveChart from '../components/InteractiveChart';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -243,6 +243,14 @@ const DashboardPage = () => {
   const [miEmpresa, setMiEmpresa] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
 
+  // Estados de Comisiones y Marketplace Mercado Pago
+  const [metricasComisiones, setMetricasComisiones] = useState(null);
+  const [loadingComisiones, setLoadingComisiones] = useState(false);
+  const [editingComisionEmpresa, setEditingComisionEmpresa] = useState(null);
+  const [nuevaComisionValor, setNuevaComisionValor] = useState('');
+  const [showMpConfigModal, setShowMpConfigModal] = useState(false);
+  const [mpManualToken, setMpManualToken] = useState('');
+
   const [showTripModal, setShowTripModal] = useState(false);
   const [showEditTripModal, setShowEditTripModal] = useState(false);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
@@ -431,6 +439,79 @@ const DashboardPage = () => {
     }
   }, [user, isOwner, isSuperAdmin]);
 
+  const fetchMetricasComisiones = useCallback(async () => {
+    try {
+      setLoadingComisiones(true);
+      const res = await pagoService.obtenerMetricasComisiones();
+      setMetricasComisiones(res.data?.data || res.data || null);
+    } catch (err) {
+      console.error('Error al cargar métricas de comisiones:', err);
+    } finally {
+      setLoadingComisiones(false);
+    }
+  }, []);
+
+  const handleGuardarComision = async () => {
+    if (!editingComisionEmpresa) return;
+    try {
+      const pct = parseFloat(nuevaComisionValor);
+      if (isNaN(pct) || pct < 0 || pct > 100) {
+        toast.error('El porcentaje debe ser entre 0 y 100');
+        return;
+      }
+      await pagoService.actualizarComisionEmpresa(editingComisionEmpresa.empresaId, pct);
+      toast.success(`Comisión para ${editingComisionEmpresa.nombre} actualizada a ${pct}%`);
+      setEditingComisionEmpresa(null);
+      fetchMetricasComisiones();
+    } catch (err) {
+      console.error('Error al actualizar comisión:', err);
+      toast.error('Error al actualizar comisión');
+    }
+  };
+
+  const handleVincularMpEmpresa = async (empresaId) => {
+    try {
+      const res = await pagoService.obtenerUrlOAuth(empresaId);
+      const data = res.data?.data || res.data;
+      if (data?.configured && data?.url) {
+        window.location.href = data.url;
+      } else {
+        setShowMpConfigModal(true);
+      }
+    } catch (err) {
+      setShowMpConfigModal(true);
+    }
+  };
+
+  const handleGuardarManualMpToken = async (empresaId) => {
+    if (!mpManualToken.trim()) {
+      toast.error('Ingresa un Access Token válido');
+      return;
+    }
+    try {
+      await pagoService.vincularMercadoPago(empresaId, { accessToken: mpManualToken.trim() });
+      toast.success('Mercado Pago vinculado a la empresa correctamente');
+      setShowMpConfigModal(false);
+      setMpManualToken('');
+      fetchData();
+      if (isSuperAdmin) fetchMetricasComisiones();
+    } catch (err) {
+      toast.error('Error al vincular credenciales');
+    }
+  };
+
+  const handleDesvincularMp = async (empresaId) => {
+    if (!window.confirm('¿Seguro que deseas desvincular la cuenta de Mercado Pago?')) return;
+    try {
+      await pagoService.desvincularMercadoPago(empresaId);
+      toast.success('Cuenta de Mercado Pago desvinculada');
+      fetchData();
+      if (isSuperAdmin) fetchMetricasComisiones();
+    } catch (err) {
+      toast.error('Error al desvincular cuenta');
+    }
+  };
+
   useEffect(() => {
     if (authLoading) return;
     const perfilId = Number(user?.perfil_id ?? user?.perfilId);
@@ -441,7 +522,10 @@ const DashboardPage = () => {
     // Carga inicial de datos (fetching asíncrono estándar).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
-  }, [user, authLoading, navigate, fetchData]);
+    if (perfilId === PROFILES.ADMINISTRADOR) {
+      fetchMetricasComisiones();
+    }
+  }, [user, authLoading, navigate, fetchData, fetchMetricasComisiones]);
 
   const handleDeleteTrip = async (id, routeLabel) => {
     if (!window.confirm(`¿Estás seguro de eliminar el viaje ${routeLabel}?`)) return;
@@ -643,6 +727,7 @@ const DashboardPage = () => {
           {isSuperAdmin ? (
             <>
               <SidebarItem id="estadisticas" icon={TrendingUp} label="Estadísticas" active={activeTab === 'estadisticas'} onClick={() => { setActiveTab('estadisticas'); setMobileSidebarOpen(false); }} />
+              <SidebarItem id="comisiones" icon={DollarSign} label="Comisiones & MP" active={activeTab === 'comisiones'} onClick={() => { setActiveTab('comisiones'); setMobileSidebarOpen(false); fetchMetricasComisiones(); }} />
               <SidebarItem id="usuarios" icon={Users} label="Usuarios" badgeCount={allUsers.length} active={activeTab === 'usuarios'} onClick={() => { setActiveTab('usuarios'); setMobileSidebarOpen(false); }} />
             </>
           ) : (
@@ -667,12 +752,38 @@ const DashboardPage = () => {
             <Menu size={20} />
             <span>Pestañas / Menú</span>
           </Button>
-          <span className="dashboard-active-tab-badge">{activeTab}</span>
+          <span className="dashboard-active-tab-badge">{
+            {
+              resumen: 'Resumen',
+              estadisticas: 'Estadísticas',
+              comisiones: 'Comisiones & MP',
+              usuarios: 'Usuarios',
+              viajes: 'Viajes',
+              reservas: 'Reservas',
+              flota: 'Mi Flota',
+              choferes: 'Personal',
+              'mi-empresa': 'Mi Empresa',
+              empresas: isSuperAdmin ? 'Empresas' : 'Configuración'
+            }[activeTab] || activeTab
+          }</span>
         </div>
 
         <header className="dashboard-header">
           <div className="animate-fade-in">
-            <h1 className="dashboard-title">{activeTab}</h1>
+            <h1 className="dashboard-title">{
+              {
+                resumen: 'Panel de Control',
+                estadisticas: 'Estadísticas Globales',
+                comisiones: 'Comisiones & Mercado Pago',
+                usuarios: 'Usuarios del Sistema',
+                viajes: 'Gestión de Viajes',
+                reservas: 'Control de Reservas',
+                flota: 'Flota de Vehículos',
+                choferes: 'Personal y Choferes',
+                'mi-empresa': 'Mi Empresa',
+                empresas: isSuperAdmin ? 'Empresas Registradas' : 'Configuración de Empresa'
+              }[activeTab] || activeTab
+            }</h1>
             <div className="dashboard-role-badge">
               <ShieldCheck size={14} aria-hidden="true" />
               <span>{isSuperAdmin ? 'Super Administrador' : isOwner ? 'Dueño de Empresa' : 'Operador Mostrador'}</span>
@@ -1063,7 +1174,8 @@ const DashboardPage = () => {
             {activeTab === 'mi-empresa' && (
               <div className="animate-fade-in dashboard-tab">
                 {miEmpresa ? (
-                  <Card>
+                  <>
+                    <Card>
                     <div className="dashboard-company-header">
                       <div className="dashboard-company-logo">
                         <Building2 size={32} aria-hidden="true" />
@@ -1104,6 +1216,51 @@ const DashboardPage = () => {
                       </div>
                     </div>
                   </Card>
+
+                  {/* Configuración de Mercado Pago & Acreditación de Fondos */}
+                  <Card style={{ marginTop: 'var(--space-5)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+                      <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+                        <div style={{ padding: 'var(--space-2)', background: 'var(--color-primary-light, rgba(239, 68, 68, 0.1))', borderRadius: 'var(--radius-md)', color: 'var(--color-primary)' }}>
+                          <CreditCard size={24} />
+                        </div>
+                        <div>
+                          <h3 style={{ margin: 0, fontSize: 'var(--font-size-base)', fontWeight: 600 }}>Mercado Pago & Cobros de Pasajes</h3>
+                          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)' }}>
+                            Acreditación directa en tu cuenta bancaria / Mercado Pago
+                          </p>
+                        </div>
+                      </div>
+                      {miEmpresa.mp_vinculado ? (
+                        <Badge variant="success">Cuenta Vinculada ✅</Badge>
+                      ) : (
+                        <Badge variant="warning">Sin vincular ⚠️</Badge>
+                      )}
+                    </div>
+
+                    <div style={{ background: 'var(--bg-secondary, #f8fafc)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-4)', border: '1px solid var(--border-color)' }}>
+                      <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                        • <b>Comisión de servicio de la plataforma:</b> {miEmpresa.comision_porcentaje || 10}%<br />
+                        • <b>Ingresos netos que recibe tu empresa:</b> {100 - (miEmpresa.comision_porcentaje || 10)}% por cada boleto vendido.<br />
+                        {miEmpresa.mp_vinculado
+                          ? '• Tu cuenta de Mercado Pago está conectada. Los cobros de tus viajes se depositan directamente en tu cuenta con el split automático de comisiones.'
+                          : '• Conectá tu cuenta de Mercado Pago para que los clientes te abonen los pasajes directamente y recibas los fondos de manera automática e inmediata.'}
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                      {!miEmpresa.mp_vinculado ? (
+                        <Button onClick={() => handleVincularMpEmpresa(miEmpresa.id)}>
+                          <Link2 size={18} /> Vincular Mercado Pago
+                        </Button>
+                      ) : (
+                        <Button variant="danger" size="sm" onClick={() => handleDesvincularMp(miEmpresa.id)}>
+                          Desvincular Mercado Pago
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                </>
                 ) : (
                   <EmptyState
                     icon={Building2}
@@ -1154,7 +1311,163 @@ const DashboardPage = () => {
               </div>
             )}
 
-            {activeTab === 'empresas' && isOwner && (
+            {activeTab === 'comisiones' && isSuperAdmin && (
+              <div className="animate-fade-in dashboard-tab">
+                <div className="dashboard-tab__toolbar">
+                  <div>
+                    <h2 className="dashboard-section-title">Comisiones y Mercado Pago</h2>
+                    <p className="dashboard-section-description">
+                      Supervisión de recaudación, comisiones de plataforma para el Super Admin y vinculación Marketplace.
+                    </p>
+                  </div>
+                  <Button variant="secondary" onClick={fetchMetricasComisiones} disabled={loadingComisiones}>
+                    {loadingComisiones ? 'Actualizando…' : 'Actualizar métricas'}
+                  </Button>
+                </div>
+
+                {/* Tarjetas KPI de Comisiones */}
+                <div className="stats-grid" style={{ marginBottom: 'var(--space-6)' }}>
+                  <StatCard 
+                    icon={DollarSign} 
+                    label="Facturación Total Pasajes" 
+                    value={formatCurrency(metricasComisiones?.resumen?.totalRecaudado || 0)} 
+                    variant="primary" 
+                  />
+                  <StatCard 
+                    icon={ShieldCheck} 
+                    label="Tus Ganancias (Comisiones)" 
+                    value={formatCurrency(metricasComisiones?.resumen?.totalComisionesPlataforma || 0)} 
+                    variant="success" 
+                  />
+                  <StatCard 
+                    icon={Truck} 
+                    label="Liquidación Neta Empresas" 
+                    value={formatCurrency(metricasComisiones?.resumen?.totalNetoEmpresas || 0)} 
+                    variant="accent" 
+                  />
+                  <StatCard 
+                    icon={TrendingUp} 
+                    label="Comisión Promedio Plataforma" 
+                    value={`${metricasComisiones?.resumen?.comisionPromedioPorcentaje || 10}%`} 
+                    variant="default" 
+                  />
+                </div>
+
+                {/* Explicación del modelo Marketplace y Split */}
+                <Card style={{ marginBottom: 'var(--space-6)', borderLeft: '4px solid var(--color-primary)' }}>
+                  <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start' }}>
+                    <div style={{ padding: 'var(--space-2)', background: 'var(--color-primary-light, rgba(239, 68, 68, 0.1))', borderRadius: 'var(--radius-md)', color: 'var(--color-primary)' }}>
+                      <DollarSign size={24} />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: '0 0 var(--space-2) 0', fontSize: 'var(--font-size-base)', fontWeight: 600 }}>
+                        ¿Cómo cobrás tus comisiones en esta plataforma?
+                      </h3>
+                      <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)', lineHeight: 1.6 }}>
+                        • <b>Mercado Pago Marketplace Split:</b> Cuando una empresa vincula su cuenta de Mercado Pago, la plataforma divide el dinero en el mismo segundo en que el pasajero paga: la comisión pactada entra automáticamente a tu cuenta de Super Admin y el neto va a la cuenta de la empresa.<br />
+                        • <b>Eficiencia impositiva:</b> Vos sólo facturás tu comisión por servicio de intermediación tecnológica, sin retenciones sobre el pasaje completo.<br />
+                        • <b>Modo de contingencia / Demo:</b> Si la empresa aún no vinculó su cuenta o se usa la cuenta general, los cobros se registran contablemente en el sistema con el desglose exacto de comisiones para control o liquidación.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Tabla de Empresas y sus comisiones */}
+                <Card className="table-card" padded={false} style={{ marginBottom: 'var(--space-6)' }}>
+                  <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--border-color)' }}>
+                    <h3 style={{ margin: 0, fontSize: 'var(--font-size-base)', fontWeight: 600 }}>Comisión pactada por Empresa</h3>
+                  </div>
+                  <DashboardTable 
+                    headers={['Empresa', 'Ventas', 'Total Vendido', 'Tu Comisión ($)', '% Comisión', 'Mercado Pago', 'Acciones']} 
+                    caption="Comisiones por empresa"
+                  >
+                    {(metricasComisiones?.empresas || []).map((emp) => (
+                      <tr key={emp.empresaId}>
+                        <td>
+                          <div className="dashboard-table__title">{emp.nombre}</div>
+                          <div className="dashboard-table__text">CUIT: {emp.cuit || 'S/D'} • {emp.email}</div>
+                        </td>
+                        <td>
+                          <Badge variant="default">{emp.cantidadVentas} pasajes</Badge>
+                        </td>
+                        <td>
+                          <div className="dashboard-table__title">{formatCurrency(emp.totalRecaudado)}</div>
+                        </td>
+                        <td>
+                          <div className="dashboard-table__title" style={{ color: 'var(--color-success)' }}>
+                            {formatCurrency(emp.totalComision)}
+                          </div>
+                        </td>
+                        <td>
+                          <Badge variant="primary" style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+                            {emp.comisionPorcentaje}%
+                          </Badge>
+                        </td>
+                        <td>
+                          {emp.mpVinculado ? (
+                            <Badge variant="success">Vinculado ✅</Badge>
+                          ) : (
+                            <Badge variant="warning">Pendiente ⚠️</Badge>
+                          )}
+                        </td>
+                        <td>
+                          <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            onClick={() => {
+                              setEditingComisionEmpresa(emp);
+                              setNuevaComisionValor(String(emp.comisionPorcentaje));
+                            }}
+                          >
+                            Editar %
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </DashboardTable>
+                </Card>
+
+                {/* Historial de Transacciones con Desglose de Comisiones */}
+                <Card className="table-card" padded={false}>
+                  <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--border-color)' }}>
+                    <h3 style={{ margin: 0, fontSize: 'var(--font-size-base)', fontWeight: 600 }}>Últimas transacciones y comisiones retenidas</h3>
+                  </div>
+                  <DashboardTable 
+                    headers={['ID Pago', 'Fecha', 'Viaje / Empresa', 'Total Cobrado', 'Tu Comisión', 'Neto Empresa']} 
+                    caption="Últimas transacciones"
+                  >
+                    {(metricasComisiones?.ultimasTransacciones || []).map((tx) => (
+                      <tr key={tx.pagoId}>
+                        <td>
+                          <div className="dashboard-table__title">#PAGO-{tx.pagoId}</div>
+                          <div className="dashboard-table__text">Reserva #{tx.reservaId}</div>
+                        </td>
+                        <td>
+                          <div className="dashboard-table__text">{new Date(tx.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                        </td>
+                        <td>
+                          <div className="dashboard-table__title">{tx.viaje || 'Viaje'}</div>
+                          <div className="dashboard-table__text">{tx.empresa?.nombre || 'Empresa'}</div>
+                        </td>
+                        <td>
+                          <div className="dashboard-table__title">{formatCurrency(tx.montoTotal)}</div>
+                        </td>
+                        <td>
+                          <div className="dashboard-table__title" style={{ color: 'var(--color-success)' }}>
+                            {formatCurrency(tx.comisionPlataforma)} ({tx.porcentajeComision}%)
+                          </div>
+                        </td>
+                        <td>
+                          <div className="dashboard-table__text">{formatCurrency(tx.netoEmpresa)}</div>
+                        </td>
+                      </tr>
+                    ))}
+                  </DashboardTable>
+                </Card>
+              </div>
+            )}
+
+            {activeTab === 'empresas' && (isOwner || isSuperAdmin) && (
               <div className="animate-fade-in dashboard-tab">
                 {isSuperAdmin && (
                   <div className="dashboard-tab__toolbar">
@@ -1175,7 +1488,10 @@ const DashboardPage = () => {
                       description="No se encontraron otras empresas en el sistema."
                     />
                   ) : (
-                    <DashboardTable headers={['Nombre', 'CUIT', 'Contacto', 'Estado', 'Dueño']} caption="Empresas registradas">
+                    <DashboardTable 
+                      headers={['Nombre', 'CUIT', 'Contacto', 'Estado', ...(isSuperAdmin ? ['Comisión Plataforma'] : []), 'Dueño']} 
+                      caption="Empresas registradas"
+                    >
                       {empresas.map((emp) => {
                         const dueno = allUsers.find(u => String(u.id_empresa || u.idEmpresa) === String(emp.id) && Number(u.perfil_id || u.perfilId) === PROFILES.EMPRESA);
                         return (
@@ -1196,6 +1512,26 @@ const DashboardPage = () => {
                                 {emp.eliminado === 'si' ? 'Inactiva' : 'Activa'}
                               </Badge>
                             </td>
+                            {isSuperAdmin && (
+                              <td>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                  <Badge variant="primary" style={{ fontWeight: 700 }}>
+                                    {emp.comision_porcentaje ?? 10}%
+                                  </Badge>
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingComisionEmpresa({ empresaId: emp.id, nombre: emp.nombre, comisionPorcentaje: emp.comision_porcentaje ?? 10 });
+                                      setNuevaComisionValor(String(emp.comision_porcentaje ?? 10));
+                                    }}
+                                    ariaLabel={`Editar comisión de ${emp.nombre}`}
+                                  >
+                                    <Edit size={14} />
+                                  </Button>
+                                </div>
+                              </td>
+                            )}
                             <td>
                               {dueno ? (
                                 <div className="dashboard-table__title">{dueno.nombre} {dueno.apellido}</div>
@@ -1886,6 +2222,70 @@ const DashboardPage = () => {
               <div className="dashboard-modal-actions">
                 <Button onClick={() => setShowReservaDetailModal(false)}>Cerrar detalle</Button>
               </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {editingComisionEmpresa && (
+        <Modal
+          title={`Editar Comisión: ${editingComisionEmpresa.nombre}`}
+          subtitle="Porcentaje que retiene la plataforma por cada pasaje vendido"
+          onClose={() => setEditingComisionEmpresa(null)}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>
+              Actualmente tiene pactada una comisión del <b>{editingComisionEmpresa.comisionPorcentaje}%</b>. Al modificar este valor, las nuevas reservas aplicarán la nueva tasa de comisión.
+            </p>
+            <InputField
+              label="Porcentaje de Comisión (%)"
+              type="number"
+              min="0"
+              max="100"
+              step="0.5"
+              value={nuevaComisionValor}
+              onChange={(e) => setNuevaComisionValor(e.target.value)}
+              placeholder="Ej: 10"
+            />
+            <div className="dashboard-modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+              <Button variant="secondary" onClick={() => setEditingComisionEmpresa(null)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleGuardarComision}>
+                Guardar Comisión
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {showMpConfigModal && (
+        <Modal
+          title="Vincular Mercado Pago de la Empresa"
+          subtitle="Acreditación directa de cobros de pasajes"
+          onClose={() => setShowMpConfigModal(false)}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <div style={{ background: 'var(--bg-secondary, #f8fafc)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+              <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                Para habilitar la vinculación automática con un solo clic, se deben configurar <code>MERCADO_PAGO_CLIENT_ID</code> y <code>MERCADO_PAGO_CLIENT_SECRET</code> en el panel del servidor.<br />
+                Mientras tanto, puedes ingresar directamente el <b>Access Token</b> de Mercado Pago de la empresa (sea de prueba <code>TEST-...</code> o producción <code>APP_USR-...</code>).
+              </p>
+            </div>
+            <InputField
+              label="Mercado Pago Access Token"
+              type="password"
+              value={mpManualToken}
+              onChange={(e) => setMpManualToken(e.target.value)}
+              placeholder="TEST-... o APP_USR-..."
+            />
+            <div className="dashboard-modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+              <Button variant="secondary" onClick={() => setShowMpConfigModal(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={() => handleGuardarManualMpToken(miEmpresa?.id || 1)}>
+                Guardar Credenciales
+              </Button>
             </div>
           </div>
         </Modal>

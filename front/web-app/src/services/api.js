@@ -70,6 +70,11 @@ export const pagoService = {
   obtenerEstado: (reservaId) => api.get(`/pagos/estado/${reservaId}`),
   reintentar: (reservaId) => api.post(`/pagos/reintentar/${reservaId}`),
   obtenerPagos: (reservaId) => api.get(`/pagos/reserva/${reservaId}`),
+  obtenerMetricasComisiones: () => api.get('/pagos/metricas-comisiones'),
+  actualizarComisionEmpresa: (empresaId, comision_porcentaje) => api.put(`/pagos/comision-empresa/${empresaId}`, { comision_porcentaje }),
+  obtenerUrlOAuth: (empresaId, redirectUri) => api.get(`/pagos/oauth/url/${empresaId}`, { params: { redirect_uri: redirectUri } }),
+  vincularMercadoPago: (empresaId, data) => api.post(`/pagos/oauth/vincular/${empresaId}`, data),
+  desvincularMercadoPago: (empresaId) => api.delete(`/pagos/oauth/desvincular/${empresaId}`),
 };
 
 export default api;

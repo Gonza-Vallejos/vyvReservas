@@ -8,6 +8,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "reserva_id",
         targetKey: "id"
       });
+      Pago.belongsTo(models.Empresa, {
+        foreignKey: "empresa_id",
+        targetKey: "id"
+      });
     }
   }
 
@@ -22,9 +26,28 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false
       },
+      empresa_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+      },
       monto: {
         type: DataTypes.FLOAT,
         allowNull: false
+      },
+      monto_comision: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 0
+      },
+      monto_empresa: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 0
+      },
+      porcentaje_comision: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 10.0
       },
       estado: {
         type: DataTypes.STRING,
