@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Bus, LogOut, Menu, X, ArrowRight, ShieldCheck, UserRound, Ticket, Home as HomeIcon, Building2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster, toast } from 'react-hot-toast';
@@ -173,8 +173,33 @@ const Home = () => {
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDashboardSidebarOpen, setIsDashboardSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isDashboard = location.pathname.startsWith('/dashboard');
+
+  useEffect(() => {
+    const handleSidebarChange = (e) => {
+      setIsDashboardSidebarOpen(!!e.detail?.open);
+    };
+    window.addEventListener('vv-dashboard-sidebar-changed', handleSidebarChange);
+    return () => window.removeEventListener('vv-dashboard-sidebar-changed', handleSidebarChange);
+  }, []);
+
+  useEffect(() => {
+    setIsMenuOpen(false);
+    setIsDashboardSidebarOpen(false);
+  }, [location.pathname]);
+
+  const handleHamburgerClick = () => {
+    if (isDashboard) {
+      window.dispatchEvent(new CustomEvent('vv-toggle-dashboard-menu'));
+    } else {
+      setIsMenuOpen(prev => !prev);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -188,10 +213,22 @@ const Navbar = () => {
   const canViewDashboard = user && [PROFILES.ADMINISTRADOR, PROFILES.EMPRESA, PROFILES.MOSTRADOR].includes(perfilId);
   const isChofer = user && perfilId === PROFILES.CHOFER;
 
+  const currentMenuOpen = isDashboard ? isDashboardSidebarOpen : isMenuOpen;
+
   return (
     <nav className={`site-navbar ${isMenuOpen ? 'site-navbar--menu-open' : ''}`} aria-label="Navegación principal">
       <div className="site-navbar__inner">
         <div className="site-navbar__brand">
+          <button 
+            type="button"
+            onClick={handleHamburgerClick} 
+            className={`site-navbar__menu mobile-only ${currentMenuOpen ? 'site-navbar__menu--active' : ''}`} 
+            aria-label={currentMenuOpen ? 'Cerrar menú' : 'Abrir menú'} 
+            aria-expanded={currentMenuOpen}
+          >
+            {currentMenuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+
           <Link to="/" className="site-navbar__logo" aria-label="V&V Reservas, ir al inicio">
             <span className="site-navbar__logo-mark"><Bus size={22} /></span>
             <span>V&V</span>
@@ -230,9 +267,16 @@ const Navbar = () => {
           )}
         </div>
 
-        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="site-navbar__menu mobile-only" aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'} aria-expanded={isMenuOpen}>
-          {isMenuOpen ? <X size={32} /> : <Menu size={32} />}
-        </button>
+        {/* Móvil a la derecha: avatar si está logueado o botón Ingresar */}
+        {user ? (
+          <Link to="/perfil" className="site-navbar__user-mobile mobile-only" aria-label="Mi perfil">
+            <span className="site-navbar__avatar">{user?.nombre?.charAt(0).toUpperCase()}</span>
+          </Link>
+        ) : (
+          <Link to="/login" className="site-navbar__login-mobile mobile-only" aria-label="Ingresar">
+            <ArrowRight size={18} />
+          </Link>
+        )}
       </div>
 
       {isMenuOpen && (

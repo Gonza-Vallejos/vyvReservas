@@ -6,7 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Bus, Users, TrendingUp, Plus, Edit, Trash2, X,
   UserCheck, Truck, Building2, Settings, DollarSign, UserPlus, ShieldCheck,
-  BookmarkCheck, ArrowRight, Menu, MapPin, Phone, Mail, IdCard, CreditCard, Link2
+  BookmarkCheck, ArrowRight, Menu, MapPin, Phone, Mail, IdCard, CreditCard, Link2,
+  Home, UserRound, LogOut
 } from 'lucide-react';
 import { viajeService, transporteService, empresaService, reservaService, usuarioService, pagoService } from '../services/api';
 import InteractiveChart from '../components/InteractiveChart';
@@ -227,12 +228,24 @@ const SidebarItem = ({ icon: Icon, label, badgeCount, active, onClick }) => (
 );
 
 const DashboardPage = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('resumen');
   const [loading, setLoading] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const handleToggle = () => {
+      setMobileSidebarOpen(prev => !prev);
+    };
+    window.addEventListener('vv-toggle-dashboard-menu', handleToggle);
+    return () => window.removeEventListener('vv-toggle-dashboard-menu', handleToggle);
+  }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('vv-dashboard-sidebar-changed', { detail: { open: mobileSidebarOpen } }));
+  }, [mobileSidebarOpen]);
 
   const [viajes, setViajes] = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
@@ -783,31 +796,19 @@ const DashboardPage = () => {
         <div className="dashboard-sidebar__footer">
           {!isSuperAdmin && <SidebarItem id="mi-empresa" icon={Building2} label="Mi Empresa" active={activeTab === 'mi-empresa'} onClick={() => { setActiveTab('mi-empresa'); setMobileSidebarOpen(false); }} />}
           {!isSuperAdmin && <SidebarItem id="empresas" icon={Settings} label="Configuración" active={activeTab === 'empresas'} onClick={() => { setActiveTab('empresas'); setMobileSidebarOpen(false); }} />}
+
+          <div style={{ borderTop: '1px solid #e2e8f0', marginTop: '12px', paddingTop: '10px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 12px 6px' }}>
+              Navegación
+            </div>
+            <SidebarItem icon={Home} label="Ir al Inicio" onClick={() => { setMobileSidebarOpen(false); navigate('/'); }} />
+            <SidebarItem icon={UserRound} label="Mi Perfil" onClick={() => { setMobileSidebarOpen(false); navigate('/perfil'); }} />
+            <SidebarItem icon={LogOut} label="Cerrar Sesión" onClick={() => { setMobileSidebarOpen(false); logout(); toast.success('Sesión cerrada'); navigate('/'); }} />
+          </div>
         </div>
       </aside>
 
       <main className="dashboard-main">
-        <div className="dashboard-mobile-topbar mobile-only">
-          <Button variant="secondary" size="sm" onClick={() => setMobileSidebarOpen(true)} ariaLabel="Abrir menú">
-            <Menu size={20} />
-            <span>Pestañas / Menú</span>
-          </Button>
-          <span className="dashboard-active-tab-badge">{
-            {
-              resumen: 'Resumen',
-              empresas: 'Empresas',
-              comisiones: 'Comisiones & MP',
-              usuarios: 'Usuarios',
-              viajes: 'Viajes',
-              reservas: 'Reservas',
-              flota: 'Mi Flota',
-              choferes: 'Personal',
-              estadisticas: 'Estadísticas',
-              'mi-empresa': 'Mi Empresa',
-            }[activeTab] || activeTab
-          }</span>
-        </div>
-
         <header className="dashboard-header">
           <div className="animate-fade-in">
             <h1 className="dashboard-title">{
@@ -824,14 +825,25 @@ const DashboardPage = () => {
                 'mi-empresa': 'Mi Empresa',
               }[activeTab] || activeTab
             }</h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
               <div className="dashboard-role-badge">
                 <ShieldCheck size={14} aria-hidden="true" />
                 <span>{isSuperAdmin ? 'Super Administrador' : isOwner ? 'Dueño de Empresa' : 'Operador Mostrador'}</span>
               </div>
-              <span style={{ fontSize: '0.86rem', color: 'var(--text-muted)' }}>
-                👋 ¡Hola, <strong>{user?.nombre}</strong>!
-              </span>
+              <span className="dashboard-active-tab-badge mobile-only">{
+                {
+                  resumen: 'Resumen',
+                  empresas: 'Empresas',
+                  comisiones: 'Comisiones & MP',
+                  usuarios: 'Usuarios',
+                  viajes: 'Viajes',
+                  reservas: 'Reservas',
+                  flota: 'Mi Flota',
+                  choferes: 'Personal',
+                  estadisticas: 'Estadísticas',
+                  'mi-empresa': 'Mi Empresa',
+                }[activeTab] || activeTab
+              }</span>
             </div>
           </div>
           {isSuperAdmin ? (
