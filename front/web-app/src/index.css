@@ -1271,6 +1271,12 @@ img, svg {
   gap: 24px;
 }
 
+.site-navbar__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .site-navbar__logo {
   display: inline-flex;
   align-items: center;
@@ -1292,6 +1298,63 @@ img, svg {
   color: #ffffff;
   background: linear-gradient(135deg, var(--color-primary), #4f46e5);
   box-shadow: 0 8px 16px rgba(37, 99, 235, 0.22);
+}
+
+.site-navbar__greeting-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 13px;
+  border-radius: 9999px;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  line-height: 1;
+}
+
+.site-navbar__greeting-wave {
+  font-size: 1rem;
+  display: inline-block;
+  animation: navbarWave 2.4s ease-in-out infinite;
+  transform-origin: 70% 70%;
+}
+
+@keyframes navbarWave {
+  0% { transform: rotate(0deg); }
+  10% { transform: rotate(14deg); }
+  20% { transform: rotate(-8deg); }
+  30% { transform: rotate(14deg); }
+  40% { transform: rotate(-4deg); }
+  50% { transform: rotate(10deg); }
+  60% { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.site-navbar__greeting-text {
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.site-navbar__greeting-text strong {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .site-navbar__brand {
+    gap: 8px;
+  }
+  .site-navbar__greeting-badge {
+    padding: 3px 9px;
+  }
+  .site-navbar__greeting-text {
+    font-size: 0.78rem;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 .site-navbar__desktop {

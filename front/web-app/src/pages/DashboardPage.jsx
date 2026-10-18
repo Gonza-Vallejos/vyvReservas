@@ -824,9 +824,14 @@ const DashboardPage = () => {
                 'mi-empresa': 'Mi Empresa',
               }[activeTab] || activeTab
             }</h1>
-            <div className="dashboard-role-badge">
-              <ShieldCheck size={14} aria-hidden="true" />
-              <span>{isSuperAdmin ? 'Super Administrador' : isOwner ? 'Dueño de Empresa' : 'Operador Mostrador'}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', flexWrap: 'wrap' }}>
+              <div className="dashboard-role-badge">
+                <ShieldCheck size={14} aria-hidden="true" />
+                <span>{isSuperAdmin ? 'Super Administrador' : isOwner ? 'Dueño de Empresa' : 'Operador Mostrador'}</span>
+              </div>
+              <span style={{ fontSize: '0.86rem', color: 'var(--text-muted)' }}>
+                👋 ¡Hola, <strong>{user?.nombre}</strong>!
+              </span>
             </div>
           </div>
           {isSuperAdmin ? (

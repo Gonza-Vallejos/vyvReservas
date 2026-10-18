@@ -191,10 +191,20 @@ const Navbar = () => {
   return (
     <nav className={`site-navbar ${isMenuOpen ? 'site-navbar--menu-open' : ''}`} aria-label="Navegación principal">
       <div className="site-navbar__inner">
-        <Link to="/" className="site-navbar__logo" aria-label="V&V Reservas, ir al inicio">
-          <span className="site-navbar__logo-mark"><Bus size={22} /></span>
-          <span>V&V</span>
-        </Link>
+        <div className="site-navbar__brand">
+          <Link to="/" className="site-navbar__logo" aria-label="V&V Reservas, ir al inicio">
+            <span className="site-navbar__logo-mark"><Bus size={22} /></span>
+            <span>V&V</span>
+          </Link>
+          {user && (
+            <div className="site-navbar__greeting-badge">
+              <span className="site-navbar__greeting-wave" aria-hidden="true">👋</span>
+              <span className="site-navbar__greeting-text">
+                Hola, <strong>{user.nombre}</strong>
+              </span>
+            </div>
+          )}
+        </div>
 
         <div className="site-navbar__desktop desktop-only">
           <Link to="/" className="site-navbar__link">Inicio</Link>
@@ -247,6 +257,9 @@ const Navbar = () => {
               <div className="site-navbar__mobile-user">
                 <span className="site-navbar__avatar">{user?.nombre?.charAt(0).toUpperCase()}</span>
                 <div>
+                  <div style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 700, letterSpacing: '0.03em' }}>
+                    👋 ¡Hola, {user?.nombre}!
+                  </div>
                   <strong>{user?.nombre} {user?.apellido}</strong>
                   <span>{perfilId === PROFILES.EMPRESA ? 'Empresa' : perfilId === PROFILES.CHOFER ? 'Chofer' : perfilId === PROFILES.ADMINISTRADOR ? 'Super administrador' : 'Cuenta personal'}</span>
                 </div>
