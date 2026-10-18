@@ -8,9 +8,6 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  Building2,
-  BusFront,
-  Ticket,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -156,25 +153,7 @@ const LoginPage = () => {
               </>
             )}
           </Button>
-          </form>
-
-          <div className="auth-role-guide" aria-label="Acciones según tu perfil">
-            <div className="auth-role-guide__title">Cada perfil tiene su espacio</div>
-            <div className="auth-role-guide__items">
-              <div className="auth-role-guide__item">
-                <Ticket size={16} aria-hidden="true" />
-                <span><strong>Pasajero</strong> · reserva y paga</span>
-              </div>
-              <div className="auth-role-guide__item">
-                <Building2 size={16} aria-hidden="true" />
-                <span><strong>Empresa</strong> · administra viajes y flota</span>
-              </div>
-              <div className="auth-role-guide__item">
-                <BusFront size={16} aria-hidden="true" />
-                <span><strong>Chofer</strong> · consulta su recorrido</span>
-              </div>
-            </div>
-          </div>
+        </form>
 
         <div className="auth-divider" aria-hidden="true">
           <span>o</span>
