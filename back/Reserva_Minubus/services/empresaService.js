@@ -1,10 +1,28 @@
-const { Empresa } = require("../models");
+const { Empresa, Usuario } = require("../models");
 
 class EmpresaService {
   async getAll() {
-    return await Empresa.findAll({
+    const empresas = await Empresa.findAll({
       where: { eliminado: "no" },
-      attributes: { exclude: ["eliminado"] }
+      attributes: { exclude: ["eliminado"] },
+      include: [
+        {
+          model: Usuario,
+          through: { attributes: [] },
+          where: { perfil_id: 5, eliminado: "no" },
+          required: false,
+          attributes: ["id", "nombre", "apellido", "email", "usuario", "telefono", "perfil_id"]
+        }
+      ]
+    });
+    return empresas.map((emp) => {
+      const json = emp.toJSON();
+      const dueno = json.Usuarios?.[0] || null;
+      return {
+        ...json,
+        dueno,
+        id_dueno: dueno?.id || null
+      };
     });
   }
 

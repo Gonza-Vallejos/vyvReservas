@@ -242,6 +242,7 @@ const DashboardPage = () => {
   const [empresas, setEmpresas] = useState([]);
   const [miEmpresa, setMiEmpresa] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
+  const [empresaOwners, setEmpresaOwners] = useState({});
 
   // Estados de Comisiones y Marketplace Mercado Pago
   const [metricasComisiones, setMetricasComisiones] = useState(null);
@@ -425,12 +426,47 @@ const DashboardPage = () => {
         }
       }
       if (rRes.status === 'fulfilled') setReservas(rRes.value?.data?.data || rRes.value?.data || []);
-      if (empListRes.status === 'fulfilled')
-        setEmpresas(empListRes.value?.data?.data || empListRes.value?.data || []);
+      
+      let currentEmpresas = [];
+      if (empListRes.status === 'fulfilled') {
+        currentEmpresas = empListRes.value?.data?.data || empListRes.value?.data || [];
+        setEmpresas(currentEmpresas);
+      }
+      
       if (locRes.status === 'fulfilled')
         setLocalidades(locRes.value?.data?.data || locRes.value?.data || []);
-      if (usersRes.status === 'fulfilled')
-        setAllUsers(usersRes.value?.data?.data || usersRes.value?.data || []);
+      
+      let currentUsers = [];
+      if (usersRes.status === 'fulfilled') {
+        currentUsers = usersRes.value?.data?.data || usersRes.value?.data || [];
+        setAllUsers(currentUsers);
+      }
+
+      // Si es SuperAdmin, consultar los usuarios asociados a cada empresa para obtener el dueño
+      if (isSuperAdmin && currentEmpresas.length > 0) {
+        const ownersMap = {};
+        await Promise.allSettled(
+          currentEmpresas.map(async (emp) => {
+            if (emp.dueno) {
+              ownersMap[emp.id] = emp.dueno;
+              return;
+            }
+            try {
+              const uRes = await empresaService.obtenerUsuarios(emp.id);
+              const uList = uRes.data?.data || uRes.data || [];
+              const duenoUser = uList.find((u) => Number(u.perfil_id || u.perfilId) === PROFILES.EMPRESA) || null;
+              if (duenoUser) {
+                ownersMap[emp.id] = duenoUser;
+              }
+            } catch (e) {
+              console.warn(`Error al obtener usuarios de empresa ${emp.id}:`, e);
+            }
+          })
+        );
+        if (Object.keys(ownersMap).length > 0) {
+          setEmpresaOwners((prev) => ({ ...prev, ...ownersMap }));
+        }
+      }
     } catch (error) {
       console.error('Error al cargar datos del dashboard:', error);
       toast.error('Error al cargar datos del panel');
@@ -1503,7 +1539,13 @@ const DashboardPage = () => {
                       caption="Empresas registradas"
                     >
                       {empresas.map((emp) => {
-                        const dueno = allUsers.find(u => String(u.id_empresa || u.idEmpresa) === String(emp.id) && Number(u.perfil_id || u.perfilId) === PROFILES.EMPRESA);
+                        const dueno = empresaOwners[emp.id] ||
+                                      emp.dueno ||
+                                      (emp.Usuarios?.find((u) => Number(u.perfil_id || u.perfilId) === PROFILES.EMPRESA)) ||
+                                      allUsers.find((u) => 
+                                        String(u.id_empresa || u.idEmpresa || u.UsuarioEmpresas?.[0]?.id_empresa) === String(emp.id) && 
+                                        Number(u.perfil_id || u.perfilId) === PROFILES.EMPRESA
+                                      );
                         return (
                           <tr key={emp.id}>
                             <td>
@@ -1543,26 +1585,35 @@ const DashboardPage = () => {
                               </td>
                             )}
                             <td>
-                              {dueno ? (
-                                <div className="dashboard-table__title">{dueno.nombre} {dueno.apellido}</div>
-                              ) : (
-                                <span className="dashboard-table__text" style={{color: 'var(--text-muted)'}}>Sin asignar</span>
-                              )}
-                              {isSuperAdmin && (
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedEmpresaForOwner({
-                                      ...emp,
-                                      selectedUserId: dueno?.id || ''
-                                    });
-                                    setShowAssignOwnerModal(true);
-                                  }}
-                                >
-                                  {dueno ? 'Cambiar' : 'Asignar'}
-                                </Button>
-                              )}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-3)' }}>
+                                <div>
+                                  {dueno ? (
+                                    <>
+                                      <div className="dashboard-table__title" style={{ fontWeight: 600 }}>{dueno.nombre} {dueno.apellido}</div>
+                                      <div className="dashboard-table__text" style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                        {dueno.email || (dueno.usuario ? `@${dueno.usuario}` : '')}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <span className="dashboard-table__text" style={{ color: 'var(--text-muted)' }}>Sin asignar</span>
+                                  )}
+                                </div>
+                                {isSuperAdmin && (
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedEmpresaForOwner({
+                                        ...emp,
+                                        selectedUserId: dueno?.id || ''
+                                      });
+                                      setShowAssignOwnerModal(true);
+                                    }}
+                                  >
+                                    {dueno ? 'Cambiar' : 'Asignar'}
+                                  </Button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -1678,10 +1729,20 @@ const DashboardPage = () => {
                   }
                   try {
                     await empresaService.asignarDueno(selectedEmpresaForOwner.id, selectedEmpresaForOwner.selectedUserId);
+                    const selectedUser = allUsers.find(u => Number(u.id) === Number(selectedEmpresaForOwner.selectedUserId));
+                    if (selectedUser) {
+                      setEmpresaOwners(prev => ({
+                        ...prev,
+                        [selectedEmpresaForOwner.id]: {
+                          ...selectedUser,
+                          perfil_id: PROFILES.EMPRESA
+                        }
+                      }));
+                    }
                     toast.success('Dueño asignado correctamente');
                     setShowAssignOwnerModal(false);
                     setSelectedEmpresaForOwner(null);
-                    fetchData();
+                    await fetchData();
                   } catch (err) {
                     toast.error(err.response?.data?.message || 'Error al asignar dueño');
                   }

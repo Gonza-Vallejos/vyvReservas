@@ -6,9 +6,24 @@ const { PROFILES } = require("../utils/constants");
 
 class UsuarioService {
   async getAll() {
-    return await Usuario.findAll({
+    const usuarios = await Usuario.findAll({
       where: { eliminado: "no" },
-      attributes: { exclude: ["eliminado"] }
+      attributes: { exclude: ["eliminado"] },
+      include: [
+        {
+          model: UsuarioEmpresa,
+          attributes: ["id_empresa"],
+          required: false
+        }
+      ]
+    });
+    return usuarios.map((u) => {
+      const json = u.toJSON();
+      return {
+        ...json,
+        id_empresa: json.UsuarioEmpresas?.[0]?.id_empresa || null,
+        idEmpresa: json.UsuarioEmpresas?.[0]?.id_empresa || null
+      };
     });
   }
 
