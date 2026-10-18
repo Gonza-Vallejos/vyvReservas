@@ -825,25 +825,9 @@ const DashboardPage = () => {
                 'mi-empresa': 'Mi Empresa',
               }[activeTab] || activeTab
             }</h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
-              <div className="dashboard-role-badge">
-                <ShieldCheck size={14} aria-hidden="true" />
-                <span>{isSuperAdmin ? 'Super Administrador' : isOwner ? 'Dueño de Empresa' : 'Operador Mostrador'}</span>
-              </div>
-              <span className="dashboard-active-tab-badge mobile-only">{
-                {
-                  resumen: 'Resumen',
-                  empresas: 'Empresas',
-                  comisiones: 'Comisiones & MP',
-                  usuarios: 'Usuarios',
-                  viajes: 'Viajes',
-                  reservas: 'Reservas',
-                  flota: 'Mi Flota',
-                  choferes: 'Personal',
-                  estadisticas: 'Estadísticas',
-                  'mi-empresa': 'Mi Empresa',
-                }[activeTab] || activeTab
-              }</span>
+            <div className="dashboard-role-badge">
+              <ShieldCheck size={14} aria-hidden="true" />
+              <span>{isSuperAdmin ? 'Super Administrador' : isOwner ? 'Dueño de Empresa' : 'Operador Mostrador'}</span>
             </div>
           </div>
           {isSuperAdmin ? (
