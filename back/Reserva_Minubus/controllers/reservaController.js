@@ -42,7 +42,8 @@ exports.crearReserva = async (req, res) => {
   });
   try {
     const { pasajeros, ...reservaData } = req.body;
-    const nuevaReserva = await reservaService.create(reservaData, pasajeros);
+    const listaPasajeros = pasajeros || reservaData.personas || [];
+    const nuevaReserva = await reservaService.create(reservaData, listaPasajeros);
     sendSuccess(res, nuevaReserva, "Reserva creada correctamente", 201);
   } catch (error) {
     appLogger.error("reservation_create_failed", {
@@ -51,10 +52,16 @@ exports.crearReserva = async (req, res) => {
       viajeId: req.body?.viajes_id,
       ...appLogger.errorDetails(error),
     });
-    if (error.message === "NO_AVAILABILITY") {
+    if (error.code === "SEAT_ALREADY_TAKEN" || error.name === "SeatAlreadyTakenError" || error.status === 409) {
+      return sendError(res, error.message, 409, {
+        code: "SEAT_ALREADY_TAKEN",
+        asientosEnConflicto: error.asientosEnConflicto || []
+      });
+    }
+    if (error.message === "NO_AVAILABILITY" || error.code === "NO_AVAILABILITY") {
       return sendError(res, "No hay lugares disponibles para este viaje", 400);
     }
-    sendError(res, "Error al crear la reserva", 500, error);
+    sendError(res, error.message || "Error al crear la reserva", error.status || 500, error);
   }
 };
 

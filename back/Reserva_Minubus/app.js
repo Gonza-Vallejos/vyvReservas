@@ -30,6 +30,9 @@ const pagosRouter = require('./routes/pagos');
 
 const app = express();
 
+// Trust proxy requerido para Render/Heroku/proxies inversos
+app.set('trust proxy', 1);
+
 // Database Connection
 const db = require('./models');
 db.sequelize.authenticate()
@@ -37,20 +40,22 @@ db.sequelize.authenticate()
   .catch((error) => console.error('❌ Error al conectar con la base de datos:', error));
 
 // Middlewares
-// Rate limiting general
+// Rate limiting general (ajustado para SPA donde una sola pantalla realiza múltiples peticiones concurrentes)
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // 100 requests por ventana
+  max: 2000, // 2000 requests por IP cada 15 min (suficiente para navegación SPA fluida)
+  skip: (req) => req.method === 'OPTIONS', // No contar peticiones preflight CORS
   message: { success: false, message: 'Demasiadas solicitudes, intenta más tarde', code: 'RATE_LIMITED' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Rate limiting para auth (más estricto)
+// Rate limiting para auth (protege contra ataques de fuerza bruta en login)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10, // 10 intentos de login por ventana
-  message: { success: false, message: 'Demasiados intentos de login', code: 'AUTH_RATE_LIMITED' },
+  max: 30, // 30 intentos fallidos por ventana
+  skipSuccessfulRequests: true, // No penalizar los inicios de sesión exitosos
+  message: { success: false, message: 'Demasiados intentos fallidos de login, intenta más tarde', code: 'AUTH_RATE_LIMITED' },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -58,7 +63,7 @@ const authLimiter = rateLimit({
 // Rate limiting para pagos
 const paymentLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minuto
-  max: 20, // 20 requests por minuto
+  max: 60, // 60 requests por minuto
   message: { success: false, message: 'Demasiadas solicitudes de pago', code: 'PAYMENT_RATE_LIMITED' },
   standardHeaders: true,
   legacyHeaders: false,

@@ -55,8 +55,17 @@ class NotFoundError extends AppError {
 }
 
 class ConflictError extends AppError {
-  constructor(message = 'Conflicto de datos') {
-    super(message, 409, 'CONFLICT');
+  constructor(message = 'Conflicto de datos', code = 'CONFLICT', details = null) {
+    super(message, 409, code);
+    this.details = details;
+  }
+}
+
+class SeatAlreadyTakenError extends ConflictError {
+  constructor(message = 'El asiento seleccionado ya fue reservado por otro usuario', asientosEnConflicto = []) {
+    super(message, 'SEAT_ALREADY_TAKEN', { asientosEnConflicto });
+    this.name = 'SeatAlreadyTakenError';
+    this.asientosEnConflicto = asientosEnConflicto;
   }
 }
 
@@ -79,6 +88,7 @@ module.exports = {
   AuthorizationError,
   NotFoundError,
   ConflictError,
+  SeatAlreadyTakenError,
   NoAvailabilityError,
   ExternalServiceError
 };

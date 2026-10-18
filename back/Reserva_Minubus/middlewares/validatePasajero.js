@@ -38,7 +38,12 @@ const validarPasajeros = [
     .notEmpty()
     .withMessage("La ubicación de destino es requerida."),
 
-  // Validación personalizada para DNI duplicado en el array
+  body("personas.*.numeroAsiento")
+    .optional({ checkFalsy: true })
+    .isInt({ min: 1 })
+    .withMessage("El número de asiento debe ser un entero positivo."),
+
+  // Validación personalizada para DNI y asientos duplicados en el array
   (req, res, next) => {
     const errores = validationResult(req);
     if (!errores.isEmpty()) {
@@ -46,16 +51,28 @@ const validarPasajeros = [
     }
 
     const dnis = new Set();
+    const asientos = new Set();
     for (const persona of req.body.personas) {
       if (dnis.has(persona.dni)) {
         return res.status(400).json({
           errores: [
             { msg: `El DNI ${persona.dni} está duplicado en los pasajeros.` },
           ],
-          // errores: [{ msg: `El DNI ${persona.dni} está duplicado en los pasajeros.`, path: `personas[${index}].dni` }],
         });
       }
       dnis.add(persona.dni);
+
+      const seatNum = Number(persona.numeroAsiento || persona.seatNumber);
+      if (seatNum && !isNaN(seatNum)) {
+        if (asientos.has(seatNum)) {
+          return res.status(400).json({
+            errores: [
+              { msg: `El asiento #${seatNum} está seleccionado más de una vez en esta reserva.` },
+            ],
+          });
+        }
+        asientos.add(seatNum);
+      }
     }
 
     next();

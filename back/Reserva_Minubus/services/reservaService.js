@@ -1,6 +1,6 @@
 const { Reserva, Pasajeros, Viajes, MedioTransporte, Pago, sequelize } = require("../models");
 const { Op } = require("sequelize");
-const { NoAvailabilityError, ValidationError, NotFoundError } = require("../utils/AppError");
+const { NoAvailabilityError, ValidationError, NotFoundError, SeatAlreadyTakenError } = require("../utils/AppError");
 
 class ReservaService {
   /**
@@ -93,7 +93,10 @@ class ReservaService {
    */
   async create(reservaData, pasajerosData = []) {
     const { viajes_id, idempotencyKey } = reservaData;
-    const cantPasajerosSolicitados = pasajerosData && pasajerosData.length > 0 ? pasajerosData.length : 1;
+    const listaPasajeros = (pasajerosData && pasajerosData.length > 0)
+      ? pasajerosData
+      : (reservaData.personas && reservaData.personas.length > 0 ? reservaData.personas : []);
+    const cantPasajerosSolicitados = listaPasajeros.length > 0 ? listaPasajeros.length : 1;
 
     // Transacción gestionada por Sequelize
     return await sequelize.transaction(async (t) => {
@@ -143,31 +146,64 @@ class ReservaService {
       }
       const nuevaReserva = await Reserva.create(datosParaCrear, { transaction: t });
 
-      // 2. Asignar números de asiento disponibles
+      // 2. Determinar y validar números de asiento de forma atómica
       const totalLugares = medioTransporte?.cantLugares;
       if (!totalLugares) {
         throw new ValidationError('Viaje inválido o sin medio de transporte asignado');
       }
+
+      // Obtener asientos actualmente ocupados dentro de la transacción protegida por el lock
       const ocupados = await this.getNumerosAsientoOcupados(viajes_id, t);
-      const libres = [];
-      for (let i = 1; i <= totalLugares && libres.length < cantPasajerosSolicitados; i++) {
-        if (!ocupados.includes(i)) libres.push(i);
+
+      // Extraer números de asientos solicitados explícitamente por el usuario
+      const asientosSolicitados = listaPasajeros
+        .map(p => Number(p.numeroAsiento ?? p.seatNumber))
+        .filter(n => !isNaN(n) && n > 0);
+
+      const todosTienenAsiento = listaPasajeros.length > 0 && asientosSolicitados.length === listaPasajeros.length;
+
+      let asientosAsignados = [];
+
+      if (todosTienenAsiento) {
+        // A. Validar que los asientos estén en el rango físico del vehículo
+        const fueraDeRango = asientosSolicitados.filter(n => n < 1 || n > totalLugares);
+        if (fueraDeRango.length > 0) {
+          throw new ValidationError(`El asiento #${fueraDeRango.join(', #')} no existe en este vehículo (capacidad: ${totalLugares}).`);
+        }
+
+        // B. Control de Concurrencia Atómico: Verificar si algún asiento ya fue ocupado
+        const enConflicto = asientosSolicitados.filter(n => ocupados.includes(n));
+        if (enConflicto.length > 0) {
+          const mensaje = enConflicto.length === 1
+            ? `El asiento #${enConflicto[0]} acaba de ser reservado por otro usuario. Por favor seleccioná otro lugar disponible.`
+            : `Los asientos #${enConflicto.join(', #')} acaban de ser reservados por otro usuario. Por favor seleccioná otros lugares disponibles.`;
+          throw new SeatAlreadyTakenError(mensaje, enConflicto);
+        }
+
+        asientosAsignados = asientosSolicitados;
+      } else {
+        // C. Fallback: Si no enviaron asientos específicos, asignar los primeros libres
+        const libres = [];
+        for (let i = 1; i <= totalLugares && libres.length < cantPasajerosSolicitados; i++) {
+          if (!ocupados.includes(i)) libres.push(i);
+        }
+
+        if (libres.length < cantPasajerosSolicitados) {
+          throw new NoAvailabilityError('No hay suficientes asientos disponibles');
+        }
+        asientosAsignados = libres;
       }
 
-      if (libres.length < cantPasajerosSolicitados) {
-        throw new NoAvailabilityError('No hay suficientes asientos disponibles');
-      }
-
-      // 3. Registrar pasajeros asociados con número de asiento
-      if (pasajerosData && pasajerosData.length > 0) {
-        const pasajerosConReserva = pasajerosData.map((p, index) => ({
+      // 3. Registrar pasajeros asociados con el número de asiento confirmado
+      if (listaPasajeros.length > 0) {
+        const pasajerosConReserva = listaPasajeros.map((p, index) => ({
           nombre: p.nombre,
           apellido: p.apellido,
           dni: parseInt(p.dni, 10),
           ubicacionOrigen: p.ubicacionOrigen,
           ubicacionDestino: p.ubicacionDestino,
           reserva_id: nuevaReserva.id,
-          numeroAsiento: libres[index],
+          numeroAsiento: asientosAsignados[index],
           eliminado: "no"
         }));
         await Pasajeros.bulkCreate(pasajerosConReserva, { transaction: t });
@@ -180,14 +216,12 @@ class ReservaService {
           ubicacionOrigen: "",
           ubicacionDestino: "",
           reserva_id: nuevaReserva.id,
-          numeroAsiento: libres[0],
+          numeroAsiento: asientosAsignados[0],
           eliminado: "no"
         }, { transaction: t });
       }
 
       // 4. Decrementar asientos disponibles de forma segura
-
-      // 3. Decrementar asientos disponibles de forma segura
       await viaje.decrement("cantPasajeros", {
         by: cantPasajerosSolicitados,
         transaction: t

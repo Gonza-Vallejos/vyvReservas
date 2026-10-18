@@ -150,6 +150,26 @@ const BookingPage = () => {
     return () => { cancelled = true; };
   }, [id]);
 
+  // Actualización periódica en segundo plano de los asientos ocupados mientras está en el paso 1
+  useEffect(() => {
+    if (step !== 1 || !id) return;
+    const interval = setInterval(async () => {
+      try {
+        const asientosRes = await viajeService.obtenerAsientosOcupados(id);
+        const asientosData = asientosRes.data?.data || asientosRes.data;
+        if (Array.isArray(asientosData?.mapaAsientos)) {
+          const ocupados = asientosData.mapaAsientos
+            .filter((a) => a.ocupado)
+            .map((a) => a.numero);
+          setOccupiedSeats(ocupados);
+        }
+      } catch {
+        // Silencioso ante fallos temporales de red
+      }
+    }, 12000);
+    return () => clearInterval(interval);
+  }, [step, id]);
+
   const totalPrice = useMemo(() => (trip?.precio || 0) * selectedSeats.length, [trip, selectedSeats]);
 
   const handleToggleSeat = (seatNumber) => {
@@ -254,6 +274,7 @@ const BookingPage = () => {
         dni: parseInt(p.dni, 10),
         ubicacionOrigen: p.ubicacionOrigen.trim() || trip.origenLocalidad,
         ubicacionDestino: p.ubicacionDestino.trim() || trip.destinoLocalidad,
+        numeroAsiento: Number(p.seatNumber),
       }));
 
       const reservaData = {
@@ -276,7 +297,36 @@ const BookingPage = () => {
       });
     } catch (error) {
       const backendErrors = error.response?.data?.errores;
+      const errorCode = error.response?.data?.data?.code || error.response?.data?.code;
       const message = error.response?.data?.mensaje || error.response?.data?.message || 'Error al procesar la reserva';
+
+      // Conflicto de concurrencia: el asiento fue tomado por otro usuario mientras se completaba la compra
+      if (error.response?.status === 409 || errorCode === 'SEAT_ALREADY_TAKEN') {
+        toast.error(message, { duration: 6000 });
+
+        // Refrescar mapa de asientos ocupados inmediatamente
+        try {
+          const asientosRes = await viajeService.obtenerAsientosOcupados(trip.id);
+          const asientosData = asientosRes.data?.data || asientosRes.data;
+          if (Array.isArray(asientosData?.mapaAsientos)) {
+            const nuevosOcupados = asientosData.mapaAsientos
+              .filter(a => a.ocupado)
+              .map(a => a.numero);
+            setOccupiedSeats(nuevosOcupados);
+
+            // Remover de la selección los asientos que ya no están disponibles
+            const enConflicto = error.response?.data?.data?.asientosEnConflicto || [];
+            setSelectedSeats(prev => prev.filter(s => !enConflicto.includes(s) && !nuevosOcupados.includes(s)));
+            setPassengers(prev => prev.filter(p => !enConflicto.includes(p.seatNumber) && !nuevosOcupados.includes(p.seatNumber)));
+          }
+        } catch (e) {
+          console.warn('Error al refrescar asientos tras conflicto:', e);
+        }
+
+        // Redirigir al paso 1 (selección de asientos) para que elija otro lugar sin perder sus datos cargados
+        setStep(1);
+        return;
+      }
 
       if (Array.isArray(backendErrors) && backendErrors.length > 0) {
         const mapped = {};
