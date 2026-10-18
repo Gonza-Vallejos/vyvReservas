@@ -197,7 +197,7 @@ const Navbar = () => {
             <span>V&V</span>
           </Link>
           {user && (
-            <div className="site-navbar__greeting-badge">
+            <div className="site-navbar__greeting-badge mobile-only">
               <span className="site-navbar__greeting-wave" aria-hidden="true">👋</span>
               <span className="site-navbar__greeting-text">
                 Hola, <strong>{user.nombre}</strong>

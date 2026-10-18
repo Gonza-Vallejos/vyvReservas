@@ -1342,6 +1342,12 @@ img, svg {
   font-weight: 700;
 }
 
+@media (min-width: 769px) {
+  .site-navbar__greeting-badge {
+    display: none !important;
+  }
+}
+
 @media (max-width: 640px) {
   .site-navbar__brand {
     gap: 8px;
