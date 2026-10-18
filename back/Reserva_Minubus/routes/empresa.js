@@ -146,6 +146,6 @@ router.delete("/:id", autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR),
  *               usuarioId:
  *                 type: integer
  */
-router.put("/:id/asignar-dueño", autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR), validateAsignarDueno, empresaController.asignarDueno);
+router.put(["/:id/asignar-dueno", "/:id/asignar-dueño"], autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR), validateAsignarDueno, empresaController.asignarDueno);
 
 module.exports = router;

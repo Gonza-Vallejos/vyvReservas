@@ -622,16 +622,17 @@ const DashboardPage = () => {
         .dashboard-icon-btn--danger { color: var(--color-error); }
         .dashboard-icon-btn--danger:hover { background: var(--error-bg); color: #b91c1c; }
 
-        .dashboard-modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 3000; padding: var(--space-4); }
-        .dashboard-modal-card { width: 100%; max-width: 700px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
+        .dashboard-modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 3000; padding: var(--space-5); }
+        .dashboard-modal-card { width: 100%; max-width: 700px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; border-radius: 20px; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05); background: var(--color-surface, #ffffff); }
         .dashboard-modal-card--wide { max-width: 850px; }
-        .dashboard-modal-header { padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4); }
-        .dashboard-modal-title { font-size: var(--text-2xl); font-weight: 900; color: var(--color-text); line-height: 1.2; }
-        .dashboard-modal-subtitle { font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-1); }
+        .dashboard-modal-card--sm { max-width: 520px; }
+        .dashboard-modal-header { padding: 24px 28px 20px; border-bottom: 1px solid var(--border-light, #e2e8f0); display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4); background: var(--color-surface, #ffffff); }
+        .dashboard-modal-title { font-size: var(--text-2xl); font-weight: 900; color: var(--color-text); line-height: 1.25; }
+        .dashboard-modal-subtitle { font-size: var(--text-sm); color: var(--text-muted); margin-top: 6px; line-height: 1.4; }
         .dashboard-modal-close { flex-shrink: 0; }
-        .dashboard-modal-body { padding: var(--space-6); overflow-y: auto; }
-        .dashboard-modal-form { display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-6); overflow-y: auto; max-height: calc(90vh - 80px); }
-        .dashboard-modal-actions { display: flex; justify-content: flex-end; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-2); }
+        .dashboard-modal-body { padding: 24px 28px 28px; overflow-y: auto; }
+        .dashboard-modal-form { display: flex; flex-direction: column; gap: var(--space-5); padding: 24px 28px 28px; overflow-y: auto; max-height: calc(90vh - 80px); }
+        .dashboard-modal-actions { display: flex; justify-content: flex-end; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-3); }
         .dashboard-modal-actions--split { justify-content: space-between; }
 
         .dashboard-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-4); }
@@ -1552,7 +1553,10 @@ const DashboardPage = () => {
                                   variant="secondary"
                                   size="sm"
                                   onClick={() => {
-                                    setSelectedEmpresaForOwner(emp);
+                                    setSelectedEmpresaForOwner({
+                                      ...emp,
+                                      selectedUserId: dueno?.id || ''
+                                    });
                                     setShowAssignOwnerModal(true);
                                   }}
                                 >
@@ -1627,14 +1631,27 @@ const DashboardPage = () => {
 
       {showAssignOwnerModal && selectedEmpresaForOwner && (
         <Modal
-          title="Asignar dueño"
-          subtitle={`Seleccioná el usuario que será dueño de ${selectedEmpresaForOwner.nombre}`}
+          className="dashboard-modal-card--sm"
+          title="Asignar Dueño"
+          subtitle={`Seleccioná el usuario que administrará ${selectedEmpresaForOwner.nombre}`}
           onClose={() => { setShowAssignOwnerModal(false); setSelectedEmpresaForOwner(null); }}
         >
           <div className="dashboard-modal-form">
+            <div style={{
+              background: 'rgba(37, 99, 235, 0.05)',
+              border: '1px solid rgba(37, 99, 235, 0.15)',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--color-text)',
+              lineHeight: 1.5
+            }}>
+              El usuario seleccionado obtendrá el rol de <strong>Dueño de Empresa</strong> y tendrá acceso a la gestión operativa de <strong>{selectedEmpresaForOwner.nombre}</strong>.
+            </div>
+
             <SelectField
-              label="Usuario"
-              value=""
+              label="Usuario del Sistema"
+              value={selectedEmpresaForOwner.selectedUserId || ''}
               onChange={(e) => setSelectedEmpresaForOwner({ ...selectedEmpresaForOwner, selectedUserId: Number(e.target.value) })}
               required
               placeholder="Seleccionar usuario..."
@@ -1647,6 +1664,7 @@ const DashboardPage = () => {
                   </option>
                 ))}
             </SelectField>
+
             <div className="dashboard-modal-actions">
               <Button type="button" variant="secondary" onClick={() => { setShowAssignOwnerModal(false); setSelectedEmpresaForOwner(null); }}>
                 Cancelar
@@ -1669,7 +1687,7 @@ const DashboardPage = () => {
                   }
                 }}
               >
-                Asignar como dueño
+                Asignar como Dueño
               </Button>
             </div>
           </div>
@@ -2238,14 +2256,32 @@ const DashboardPage = () => {
 
       {editingComisionEmpresa && (
         <Modal
+          className="dashboard-modal-card--sm"
           title={`Editar Comisión: ${editingComisionEmpresa.nombre}`}
           subtitle="Porcentaje que retiene la plataforma por cada pasaje vendido"
           onClose={() => setEditingComisionEmpresa(null)}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>
-              Actualmente tiene pactada una comisión del <b>{editingComisionEmpresa.comisionPorcentaje}%</b>. Al modificar este valor, las nuevas reservas aplicarán la nueva tasa de comisión.
-            </p>
+          <div className="dashboard-modal-form">
+            <div style={{
+              background: 'rgba(37, 99, 235, 0.05)',
+              border: '1px solid rgba(37, 99, 235, 0.15)',
+              borderRadius: '12px',
+              padding: '16px 18px',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--color-text)',
+              lineHeight: 1.5,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}>
+              <span style={{ fontWeight: 600, color: 'var(--color-primary, #2563eb)' }}>
+                Tasa actual pactada: {editingComisionEmpresa.comisionPorcentaje}%
+              </span>
+              <span style={{ color: 'var(--text-muted)' }}>
+                Al modificar este valor, las nuevas reservas y ventas aplicarán la nueva tasa de comisión de la plataforma.
+              </span>
+            </div>
+
             <InputField
               label="Porcentaje de Comisión (%)"
               type="number"
@@ -2255,9 +2291,11 @@ const DashboardPage = () => {
               value={nuevaComisionValor}
               onChange={(e) => setNuevaComisionValor(e.target.value)}
               placeholder="Ej: 10"
+              hint="Ingresá un porcentaje entre 0 y 100"
             />
-            <div className="dashboard-modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
-              <Button variant="secondary" onClick={() => setEditingComisionEmpresa(null)}>
+
+            <div className="dashboard-modal-actions">
+              <Button variant="secondary" type="button" onClick={() => setEditingComisionEmpresa(null)}>
                 Cancelar
               </Button>
               <Button onClick={handleGuardarComision}>
@@ -2270,17 +2308,29 @@ const DashboardPage = () => {
 
       {showMpConfigModal && (
         <Modal
+          className="dashboard-modal-card--sm"
           title="Vincular Mercado Pago de la Empresa"
           subtitle="Acreditación directa de cobros de pasajes"
           onClose={() => setShowMpConfigModal(false)}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <div style={{ background: 'var(--bg-secondary, #f8fafc)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-              <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Para habilitar la vinculación automática con un solo clic, se deben configurar <code>MERCADO_PAGO_CLIENT_ID</code> y <code>MERCADO_PAGO_CLIENT_SECRET</code> en el panel del servidor.<br />
-                Mientras tanto, puedes ingresar directamente el <b>Access Token</b> de Mercado Pago de la empresa (sea de prueba <code>TEST-...</code> o producción <code>APP_USR-...</code>).
+          <div className="dashboard-modal-form">
+            <div style={{
+              background: 'var(--bg-secondary, #f8fafc)',
+              padding: '16px 18px',
+              borderRadius: '12px',
+              border: '1px solid var(--border-light, #e2e8f0)',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.5
+            }}>
+              <p style={{ margin: 0, marginBottom: '8px' }}>
+                Para habilitar la vinculación automática con un solo clic, se deben configurar <code>MERCADO_PAGO_CLIENT_ID</code> y <code>MERCADO_PAGO_CLIENT_SECRET</code> en el panel del servidor.
+              </p>
+              <p style={{ margin: 0 }}>
+                Mientras tanto, podés ingresar directamente el <b>Access Token</b> de Mercado Pago de la empresa (sea de prueba <code>TEST-...</code> o producción <code>APP_USR-...</code>).
               </p>
             </div>
+
             <InputField
               label="Mercado Pago Access Token"
               type="password"
@@ -2288,8 +2338,9 @@ const DashboardPage = () => {
               onChange={(e) => setMpManualToken(e.target.value)}
               placeholder="TEST-... o APP_USR-..."
             />
-            <div className="dashboard-modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
-              <Button variant="secondary" onClick={() => setShowMpConfigModal(false)}>
+
+            <div className="dashboard-modal-actions">
+              <Button variant="secondary" type="button" onClick={() => setShowMpConfigModal(false)}>
                 Cancelar
               </Button>
               <Button onClick={() => handleGuardarManualMpToken(miEmpresa?.id || 1)}>

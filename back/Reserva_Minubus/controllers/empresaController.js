@@ -96,20 +96,33 @@ exports.asignarDueno = async (req, res) => {
       return sendError(res, "No se puede asignar un administrador como dueño de empresa", 400);
     }
 
-    // Quitar rol de empresa al dueño actual (si existe)
-    await Usuario.update(
-      { perfil_id: 2 }, // Cliente
-      { where: { id_empresa: parsedEmpresaId, perfil_id: 5 } }
-    );
+    // Quitar rol de dueño anterior para esta empresa (si existe)
+    const relacionesPrevias = await UsuarioEmpresa.findAll({
+      where: { id_empresa: parsedEmpresaId }
+    });
+    const usuariosPreviosIds = relacionesPrevias.map((r) => r.id_usuario);
+    if (usuariosPreviosIds.length > 0) {
+      await Usuario.update(
+        { perfil_id: 2 }, // Vuelve a cliente
+        { where: { id: usuariosPreviosIds, perfil_id: 5 } }
+      );
+    }
 
-    // Asignar como dueño
+    // Asignar perfil 5 (usuarioEmpresa / Dueño) al nuevo usuario
     await Usuario.update(
-      { id_empresa: parsedEmpresaId, perfil_id: 5 },
+      { perfil_id: 5 },
       { where: { id: parsedUsuarioId } }
     );
 
+    // Crear o asegurar relación en la tabla usuarioEmpresa
+    await UsuarioEmpresa.findOrCreate({
+      where: { id_usuario: parsedUsuarioId, id_empresa: parsedEmpresaId },
+      defaults: { id_usuario: parsedUsuarioId, id_empresa: parsedEmpresaId }
+    });
+
     sendSuccess(res, null, "Dueño asignado correctamente");
   } catch (error) {
+    console.error("Error al asignar dueño:", error);
     sendError(res, "Error al asignar dueño", 500, error);
   }
 };

@@ -45,7 +45,22 @@ export const empresaService = {
   obtenerPorId: (id) => api.get(`/empresa/${id}`),
   obtenerEmpresaDeUsuario: (usuarioId) => api.get(`/usuario-empresa/usuario/${usuarioId}`),
   actualizar: (id, data) => api.put(`/empresa/${id}`, data),
-  asignarDueno: (empresaId, usuarioId) => api.put(`/empresa/${empresaId}/asignar-dueño`, { usuarioId }),
+  asignarDueno: async (empresaId, usuarioId) => {
+    try {
+      return await api.put(`/empresa/${empresaId}/asignar-dueno`, { usuarioId });
+    } catch (err) {
+      if (err.response?.status === 404) {
+        // Fallback en caso de que el backend remoto aún no tenga desplegada la ruta nueva
+        try {
+          await api.post(`/usuario-empresa/asociar/${usuarioId}/${empresaId}`);
+        } catch {
+          // Si ya estaba asociado, ignoramos el error
+        }
+        return await api.put(`/usuarios/${usuarioId}`, { perfil_id: 5 });
+      }
+      throw err;
+    }
+  },
 };
 
 export const usuarioService = {
@@ -71,7 +86,16 @@ export const pagoService = {
   reintentar: (reservaId) => api.post(`/pagos/reintentar/${reservaId}`),
   obtenerPagos: (reservaId) => api.get(`/pagos/reserva/${reservaId}`),
   obtenerMetricasComisiones: () => api.get('/pagos/metricas-comisiones'),
-  actualizarComisionEmpresa: (empresaId, comision_porcentaje) => api.put(`/pagos/comision-empresa/${empresaId}`, { comision_porcentaje }),
+  actualizarComisionEmpresa: async (empresaId, comision_porcentaje) => {
+    try {
+      return await api.put(`/pagos/comision-empresa/${empresaId}`, { comision_porcentaje });
+    } catch (err) {
+      if (err.response?.status === 404) {
+        return await api.put(`/empresa/${empresaId}`, { comision_porcentaje });
+      }
+      throw err;
+    }
+  },
   obtenerUrlOAuth: (empresaId, redirectUri) => api.get(`/pagos/oauth/url/${empresaId}`, { params: { redirect_uri: redirectUri } }),
   vincularMercadoPago: (empresaId, data) => api.post(`/pagos/oauth/vincular/${empresaId}`, data),
   desvincularMercadoPago: (empresaId) => api.delete(`/pagos/oauth/desvincular/${empresaId}`),
