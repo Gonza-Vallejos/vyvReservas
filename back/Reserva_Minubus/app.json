@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "09eec097-cf52-4e7b-9dbf-2efaa6b2d1a1"
+      }
+    },
+    "android": {
+      "package": "com.gonzalo18.sequelizecli"
+    }
+  }
+}

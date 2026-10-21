@@ -1,6 +1,7 @@
-const { Reserva, Pasajeros, Viajes, MedioTransporte, Pago, sequelize } = require("../models");
+const { Reserva, Pasajeros, Viajes, MedioTransporte, Pago, Usuario, Empresa, sequelize } = require("../models");
 const { Op } = require("sequelize");
 const { NoAvailabilityError, ValidationError, NotFoundError, SeatAlreadyTakenError } = require("../utils/AppError");
+const emailService = require("./emailService");
 
 class ReservaService {
   /**
@@ -88,6 +89,72 @@ class ReservaService {
     return pagos.sort((a, b) => new Date(b.fechaCreacion) - new Date(a.fechaCreacion))[0];
   }
 
+  async getFullReservationDetails(reservaId) {
+    return await Reserva.findOne({
+      where: { id: reservaId },
+      include: [
+        { model: Usuario, attributes: ["id", "nombre", "apellido", "email", "telefono", "dni"] },
+        {
+          model: Viajes,
+          include: [
+            {
+              model: MedioTransporte,
+              include: [{ model: Empresa, attributes: ["id", "nombre", "email"] }]
+            }
+          ]
+        },
+        { model: Pasajeros }
+      ]
+    });
+  }
+
+  /**
+   * Envía confirmaciones por email de forma no bloqueante.
+   */
+  notifyReservationCreated(reservaId) {
+    (async () => {
+      try {
+        const full = await this.getFullReservationDetails(reservaId);
+        if (!full) return;
+        const usuario = full.Usuario;
+        const viaje = full.Viaje;
+        const pasajeros = full.Pasajeros || [];
+        const empresa = viaje?.MedioTransporte?.Empresa;
+
+        emailService.sendReservationConfirmation({ reserva: full, usuario, viaje, pasajeros });
+        emailService.sendNewReservationNotificationToCompany({ reserva: full, usuario, viaje, pasajeros, empresa });
+      } catch (error) {
+        // Los emails son fire-and-forget; no deben afectar la respuesta principal.
+        console.error("Error enviando notificaciones de reserva:", error.message);
+      }
+    })();
+  }
+
+  /**
+   * Envía confirmación de cancelación por email de forma no bloqueante.
+   */
+  notifyReservationCancelled(reservaId, usuario, viaje, pasajeros) {
+    (async () => {
+      try {
+        let user = usuario;
+        let trip = viaje;
+        let passengers = pasajeros;
+
+        if (!user || !trip || !passengers) {
+          const full = await this.getFullReservationDetails(reservaId);
+          if (!full) return;
+          user = full.Usuario;
+          trip = full.Viaje;
+          passengers = full.Pasajeros || [];
+        }
+
+        emailService.sendCancellationConfirmation({ reserva: { id: reservaId }, usuario: user, viaje: trip, pasajeros: passengers });
+      } catch (error) {
+        console.error("Error enviando notificación de cancelación:", error.message);
+      }
+    })();
+  }
+
   /**
    * Creación atómica de reserva con transacción, control de concurrencia e idempotencia.
    */
@@ -145,6 +212,7 @@ class ReservaService {
         datosParaCrear.idempotencyKey = idempotencyKey;
       }
       const nuevaReserva = await Reserva.create(datosParaCrear, { transaction: t });
+      nuevaReserva._creadaEnEstaTransaccion = true;
 
       // 2. Determinar y validar números de asiento de forma atómica
       const totalLugares = medioTransporte?.cantLugares;
@@ -229,6 +297,13 @@ class ReservaService {
 
       return nuevaReserva;
     });
+
+    // Notificaciones fire-and-forget fuera de la transacción (solo si se creó realmente)
+    if (nuevaReserva._creadaEnEstaTransaccion) {
+      this.notifyReservationCreated(nuevaReserva.id);
+    }
+
+    return nuevaReserva;
   }
 
   async update(id, updateData) {
@@ -242,7 +317,10 @@ class ReservaService {
    * Cancelación atómica de reserva con reintegro de asientos
    */
   async delete(id) {
-    return await sequelize.transaction(async (t) => {
+    // Obtener datos completos antes del soft delete para el email de cancelación
+    const full = await this.getFullReservationDetails(id);
+
+    const result = await sequelize.transaction(async (t) => {
       const reserva = await Reserva.findOne({
         where: { id, eliminado: "no" },
         transaction: t
@@ -276,6 +354,17 @@ class ReservaService {
 
       return true;
     });
+
+    if (result && full) {
+      this.notifyReservationCancelled(
+        id,
+        full.Usuario,
+        full.Viaje,
+        full.Pasajeros || []
+      );
+    }
+
+    return result;
   }
 
   /**

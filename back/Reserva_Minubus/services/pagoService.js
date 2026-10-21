@@ -1,6 +1,7 @@
 const { MercadoPagoConfig, Preference } = require("mercadopago");
-const { Reserva, Pasajeros, Viajes, Pago, WebhookEvent, MedioTransporte, Empresa } = require("../models");
+const { Reserva, Pasajeros, Viajes, Pago, WebhookEvent, MedioTransporte, Empresa, Usuario } = require("../models");
 const { NotFoundError, ConflictError, ExternalServiceError, AppError } = require("../utils/AppError");
+const emailService = require("./emailService");
 
 const getClient = () => {
   const mpAccessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
@@ -82,6 +83,32 @@ const withRetry = async (fn, maxRetries = 3, baseDelay = 1000) => {
 };
 
 class PagoService {
+  async getFullReservationDetails(reservaId) {
+    return await Reserva.findOne({
+      where: { id: reservaId },
+      include: [
+        { model: Usuario, attributes: ["id", "nombre", "apellido", "email", "telefono", "dni"] },
+        { model: Viajes },
+        { model: Pasajeros, where: { eliminado: "no" }, required: false }
+      ]
+    });
+  }
+
+  notifyPaymentConfirmed(reservaId, pago) {
+    (async () => {
+      try {
+        const full = await this.getFullReservationDetails(reservaId);
+        if (!full) return;
+        const usuario = full.Usuario;
+        const viaje = full.Viaje;
+        const pasajeros = full.Pasajeros || [];
+        emailService.sendPaymentConfirmation({ reserva: full, usuario, viaje, pago, pasajeros });
+      } catch (error) {
+        console.error("Error enviando notificación de pago:", error.message);
+      }
+    })();
+  }
+
   /**
    * Crea una preferencia de pago en Mercado Pago para una reserva con soporte Marketplace Split.
    * Si la empresa tiene cuenta de MP vinculada, usa su token y aplica marketplace_fee para el Super Admin.
@@ -151,6 +178,10 @@ class PagoService {
           fechaCreacion: new Date(),
           fechaActualizacion: new Date()
         });
+
+        // Notificar al pasajero del pago simulado aprobado (fire-and-forget)
+        this.notifyPaymentConfirmed(reservaId, nuevoPago);
+
         return {
           pagoId: nuevoPago.id,
           initPoint: `${effectiveFrontendUrl}/pagos/exitoso?mock=true&reserva_id=${reservaId}`,
@@ -323,6 +354,12 @@ class PagoService {
           },
           { where: { id: pago.id } }
         );
+
+        // Notificar al pasajero cuando el pago es aprobado (fire-and-forget)
+        if (nuevoEstado === "aprobado") {
+          const pagoData = typeof pago.toJSON === 'function' ? pago.toJSON() : pago;
+          this.notifyPaymentConfirmed(pago.reserva_id, { ...pagoData, estado: nuevoEstado, fechaActualizacion: new Date() });
+        }
 
         resultado = { pagoId: pago.id, estado: nuevoEstado };
       } catch (error) {
