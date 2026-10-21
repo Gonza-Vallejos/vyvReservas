@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/trafic.png",
     "scheme": "minibus",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/trafic.png",

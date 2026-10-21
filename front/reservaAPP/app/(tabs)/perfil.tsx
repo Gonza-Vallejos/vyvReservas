@@ -13,7 +13,6 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
 import { actualizarUsuario, obtenerUsuarioPorId } from "../../services/usuarioService";
-import Storage from "../../utils/storage";
 import { useThemeColor } from "@/components/Themed";
 import ScreenContainer from "@/components/ui/ScreenContainer";
 import Card from "@/components/ui/Card";
@@ -179,11 +178,12 @@ export default function PerfilScreen() {
   };
 
   const handleLogout = async () => {
-    await logout();
-    router.replace("/login");
-    const allKeys = await Storage.getAllKeys();
-    const allData = await Storage.multiGet(allKeys);
-    console.log("Contenido de Storage perfil:", allData);
+    try {
+      await logout();
+      // El redirect a /login lo maneja TabLayout cuando isLoggedIn pasa a false.
+    } catch (err) {
+      console.warn("Error al cerrar sesión:", err);
+    }
   };
 
   const handlePassword = () => {
