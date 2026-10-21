@@ -1,249 +1,522 @@
-import React from 'react';
-import { useRouter } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, ScrollView } from 'react-native';
-import { useAuth } from '../../context/AuthContext';
-import { Ionicons } from '@expo/vector-icons';
-import Storage from '../../utils/storage';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  Platform,
+  ActivityIndicator,
+  Linking,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "../../context/AuthContext";
+import { actualizarUsuario, obtenerUsuarioPorId } from "../../services/usuarioService";
+import Storage from "../../utils/storage";
+import { useThemeColor } from "@/components/Themed";
+import ScreenContainer from "@/components/ui/ScreenContainer";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import InputField from "@/components/ui/InputField";
+import Badge from "@/components/ui/Badge";
 
-export default function PerfilesScreen() {
+const roleLabel = (perfil?: string) => {
+  switch (perfil) {
+    case "usuarioEmpresa":
+      return "Dueño";
+    case "usuarioAdministrador":
+      return "Super Administrador";
+    case "usuarioMostrador":
+      return "Mostrador";
+    case "usuarioChofer":
+      return "Chofer";
+    default:
+      return "Pasajero";
+  }
+};
+
+const roleBadgeVariant = (perfil?: string) => {
+  switch (perfil) {
+    case "usuarioEmpresa":
+    case "usuarioAdministrador":
+      return "primary" as const;
+    case "usuarioMostrador":
+      return "accent" as const;
+    case "usuarioChofer":
+      return "warning" as const;
+    default:
+      return "success" as const;
+  }
+};
+
+export default function PerfilScreen() {
   const router = useRouter();
-  const { logout, userInfo } = useAuth();
+  const { logout, userInfo, updateUserInfo, isLoading } = useAuth();
 
-  const handleLogout = async () => {
-    await logout();
-    router.replace('/login');
-    const allKeys = await Storage.getAllKeys();
-    const allData = await Storage.multiGet(allKeys);
-    console.log('Contenido de Storage perfil:', allData);
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    nombre: "",
+    apellido: "",
+    dni: "",
+    telefono: "",
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loadingUser, setLoadingUser] = useState(false);
+
+  const text = useThemeColor({}, "text");
+  const textSecondary = useThemeColor({}, "textSecondary");
+  const textMuted = useThemeColor({}, "textMuted");
+  const primary = useThemeColor({}, "primary");
+  const success = useThemeColor({}, "success");
+  const background = useThemeColor({}, "background");
+  const surfaceElevated = useThemeColor({}, "surfaceElevated");
+
+  useEffect(() => {
+    if (!userInfo?.id || isEditing) return;
+    const load = async () => {
+      setLoadingUser(true);
+      try {
+        const data = await obtenerUsuarioPorId(userInfo.id);
+        const usuario = Array.isArray(data) ? data[0] : data;
+        if (usuario) {
+          updateUserInfo(usuario);
+          setForm({
+            nombre: usuario.nombre || "",
+            apellido: usuario.apellido || "",
+            dni: usuario.dni ? String(usuario.dni) : "",
+            telefono: usuario.telefono || "",
+          });
+        }
+      } catch (err) {
+        console.warn("Error al refrescar usuario:", err);
+      } finally {
+        setLoadingUser(false);
+      }
+    };
+    load();
+  }, [userInfo?.id]);
+
+  const startEditing = () => {
+    setForm({
+      nombre: userInfo?.nombre || "",
+      apellido: userInfo?.apellido || "",
+      dni: userInfo?.dni ? String(userInfo.dni) : "",
+      telefono: userInfo?.telefono || "",
+    });
+    setErrors({});
+    setIsEditing(true);
   };
 
-  const getPerfilTitle = (perfil?: string) => {
-    switch (perfil) {
-      case "usuarioEmpresa":
-        return "Empresa";
-      case "usuarioChofer":
-        return "Chofer";
-      case "usuarioMostrador":
-        return "Boletería / Mostrador";
-      case "usuarioAdministrador":
-        return "Administrador";
-      default:
-        return "Pasajero";
+  const handleChange = (field: keyof typeof form) => (value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const validate = () => {
+    const nextErrors: Record<string, string> = {};
+    if (!form.nombre.trim()) nextErrors.nombre = "Ingresá tu nombre";
+    if (!form.apellido.trim()) nextErrors.apellido = "Ingresá tu apellido";
+    if (!form.dni.trim()) nextErrors.dni = "Ingresá tu DNI";
+    else if (form.dni.trim().length < 7) nextErrors.dni = "DNI inválido";
+    if (!form.telefono.trim()) nextErrors.telefono = "Ingresá tu teléfono";
+    else if (form.telefono.trim().replace(/\D/g, "").length < 10)
+      nextErrors.telefono = "Teléfono inválido";
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!validate()) return;
+    if (!userInfo?.id) return;
+    setSaving(true);
+    try {
+      const payload = {
+        nombre: form.nombre.trim(),
+        apellido: form.apellido.trim(),
+        dni: parseInt(form.dni.trim(), 10),
+        telefono: form.telefono.trim(),
+      };
+      await actualizarUsuario(userInfo.id, payload);
+      updateUserInfo({ ...payload, dni: String(payload.dni) });
+
+      if (Platform.OS === "web") {
+        window.alert("Datos guardados correctamente");
+      } else {
+        Alert.alert("Listo", "Datos guardados correctamente");
+      }
+      setIsEditing(false);
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.errores?.[0]?.msg ||
+        error?.response?.data?.message ||
+        error?.response?.data?.mensaje ||
+        "No se pudieron guardar los cambios";
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Error", message);
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
-  return (
-    <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-      <View style={styles.container}>
-        {/* Avatar & Header */}
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatarCircle}>
-            <Ionicons name="person" size={40} color="#38bdf8" />
-          </View>
-          <Text style={styles.userName}>{userInfo?.nombre || "Usuario"}</Text>
-          <Text style={styles.userUsername}>@{userInfo?.usuario}</Text>
-          
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{getPerfilTitle(userInfo?.perfil)}</Text>
-          </View>
-        </View>
+  const handleCancelEdit = () => {
+    setForm({
+      nombre: userInfo?.nombre || "",
+      apellido: userInfo?.apellido || "",
+      dni: userInfo?.dni ? String(userInfo.dni) : "",
+      telefono: userInfo?.telefono || "",
+    });
+    setErrors({});
+    setIsEditing(false);
+  };
 
-        {/* Info Box */}
-        {userInfo?.email && (
-          <View style={styles.infoRow}>
-            <Ionicons name="mail-outline" size={18} color="#94a3b8" />
-            <Text style={styles.infoValue}>{userInfo.email}</Text>
-          </View>
-        )}
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/login");
+    const allKeys = await Storage.getAllKeys();
+    const allData = await Storage.multiGet(allKeys);
+    console.log("Contenido de Storage perfil:", allData);
+  };
 
-        {/* Action Buttons */}
-        <View style={styles.buttonGroup}>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            activeOpacity={0.8}
-            onPress={() =>
-              router.push({
-                pathname: "/pantallas/modificarUsuario",
-                params: { id: userInfo?.id },
-              })
-            }
-          >
-            <View style={styles.btnLeft}>
-              <Ionicons name="create-outline" size={20} color="#38bdf8" />
-              <Text style={styles.btnText}>Editar Perfil</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#64748b" />
-          </TouchableOpacity>
+  const handlePassword = () => {
+    router.push({
+      pathname: "/pantallas/actualizarContrasenia",
+      params: { id: userInfo?.id },
+    });
+  };
 
-          <TouchableOpacity
-            style={styles.actionBtn}
-            activeOpacity={0.8}
-            onPress={() =>
-              router.push({
-                pathname: "/pantallas/actualizarContrasenia",
-                params: { id: userInfo?.id },
-              })
-            }
-          >
-            <View style={styles.btnLeft}>
-              <Ionicons name="key-outline" size={20} color="#38bdf8" />
-              <Text style={styles.btnText}>Cambiar Contraseña</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#64748b" />
-          </TouchableOpacity>
+  const handleHelp = () => {
+    Linking?.openURL("mailto:ayuda@vyvreservas.com?subject=Consulta%20desde%20la%20app");
+  };
 
-          {userInfo?.perfil === "usuarioCliente" && (
-            <TouchableOpacity
-              style={styles.actionBtn}
-              activeOpacity={0.8}
-              onPress={() => router.push("/(tabs)/reserva")}
-            >
-              <View style={styles.btnLeft}>
-                <Ionicons name="ticket-outline" size={20} color="#34d399" />
-                <Text style={styles.btnText}>Mis Reservas</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#64748b" />
-            </TouchableOpacity>
-          )}
-
-          {userInfo?.perfil === "usuarioEmpresa" && (
-            <TouchableOpacity
-              style={styles.actionBtn}
-              activeOpacity={0.8}
-              onPress={() =>
-                router.push({
-                  pathname: "/pantallas/modificarEmpresa",
-                  params: { id: userInfo?.empresa_id },
-                })
-              }
-            >
-              <View style={styles.btnLeft}>
-                <Ionicons name="business-outline" size={20} color="#fbbf24" />
-                <Text style={styles.btnText}>Editar Datos de Empresa</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#64748b" />
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.logoutBtn]}
-            activeOpacity={0.8}
-            onPress={handleLogout}
-          >
-            <View style={styles.btnLeft}>
-              <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-              <Text style={[styles.btnText, { color: "#ef4444" }]}>Cerrar Sesión</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#ef4444" />
-          </TouchableOpacity>
-        </View>
+  if (isLoading || loadingUser) {
+    return (
+      <View style={[styles.loader, { backgroundColor: background }]}>
+        <ActivityIndicator size="large" color={primary} />
       </View>
-    </ScrollView>
+    );
+  }
+
+  return (
+    <ScreenContainer>
+      <ScrollView
+        style={[styles.scroll, { backgroundColor: background }]}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <View style={[styles.avatarCircle, { backgroundColor: `${primary}12` }]}>
+            <Ionicons name="person" size={36} color={primary} />
+          </View>
+          <View style={styles.headerText}>
+            <View style={styles.nameRow}>
+              <Text style={[styles.name, { color: text }]} allowFontScaling>
+                {userInfo?.nombre || "Usuario"} {userInfo?.apellido || ""}
+              </Text>
+              <Badge variant={roleBadgeVariant(userInfo?.perfil)}>
+                {roleLabel(userInfo?.perfil)}
+              </Badge>
+            </View>
+            <Text style={[styles.email, { color: textSecondary }]} allowFontScaling>
+              {userInfo?.email || "Correo no disponible"}
+            </Text>
+          </View>
+        </View>
+
+        <Card>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <Ionicons name="person-outline" size={20} color={primary} />
+              <Text style={[styles.cardTitle, { color: text }]} allowFontScaling>
+                Datos personales
+              </Text>
+            </View>
+            {!isEditing ? (
+              <Button variant="ghost" size="sm" onPress={startEditing} icon="create-outline">
+                Editar
+              </Button>
+            ) : (
+              <View style={styles.cardActions}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onPress={handleCancelEdit}
+                  icon="close-outline"
+                  accessibilityLabel="Cancelar edición"
+                >
+                  {" "}
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  loading={saving}
+                  disabled={saving}
+                  onPress={handleSave}
+                  icon="save-outline"
+                >
+                  Guardar
+                </Button>
+              </View>
+            )}
+          </View>
+
+          <InputField
+            label="Nombre"
+            value={isEditing ? form.nombre : userInfo?.nombre || ""}
+            onChangeText={handleChange("nombre")}
+            editable={isEditing && !saving}
+            error={errors.nombre}
+            icon="person-outline"
+          />
+          <InputField
+            label="Apellido"
+            value={isEditing ? form.apellido : userInfo?.apellido || ""}
+            onChangeText={handleChange("apellido")}
+            editable={isEditing && !saving}
+            error={errors.apellido}
+            icon="person-outline"
+          />
+          <InputField
+            label="DNI"
+            value={isEditing ? form.dni : userInfo?.dni ? String(userInfo.dni) : ""}
+            onChangeText={(value) => handleChange("dni")(value.replace(/\D/g, ""))}
+            editable={isEditing && !saving}
+            error={errors.dni}
+            icon="card-outline"
+            keyboardType="numeric"
+          />
+          <InputField
+            label="Teléfono"
+            value={isEditing ? form.telefono : userInfo?.telefono || ""}
+            onChangeText={handleChange("telefono")}
+            editable={isEditing && !saving}
+            error={errors.telefono}
+            placeholder="Ej: 11 1234 5678"
+            icon="call-outline"
+            keyboardType="phone-pad"
+          />
+          <InputField
+            label="Correo electrónico"
+            value={userInfo?.email || ""}
+            editable={false}
+            icon="mail-outline"
+          />
+
+          {isEditing && (
+            <Text style={[styles.note, { color: textMuted }]} allowFontScaling>
+              Los cambios se guardan en tu cuenta y estarán disponibles en tu próximo inicio de
+              sesión.
+            </Text>
+          )}
+        </Card>
+
+        <Card>
+          <View style={styles.cardTitleRow}>
+            <Ionicons name="shield-checkmark-outline" size={20} color={success} />
+            <Text style={[styles.cardTitle, { color: text }]} allowFontScaling>
+              Seguridad
+            </Text>
+          </View>
+          <Text style={[styles.cardDescription, { color: textSecondary }]} allowFontScaling>
+            Cambiá tu contraseña periódicamente para mantener tu cuenta protegida.
+          </Text>
+          <Button
+            variant="secondary"
+            size="md"
+            onPress={handlePassword}
+            icon="key-outline"
+            iconPosition="left"
+          >
+            Cambiar contraseña
+          </Button>
+        </Card>
+
+        <Card>
+          <View style={styles.cardTitleRow}>
+            <Ionicons name="ticket-outline" size={20} color={primary} />
+            <Text style={[styles.cardTitle, { color: text }]} allowFontScaling>
+              Accesos rápidos
+            </Text>
+          </View>
+          <QuickLink
+            icon="ticket-outline"
+            label="Mis reservas"
+            onPress={() => router.push("/(tabs)/reserva")}
+          />
+          <QuickLink
+            icon="search-outline"
+            label="Buscar pasajes"
+            onPress={() => router.push("/(tabs)/viajes")}
+          />
+        </Card>
+
+        <Card>
+          <View style={styles.cardTitleRow}>
+            <Ionicons name="help-circle-outline" size={20} color={primary} />
+            <Text style={[styles.cardTitle, { color: text }]} allowFontScaling>
+              Ayuda
+            </Text>
+          </View>
+          <Text style={[styles.cardDescription, { color: textSecondary }]} allowFontScaling>
+            ¿Tenés dudas sobre tu reserva, pagos o cancelaciones? Escribinos.
+          </Text>
+          <Button
+            variant="secondary"
+            size="md"
+            onPress={handleHelp}
+            icon="mail-outline"
+            iconPosition="left"
+          >
+            Contactar soporte
+          </Button>
+        </Card>
+
+        <Card style={styles.logoutCard}>
+          <View style={styles.cardTitleRow}>
+            <Ionicons name="log-out-outline" size={20} color={useThemeColor({}, "error")} />
+            <Text style={[styles.cardTitle, { color: text }]} allowFontScaling>
+              Cerrar sesión
+            </Text>
+          </View>
+          <Text style={[styles.cardDescription, { color: textSecondary }]} allowFontScaling>
+            Salí de tu cuenta de forma segura en este dispositivo.
+          </Text>
+          <Button
+            variant="primary"
+            size="md"
+            onPress={handleLogout}
+            icon="log-out-outline"
+            iconPosition="left"
+            style={{ backgroundColor: useThemeColor({}, "error"), borderColor: useThemeColor({}, "error") }}
+          >
+            Cerrar sesión
+          </Button>
+        </Card>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}
+
+function QuickLink({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+}) {
+  const text = useThemeColor({}, "text");
+  const textSecondary = useThemeColor({}, "textSecondary");
+  return (
+    <Button
+      variant="ghost"
+      size="md"
+      onPress={onPress}
+      icon={icon}
+      iconPosition="left"
+      style={styles.quickLink}
+      textStyle={StyleSheet.flatten([styles.quickLinkText, { color: text }])}
+    >
+      {label}
+    </Button>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    paddingVertical: 24,
-    paddingHorizontal: 16,
+  loader: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
+  },
+  scroll: {
+    flex: 1,
   },
   container: {
-    width: "100%",
-    maxWidth: 500,
-    backgroundColor: "rgba(30, 41, 59, 0.9)",
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 4,
+    padding: 16,
+    paddingBottom: 32,
+    gap: 16,
   },
-  avatarContainer: {
+  header: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    gap: 16,
+    marginBottom: 4,
   },
   avatarCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(56, 189, 248, 0.15)",
-    borderWidth: 2,
-    borderColor: "#38bdf8",
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
   },
-  userName: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#ffffff",
+  headerText: {
+    flex: 1,
   },
-  userUsername: {
-    fontSize: 14,
-    color: "#94a3b8",
-    marginTop: 2,
-  },
-  roleBadge: {
-    marginTop: 8,
-    backgroundColor: "rgba(56, 189, 248, 0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(56, 189, 248, 0.4)",
-  },
-  roleText: {
-    color: "#38bdf8",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  infoRow: {
+  nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: "rgba(15, 23, 42, 0.5)",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 20,
+    gap: 10,
+    flexWrap: "wrap",
+    marginBottom: 4,
   },
-  infoValue: {
-    color: "#cbd5e1",
+  name: {
+    fontSize: 22,
+    fontWeight: "900",
+  },
+  email: {
     fontSize: 14,
+    fontWeight: "600",
   },
-  buttonGroup: {
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  cardTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
-  actionBtn: {
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+  },
+  cardActions: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(15, 23, 42, 0.6)",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    gap: 6,
   },
-  btnLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  btnText: {
-    color: "#f8fafc",
-    fontSize: 15,
+  cardDescription: {
+    fontSize: 14,
     fontWeight: "600",
+    lineHeight: 20,
+    marginBottom: 14,
   },
-  logoutBtn: {
-    borderColor: "rgba(239, 68, 68, 0.3)",
-    backgroundColor: "rgba(239, 68, 68, 0.08)",
-    marginTop: 8,
+  note: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 4,
+  },
+  quickLink: {
+    justifyContent: "flex-start",
+    borderWidth: 0,
+    paddingHorizontal: 0,
+  },
+  quickLinkText: {
+    fontSize: 15,
+  },
+  logoutCard: {
+    borderWidth: 1,
+    borderColor: "rgba(239,68,68,0.2)",
   },
 });

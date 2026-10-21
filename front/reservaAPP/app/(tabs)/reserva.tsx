@@ -1,450 +1,729 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
-  Pressable,
-  Animated,
-  TouchableOpacity,
   ScrollView,
+  RefreshControl,
   Alert,
   Platform,
+  ActivityIndicator,
+  Linking,
 } from "react-native";
-import {
-  obtenerReservas,
-  eliminarReserva,
-} from "../../services/reservaService";
-import { useAuth } from "../../context/AuthContext";
 import { Redirect, router } from "expo-router";
-import { existeReservaVenta } from "../../services/ventaService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "../../context/AuthContext";
+import { obtenerReservas, eliminarReserva } from "../../services/reservaService";
+import { crearPreferencia } from "../../services/pagoService";
+import { useThemeColor } from "@/components/Themed";
+import ScreenContainer from "@/components/ui/ScreenContainer";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Badge from "@/components/ui/Badge";
+import EmptyState from "@/components/ui/EmptyState";
 
-interface Viaje {
+const CANCEL_HOURS_LIMIT = 2;
+const ULTIMA_RESERVA_ID_KEY = "ultimaReservaId";
+
+interface Trip {
   id: number;
   origenLocalidad: string;
   destinoLocalidad: string;
   horarioSalida: string;
   fechaViaje: string;
   precio: number;
-  usuarioEmpresa_id: number;
-  medioTransporte_id: number;
 }
 
-interface Reserva {
+interface Passenger {
+  id: number;
+  nombre: string;
+  apellido: string;
+  dni: string;
+}
+
+interface Reservation {
   id: number;
   fechaReserva: string;
-  viaje: Viaje;
-  tieneVenta?: boolean;
+  estado?: string;
+  estadoPago?: string;
+  codigoReserva?: string;
+  total?: number;
+  viaje?: Trip;
+  Viaje?: Trip;
+  pasajeros?: Passenger[];
+  Pasajeros?: Passenger[];
 }
 
-const MisReservas = () => {
-  const [reservasPendientes, setReservasPendientes] = useState<Reserva[]>([]);
-  const [reservasPagadas, setReservasPagadas] = useState<Reserva[]>([]);
-  const [reservasPasadas, setReservasPasadas] = useState<Reserva[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-  const animation = useRef(new Animated.Value(0)).current;
-  const { logout, userInfo } = useAuth();
+const getTrip = (reserva: Reservation) => reserva?.viaje || reserva?.Viaje || ({} as Trip);
+const getPassengers = (reserva: Reservation) =>
+  reserva?.pasajeros || reserva?.Pasajeros || [];
 
-  if (userInfo?.perfil !== "usuarioCliente") {
+const formatCurrency = (value: number) =>
+  Number(value || 0).toLocaleString("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+
+const parseDeparture = (trip: Trip) => {
+  if (!trip?.fechaViaje) return null;
+  const fecha = String(trip.fechaViaje).split("T")[0];
+  const [year, month, day] = fecha.split("-").map((n) => parseInt(n, 10));
+  if (!year || !month || !day) return null;
+  const date = new Date(year, month - 1, day);
+  if (trip.horarioSalida) {
+    const [hours, minutes] = String(trip.horarioSalida).split(":");
+    if (hours && minutes) {
+      date.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+    }
+  }
+  return date;
+};
+
+const classifyReservation = (reserva: Reservation) => {
+  const trip = getTrip(reserva);
+  const departure = parseDeparture(trip);
+  const now = new Date();
+  const estado = String(reserva?.estado || "").toLowerCase();
+  const estadoPago = String(reserva?.estadoPago || "").toLowerCase();
+
+  const isCancelled = estado === "cancelada";
+  const isPaid =
+    estadoPago === "pagado" || estado === "pagado" || estado === "pagada";
+  const isPending = estado === "pendiente" || estadoPago === "pendiente";
+  const isConfirmed = estado === "confirmada";
+  const isPast = departure ? departure <= now : false;
+  const needsPayment = isPending || (isConfirmed && !isPaid);
+
+  return { isCancelled, isPaid, isPending, isConfirmed, isPast, departure, needsPayment };
+};
+
+const statusBadgeProps = (reserva: Reservation) => {
+  const estado = String(reserva?.estado || "").toLowerCase();
+  const estadoPago = String(reserva?.estadoPago || "").toLowerCase();
+
+  if (estado === "cancelada") return { variant: "error" as const, label: "Cancelada" };
+  if (estadoPago === "pagado" || estado === "pagado" || estado === "pagada")
+    return { variant: "success" as const, label: "Pagada" };
+  if (estado === "pendiente" || estadoPago === "pendiente")
+    return { variant: "warning" as const, label: "Pendiente de pago" };
+  if (estado === "confirmada") return { variant: "success" as const, label: "Confirmada" };
+  return { variant: "default" as const, label: reserva?.estado || "Reserva" };
+};
+
+export default function MisReservasScreen() {
+  const { userInfo, isLoading: authLoading, isLoggedIn } = useAuth();
+  const [reservas, setReservas] = useState<Reservation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [payingId, setPayingId] = useState<number | null>(null);
+
+  const text = useThemeColor({}, "text");
+  const textSecondary = useThemeColor({}, "textSecondary");
+  const textMuted = useThemeColor({}, "textMuted");
+  const primary = useThemeColor({}, "primary");
+  const success = useThemeColor({}, "success");
+  const warning = useThemeColor({}, "warning");
+  const errorColor = useThemeColor({}, "error");
+  const background = useThemeColor({}, "background");
+  const surfaceElevated = useThemeColor({}, "surfaceElevated");
+
+  if (!authLoading && userInfo?.perfil !== "usuarioCliente") {
     return <Redirect href="/(tabs)" />;
   }
-  useEffect(() => {
-    const fetchReservas = async () => {
-      if (!userInfo?.id) {
-        setError("No se pudo obtener el ID del usuario");
-        setLoading(false);
-        return;
+
+  const fetchReservas = useCallback(async () => {
+    if (!userInfo?.id) {
+      setError("No se pudo obtener el ID del usuario");
+      setLoading(false);
+      return;
+    }
+    setError(null);
+    try {
+      const data = await obtenerReservas(userInfo.id);
+      const list = Array.isArray(data) ? data : data.data || [];
+      setReservas(Array.isArray(list) ? list : []);
+    } catch {
+      setError("No pudimos cargar tus reservas. Intentá de nuevo en unos instantes.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [userInfo?.id]);
+
+  React.useEffect(() => {
+    if (!authLoading && isLoggedIn) {
+      fetchReservas();
+    }
+  }, [authLoading, isLoggedIn, fetchReservas]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchReservas();
+  };
+
+  const grouped = useMemo(() => {
+    const upcoming: Reservation[] = [];
+    const pending: Reservation[] = [];
+    const history: Reservation[] = [];
+
+    reservas.forEach((reserva) => {
+      const { isCancelled, isPaid, isPending, isPast } = classifyReservation(reserva);
+      if (isCancelled || isPast) {
+        history.push(reserva);
+      } else if (isPending) {
+        pending.push(reserva);
+      } else if (isPaid) {
+        upcoming.push(reserva);
+      } else {
+        upcoming.push(reserva);
       }
+    });
 
+    const sortByDeparture = (a: Reservation, b: Reservation, direction: "asc" | "desc" = "asc") => {
+      const da = parseDeparture(getTrip(a));
+      const db = parseDeparture(getTrip(b));
+      if (!da || !db) return 0;
+      return direction === "asc" ? da.getTime() - db.getTime() : db.getTime() - da.getTime();
+    };
+
+    upcoming.sort((a, b) => sortByDeparture(a, b, "asc"));
+    pending.sort((a, b) => sortByDeparture(a, b, "asc"));
+    history.sort((a, b) => sortByDeparture(a, b, "desc"));
+
+    return { upcoming, pending, history };
+  }, [reservas]);
+
+  const canCancel = (reserva: Reservation) => {
+    const { isCancelled, isPast, departure } = classifyReservation(reserva);
+    if (isCancelled || isPast || !departure) return false;
+    const limit = new Date(departure.getTime() - CANCEL_HOURS_LIMIT * 60 * 60 * 1000);
+    return new Date() <= limit;
+  };
+
+  const handlePayment = async (reserva: Reservation) => {
+    setPayingId(reserva.id);
+    try {
+      await AsyncStorage.setItem(ULTIMA_RESERVA_ID_KEY, String(reserva.id));
+      const response = await crearPreferencia(reserva.id);
+      const { initPoint } = response?.data || response || {};
+      if (initPoint) {
+        Linking.openURL(initPoint);
+      } else {
+        Alert.alert("Error", "No se pudo generar el link de pago");
+      }
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err?.response?.data?.mensaje || "Error al iniciar el pago";
+      Alert.alert("Error", message);
+    } finally {
+      setPayingId(null);
+    }
+  };
+
+  const handleView = (reserva: Reservation) => {
+    router.push({
+      pathname: "/pantallas/confirmarReserva",
+      params: {
+        reservaId: String(reserva.id),
+      },
+    });
+  };
+
+  const handleCancel = (reserva: Reservation) => {
+    const trip = getTrip(reserva);
+    const departure = parseDeparture(trip);
+
+    const confirm = async () => {
+      setCancellingId(reserva.id);
       try {
-        const reservasData = await obtenerReservas(userInfo.id);
-
-        const reservasConVenta = await Promise.all(
-          reservasData.map(async (reserva: Reserva) => {
-            const tieneVenta = await existeReservaVenta(reserva.id);
-            return { ...reserva, tieneVenta };
-          })
+        await eliminarReserva(reserva.id);
+        setReservas((prev) =>
+          prev.map((r) =>
+            r.id === reserva.id ? { ...r, estado: "Cancelada", estadoPago: "Cancelada" } : r
+          )
         );
-
-        const now = new Date();
-
-        const getFechaHoraViaje = (fecha: string, hora: string): Date => {
-          const [year, month, day] = fecha.split("T")[0].split("-").map(Number);
-          const [hours, minutes] = hora.split(":").map(Number);
-          return new Date(year, month - 1, day, hours, minutes);
-        };
-
-        //para guardar las reservas por viajar y las que ya viajaron
-        const futuras: Reserva[] = [];
-        const pasadas: Reserva[] = [];
-
-        reservasConVenta.forEach((r) => {
-          const fechaHoraViaje = getFechaHoraViaje(
-            r.viaje.fechaViaje,
-            r.viaje.horarioSalida
-          );
-          if (fechaHoraViaje.getTime() > now.getTime()) {
-            futuras.push(r);
-          } else {
-            pasadas.push(r);
-          }
-        });
-
-        // solo las futuras controla si tiene o no venta
-        setReservasPendientes(futuras.filter((r) => !r.tieneVenta));
-        setReservasPagadas(futuras.filter((r) => r.tieneVenta));
-        setReservasPasadas(pasadas);
-      } catch (error) {
-        setError("Hubo un problema al obtener las reservas");
+        Alert.alert("Reserva cancelada", "La reserva fue cancelada correctamente.");
+      } catch (err: any) {
+        const message =
+          err?.response?.data?.mensaje || err?.response?.data?.message || "No se pudo cancelar la reserva";
+        Alert.alert("Error", message);
       } finally {
-        setLoading(false);
+        setCancellingId(null);
       }
     };
 
-    fetchReservas();
-  }, []);
-
-  const toggleExpand = (id: number) => {
-    if (expandedId === id) {
-      setExpandedId(null);
-      Animated.timing(animation, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: false,
-      }).start();
-    } else {
-      setExpandedId(id);
-      Animated.timing(animation, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: false,
-      }).start();
-    }
-  };
-
-  const handleEliminarReserva = async (id: number) => {
-    let confirmacion = false;
-    //el alerta del eliminar reserva para web y movil
     if (Platform.OS === "web") {
-      confirmacion = window.confirm(
-        "¿Estás seguro que deseas eliminar esta reserva?"
-      );
+      const msg = `¿Cancelar la reserva de ${trip.origenLocalidad} a ${trip.destinoLocalidad}?`;
+      if (window.confirm(msg)) confirm();
     } else {
-      confirmacion = await new Promise<boolean>((resolve) => {
-        Alert.alert(
-          "Confirmar eliminación",
-          "¿Estás seguro que deseas eliminar esta reserva?",
-          [
-            {
-              text: "Cancelar",
-              style: "cancel",
-              onPress: () => resolve(false),
-            },
-            {
-              text: "Eliminar",
-              style: "destructive",
-              onPress: () => resolve(true),
-            },
-          ],
-          { cancelable: true }
-        );
-      });
-    }
-
-    if (!confirmacion) return;
-
-    try {
-      await eliminarReserva(Number(id));
-      setReservasPendientes((prev) =>
-        prev.filter((reserva) => reserva.id !== id)
+      Alert.alert(
+        "¿Cancelar esta reserva?",
+        `Vas a cancelar el viaje de ${trip.origenLocalidad} a ${trip.destinoLocalidad}${
+          departure
+            ? ` del ${departure.toLocaleDateString("es-AR", {
+                day: "2-digit",
+                month: "long",
+              })} a las ${trip.horarioSalida?.substring(0, 5)} hs`
+            : ""
+        }. Esta acción no se puede deshacer.`,
+        [
+          { text: "Volver", style: "cancel" },
+          { text: "Sí, cancelar", style: "destructive", onPress: confirm },
+        ]
       );
-      if (Platform.OS === "web") {
-        alert("Reserva eliminada con éxito");
-      } else {
-        Alert.alert("Reserva eliminada con éxito");
-      }
-    } catch (error) {
-      if (Platform.OS === "web") {
-        alert("No se pudo eliminar la reserva");
-      } else {
-        Alert.alert("Error", "No se pudo eliminar la reserva");
-      }
     }
   };
 
-  const formatDate = (fechaISO: string) => {
-    const [year, month, day] = fechaISO.split("T")[0].split("-").map(Number);
-    return ` ${String(day).padStart(2, "0")}/${String(month).padStart(
-      2,
-      "0"
-    )}/${year}`;
-  };
-
-  const formatTime = (timeString: string) => {
-    const [hours, minutes] = timeString.split(":");
-    return ` ${hours}:${minutes}`;
-  };
-
-  const renderReserva = (item: Reserva, esPasada: boolean = false) => {
-    //si es pasada y no  viajo o no se conformo va a mostrar el mensaje despues
-    const noViajaste = esPasada && !item.tieneVenta;
-
+  if (authLoading || loading) {
     return (
-      <View
-        key={item.id}
-        style={[styles.card, esPasada && { backgroundColor: "#e0e0e0" }]}
-      >
-        <Text style={styles.viajeRuta}>
-          {item.viaje.origenLocalidad} ➜ {item.viaje.destinoLocalidad}
-        </Text>
-
-        <View style={styles.fila}>
-          <Text style={styles.filaTexto}>
-            🗓 {formatDate(item.viaje.fechaViaje)}
-          </Text>
-          <Text style={styles.filaTexto}>
-            🕓 {formatTime(item.viaje.horarioSalida)} hs
-          </Text>
-        </View>
-
-        <View style={styles.filaBottom}>
-          <Text style={styles.precio}>
-            ARS $
-            {item.viaje.precio.toLocaleString("es-AR", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </Text>
-
-          <Pressable
-            style={styles.btnSeleccionar}
-            onPress={() => toggleExpand(item.id)}
-          >
-            <Text style={styles.btnSeleccionarText}>Ver más</Text>
-          </Pressable>
-        </View>
-
-        {expandedId === item.id && (
-          <View style={{ marginTop: 10 }}>
-            <Text style={styles.detail}>Reserva #{item.id}</Text>
-            <Text style={styles.detail}>
-              Fecha de Reserva: {formatDate(item.fechaReserva)}
-            </Text>
-
-            {noViajaste ? (
-              <Text
-                style={[
-                  styles.detail,
-                  { color: "red", marginTop: 8, fontWeight: "bold" },
-                ]}
-              >
-                Sin Confirmación !!
-              </Text>
-            ) : (
-              <View style={styles.botonesContainer}>
-                <Pressable
-                  style={styles.botonDetalle}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/pantallas/detalleReserva",
-                      params: {
-                        id: item.viaje.id,
-                        tieneVenta: item.tieneVenta?.toString(),
-                        idReserva: item.id,
-                      },
-                    })
-                  }
-                >
-                  <Text style={styles.btnSeleccionarText}>Ver Detalle</Text>
-                </Pressable>
-
-                {item.tieneVenta ? (
-                  <Pressable
-                    style={styles.botonDetalle}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/pantallas/detalleVenta",
-                        params: { id: item.id },
-                      })
-                    }
-                  >
-                    <Text style={styles.btnSeleccionarText}>Ver Compra</Text>
-                  </Pressable>
-                ) : (
-                  // Si no tiene venta (reserva pendiente), muestro botón eliminar
-                  <TouchableOpacity
-                    style={styles.botonEliminar}
-                    onPress={() => handleEliminarReserva(item.id)}
-                  >
-                    <Text style={styles.btnSeleccionarText}>Eliminar</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-          </View>
-        )}
-      </View>
-    );
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={[styles.loader, { backgroundColor: background }]}>
+        <ActivityIndicator size="large" color={primary} />
+        <Text style={[styles.loaderText, { color: textSecondary }]}>Cargando reservas…</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <Text>{error}</Text>
-      </View>
+      <ScreenContainer scrollEnabled={false}>
+        <EmptyState
+          icon="alert-circle-outline"
+          title="No pudimos cargar tus reservas"
+          description={error}
+          action={{
+            label: "Reintentar",
+            onPress: fetchReservas,
+          }}
+        />
+      </ScreenContainer>
     );
   }
 
+  const totalCount = grouped.upcoming.length + grouped.pending.length + grouped.history.length;
+
+  const renderSection = (
+    title: string,
+    data: Reservation[],
+    variant: "success" | "warning" | "default"
+  ) => {
+    if (data.length === 0) return null;
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: text }]} allowFontScaling>
+            {title}
+          </Text>
+          <Badge variant={variant}>{data.length}</Badge>
+        </View>
+        {data.map((reserva) => (
+          <ReservationCard
+            key={reserva.id}
+            reserva={reserva}
+            onPay={handlePayment}
+            onView={handleView}
+            onCancel={handleCancel}
+            canCancel={canCancel(reserva)}
+            cancellingId={cancellingId}
+            payingId={payingId}
+          />
+        ))}
+      </View>
+    );
+  };
+
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      {reservasPendientes.length === 0 &&
-      reservasPagadas.length === 0 &&
-      reservasPasadas.length === 0 ? (
-        <Text style={{ textAlign: "center", marginTop: 20, color: "#888" }}>
-          Aún no hay reservas
-        </Text>
-      ) : (
-        <>
-          {reservasPendientes.length > 0 && (
-            <>
-              <Text style={styles.sectionTitle}>
-                Reservas pendientes de confirmación
-              </Text>
-              {reservasPendientes.map((r) => renderReserva(r))}
-            </>
-          )}
+    <ScreenContainer>
+      <ScrollView
+        style={[styles.scroll, { backgroundColor: background }]}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primary} />
+        }
+      >
+        <View style={styles.pageHeader}>
+          <View style={[styles.headerIconCircle, { backgroundColor: `${primary}12` }]}>
+            <Ionicons name="ticket-outline" size={28} color={primary} />
+          </View>
+          <View>
+            <Text style={[styles.pageTitle, { color: text }]} allowFontScaling>
+              Mis Reservas
+            </Text>
+            <Text style={[styles.pageSubtitle, { color: textSecondary }]} allowFontScaling>
+              {totalCount === 0
+                ? "Todavía no tenés reservas activas"
+                : `Tenés ${totalCount} ${totalCount === 1 ? "reserva" : "reservas"} en total`}
+            </Text>
+          </View>
+        </View>
 
-          {reservasPagadas.length > 0 && (
-            <>
-              <Text style={styles.sectionTitle}>Reservas confirmadas</Text>
-              {reservasPagadas.map((r) => renderReserva(r))}
-            </>
-          )}
-
-          {reservasPasadas.length > 0 && (
-            <>
-              <Text style={styles.sectionTitle}>Viajes Finalizados</Text>
-              {reservasPasadas.map((r) => renderReserva(r, true))}
-            </>
-          )}
-        </>
-      )}
-    </ScrollView>
+        {totalCount === 0 ? (
+          <EmptyState
+            icon="ticket-outline"
+            title="Aún no tenés reservas"
+            description="Cuando reserves tu próximo viaje, vas a encontrarlo acá. Busca pasajes y reservá en segundos."
+            action={{
+              label: "Buscar mi primer viaje",
+              onPress: () => router.push("/(tabs)/viajes"),
+            }}
+          />
+        ) : (
+          <>
+            {renderSection("Próximos confirmados", grouped.upcoming, "success")}
+            {renderSection("Pendientes de pago", grouped.pending, "warning")}
+            {renderSection("Finalizados / Cancelados", grouped.history, "default")}
+          </>
+        )}
+      </ScrollView>
+    </ScreenContainer>
   );
-};
+}
+
+function ReservationCard({
+  reserva,
+  onPay,
+  onView,
+  onCancel,
+  canCancel,
+  cancellingId,
+  payingId,
+}: {
+  reserva: Reservation;
+  onPay: (reserva: Reservation) => void;
+  onView: (reserva: Reservation) => void;
+  onCancel: (reserva: Reservation) => void;
+  canCancel: boolean;
+  cancellingId: number | null;
+  payingId: number | null;
+}) {
+  const trip = getTrip(reserva);
+  const passengers = getPassengers(reserva);
+  const { isPaid, needsPayment } = classifyReservation(reserva);
+  const status = statusBadgeProps(reserva);
+  const departure = parseDeparture(trip);
+  const total = reserva.total || trip.precio * (passengers.length || 1) || 0;
+
+  const text = useThemeColor({}, "text");
+  const textSecondary = useThemeColor({}, "textSecondary");
+  const textMuted = useThemeColor({}, "textMuted");
+  const primary = useThemeColor({}, "primary");
+  const success = useThemeColor({}, "success");
+  const warning = useThemeColor({}, "warning");
+  const errorColor = useThemeColor({}, "error");
+  const surfaceElevated = useThemeColor({}, "surfaceElevated");
+
+  return (
+    <Card style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Badge variant={status.variant}>{status.label}</Badge>
+        {cancellingId === reserva.id && (
+          <Text style={[styles.cancellingText, { color: textMuted }]}>Cancelando…</Text>
+        )}
+      </View>
+
+      <View style={styles.routeRow}>
+        <View style={styles.location}>
+          <Ionicons name="location" size={18} color={primary} />
+          <View>
+            <Text style={[styles.locationLabel, { color: textSecondary }]} allowFontScaling>
+              Origen
+            </Text>
+            <Text style={[styles.locationName, { color: text }]} allowFontScaling>
+              {trip.origenLocalidad || "No disponible"}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.routeConnector}>
+          <View style={[styles.routeLine, { backgroundColor: surfaceElevated }]} />
+          <Ionicons name="chevron-forward" size={14} color={textMuted} />
+        </View>
+        <View style={styles.location}>
+          <Ionicons name="location" size={18} color={warning} />
+          <View>
+            <Text style={[styles.locationLabel, { color: textSecondary }]} allowFontScaling>
+              Destino
+            </Text>
+            <Text style={[styles.locationName, { color: text }]} allowFontScaling>
+              {trip.destinoLocalidad || "No disponible"}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.detailsRow}>
+        <View style={[styles.detailPill, { backgroundColor: surfaceElevated }]}>
+          <Ionicons name="calendar-outline" size={14} color={textSecondary} />
+          <Text style={[styles.detailText, { color: textSecondary }]} allowFontScaling>
+            {departure
+              ? departure.toLocaleDateString("es-AR", {
+                  weekday: "short",
+                  day: "2-digit",
+                  month: "short",
+                })
+              : "Fecha no disp."}
+          </Text>
+        </View>
+        <View style={[styles.detailPill, { backgroundColor: surfaceElevated }]}>
+          <Ionicons name="time-outline" size={14} color={textSecondary} />
+          <Text style={[styles.detailText, { color: textSecondary }]} allowFontScaling>
+            {trip.horarioSalida?.substring(0, 5) || "--:--"} hs
+          </Text>
+        </View>
+        <View style={[styles.detailPill, { backgroundColor: surfaceElevated }]}>
+          <Ionicons name="people-outline" size={14} color={textSecondary} />
+          <Text style={[styles.detailText, { color: textSecondary }]} allowFontScaling>
+            {passengers.length} pasajero{passengers.length !== 1 ? "s" : ""}
+          </Text>
+        </View>
+      </View>
+
+      {passengers.length > 0 && (
+        <View style={styles.passengersRow}>
+          <Text style={[styles.passengersLabel, { color: textSecondary }]} allowFontScaling>
+            Pasajeros
+          </Text>
+          <View style={styles.passengersList}>
+            {passengers.slice(0, 3).map((p, idx) => (
+              <View key={p.id || idx} style={[styles.passengerChip, { backgroundColor: surfaceElevated }]}>
+                <Text style={[styles.passengerChipText, { color: textSecondary }]} allowFontScaling>
+                  {p.nombre} {p.apellido}
+                </Text>
+              </View>
+            ))}
+            {passengers.length > 3 && (
+              <View style={[styles.passengerChip, { backgroundColor: surfaceElevated }]}>
+                <Text style={[styles.passengerChipText, { color: textSecondary }]} allowFontScaling>
+                  +{passengers.length - 3}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+
+      <View style={[styles.divider, { backgroundColor: surfaceElevated }]} />
+
+      <View style={styles.footer}>
+        <Text style={[styles.total, { color: text }]} allowFontScaling>
+          {formatCurrency(total)}
+        </Text>
+        <View style={styles.actions}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onPress={() => onView(reserva)}
+            icon="eye-outline"
+            iconPosition="left"
+          >
+            Detalle
+          </Button>
+
+          {needsPayment && (
+            <Button
+              variant="primary"
+              size="sm"
+              loading={payingId === reserva.id}
+              disabled={payingId === reserva.id}
+              onPress={() => onPay(reserva)}
+              icon="card-outline"
+              iconPosition="left"
+            >
+              Pagar
+            </Button>
+          )}
+
+          {isPaid && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onPress={() => onView(reserva)}
+              icon="download-outline"
+              iconPosition="left"
+            >
+              Boleto
+            </Button>
+          )}
+
+          {canCancel && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onPress={() => onCancel(reserva)}
+              disabled={cancellingId === reserva.id}
+              icon="close-outline"
+              iconPosition="left"
+            >
+              Cancelar
+            </Button>
+          )}
+        </View>
+      </View>
+    </Card>
+  );
+}
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    padding: 16,
-    backgroundColor: "#f2f2f2",
-  },
-  container: {
+  loader: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "transparent",
+    alignItems: "center",
+  },
+  loaderText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  scroll: {
+    flex: 1,
+  },
+  container: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  pageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginBottom: 20,
+  },
+  headerIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pageTitle: {
+    fontSize: 24,
+    fontWeight: "900",
+  },
+  pageSubtitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#f8fafc",
-    marginBottom: 14,
-    textAlign: "left",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(56, 189, 248, 0.4)",
-    paddingBottom: 6,
-    letterSpacing: 0.5,
+    fontSize: 17,
+    fontWeight: "800",
   },
   card: {
-    backgroundColor: "rgba(30, 41, 59, 0.9)",
-    borderRadius: 16,
-    padding: 16,
     marginBottom: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
-    borderLeftWidth: 5,
-    borderLeftColor: "#38bdf8",
   },
-  viajeRuta: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#ffffff",
-    marginBottom: 8,
-  },
-  fila: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  filaTexto: {
-    fontSize: 13,
-    color: "#cbd5e1",
-    fontWeight: "500",
-  },
-  filaBottom: {
+  cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.06)",
-    paddingTop: 10,
+    marginBottom: 14,
   },
-  precio: {
-    fontSize: 17,
+  cancellingText: {
+    fontSize: 13,
     fontWeight: "700",
-    color: "#38bdf8",
   },
-  btnSeleccionar: {
-    backgroundColor: "#2563eb",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-  },
-  btnSeleccionarText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 13,
-  },
-  detail: {
-    fontSize: 13,
-    marginTop: 4,
-    color: "#94a3b8",
-  },
-  botonesContainer: {
+  routeRow: {
     flexDirection: "row",
-    marginTop: 12,
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  location: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  locationLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  locationName: {
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  routeConnector: {
+    flex: 0.4,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  routeLine: {
+    flex: 1,
+    height: 2,
+    borderRadius: 1,
+    marginRight: 2,
+  },
+  detailsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 14,
+  },
+  detailPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  detailText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  passengersRow: {
+    marginBottom: 14,
+  },
+  passengersLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    marginBottom: 6,
+  },
+  passengersList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  passengerChip: {
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  passengerChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  divider: {
+    height: 1,
+    marginBottom: 14,
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+  },
+  total: {
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     flexWrap: "wrap",
-  },
-  botonDetalle: {
-    backgroundColor: "#2563eb",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  botonEliminar: {
-    backgroundColor: "#ef4444",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    alignItems: "center",
+    justifyContent: "flex-end",
   },
 });
-
-export default MisReservas;

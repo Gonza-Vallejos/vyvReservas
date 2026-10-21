@@ -39,6 +39,7 @@ export default function ViajesScreen() {
   const textSecondary = useThemeColor({}, "textSecondary");
   const background = useThemeColor({}, "background");
   const primary = useThemeColor({}, "primary");
+  const success = useThemeColor({}, "success");
 
   const initialOrigen = typeof params.origen === "string" ? params.origen : "";
   const initialDestino = typeof params.destino === "string" ? params.destino : "";
@@ -109,7 +110,7 @@ export default function ViajesScreen() {
 
   const handleSelectTrip = (trip: Viaje) => {
     router.push({
-      pathname: "/pantallas/realizarReserva",
+      pathname: "/pantallas/detalleViaje" as any,
       params: { id: trip.id },
     });
   };
@@ -125,14 +126,27 @@ export default function ViajesScreen() {
       </Card>
 
       {hasSearched && origen && destino && (
-        <View style={styles.routeSummary}>
-          <Text allowFontScaling style={[styles.routeText, { color: text }]}>
-            {origen} <Text style={{ color: textSecondary }}>→</Text> {destino}
-          </Text>
-        </View>
+        <>
+          <View style={styles.resultsHeader}>
+            <View style={styles.resultsTitleRow}>
+              <Text allowFontScaling style={[styles.resultsCount, { color: text }]}>
+                {loading
+                  ? "Consultando salidas..."
+                  : `${viajes.length} ${viajes.length === 1 ? "servicio encontrado" : "servicios encontrados"}`}
+              </Text>
+              {!loading && viajes.length > 0 && (
+                <View style={[styles.statusDot, { backgroundColor: success }]} />
+              )}
+            </View>
+            <Text allowFontScaling style={[styles.routeText, { color: textSecondary }]}>
+              {origen} → {destino}
+            </Text>
+          </View>
+          <DateSelectorBar selectedDate={fecha} onSelectDate={handleSelectDate} />
+        </>
       )}
 
-      <DateSelectorBar selectedDate={fecha} onSelectDate={handleSelectDate} />
+      {!hasSearched && <DateSelectorBar selectedDate={fecha} onSelectDate={handleSelectDate} />}
     </View>
   );
 
@@ -227,13 +241,27 @@ const styles = StyleSheet.create({
   searchCard: {
     marginBottom: 16,
   },
-  routeSummary: {
+  resultsHeader: {
     marginBottom: 12,
-    alignItems: "center",
+    gap: 4,
   },
-  routeText: {
+  resultsTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  resultsCount: {
     fontSize: 18,
     fontWeight: "800",
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  routeText: {
+    fontSize: 14,
+    fontWeight: "700",
   },
   center: {
     paddingVertical: 40,

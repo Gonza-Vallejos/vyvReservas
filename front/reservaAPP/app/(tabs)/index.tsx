@@ -136,6 +136,12 @@ export default function Index() {
           animation={reducedMotion ? undefined : "fadeInDown"}
           duration={reducedMotion ? 0 : 600}
         >
+          <View style={styles.heroKicker}>
+            <Text style={styles.heroKickerText} allowFontScaling>
+              🚍 Viajá seguro, viajá feliz
+            </Text>
+          </View>
+
           <View style={styles.heroHeader}>
             <View style={styles.heroIconCircle}>
               <Ionicons name="bus" size={28} color="#FFFFFF" />
@@ -144,8 +150,8 @@ export default function Index() {
               <Text style={styles.greeting} allowFontScaling>
                 ¡Hola, {userInfo?.nombre || userInfo?.usuario || "Bienvenido"}!
               </Text>
-              <Text style={styles.brandSubtitle} allowFontScaling>
-                V&V Reservas
+              <Text style={styles.heroSubtitle} allowFontScaling>
+                Reservá tu próximo viaje en un clic.
               </Text>
             </View>
           </View>
@@ -389,10 +395,23 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     letterSpacing: 0.2,
   },
-  brandSubtitle: {
+  heroKicker: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 9999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginBottom: 12,
+  },
+  heroKickerText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  heroSubtitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: "rgba(255,255,255,0.9)",
     marginTop: 2,
   },
   badgeRow: {

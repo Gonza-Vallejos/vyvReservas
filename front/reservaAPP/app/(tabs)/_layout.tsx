@@ -93,6 +93,15 @@ export default function TabLayout() {
       <Tabs.Screen name="index" options={{ title: "Inicio" }} />
 
       <Tabs.Screen
+        name="viajes"
+        options={{
+          title: "Viajes",
+          href: userInfo?.perfil === "usuarioCliente" ? undefined : null,
+          lazy: true,
+        }}
+      />
+
+      <Tabs.Screen
         name="reserva"
         options={{
           title: "Mis Reservas",
@@ -102,9 +111,9 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="viajes"
+        name="perfil"
         options={{
-          title: "Viajes",
+          title: "Perfil",
           href: userInfo?.perfil === "usuarioCliente" ? undefined : null,
           lazy: true,
         }}
@@ -197,7 +206,6 @@ export default function TabLayout() {
           lazy: true,
         }}
       />
-      <Tabs.Screen name="perfil" options={{ title: "Perfil", href: null }} />
     </Tabs>
   );
 }
