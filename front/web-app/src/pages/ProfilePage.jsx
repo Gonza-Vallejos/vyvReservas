@@ -128,10 +128,7 @@ const ProfilePage = () => {
       await usuarioService.actualizar(user.id, payload);
 
       const updatedUser = { ...user, ...payload, dni: String(payload.dni) };
-      const token = localStorage.getItem('token');
-      if (token) {
-        login(updatedUser, token);
-      }
+      login(updatedUser);
       toast.success('Datos guardados correctamente');
       setIsEditing(false);
     } catch (error) {

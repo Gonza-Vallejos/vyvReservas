@@ -12,6 +12,7 @@ const appLogger = require('./utils/logger');
 const rateLimit = require('express-rate-limit');
 
 require('dotenv').config();
+const { SESSION_COOKIE_NAME } = require('./utils/sessionCookie');
 
 // Routers
 const indexRouter = require('./routes/index');
@@ -69,11 +70,36 @@ const paymentLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// CORS configurado
+const normalizeOrigin = (value) => {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+};
+
+const allowedOrigins = new Set([
+  process.env.FRONTEND_URL,
+  ...(process.env.CORS_ORIGIN || '').split(','),
+  ...(process.env.NODE_ENV === 'production' ? [] : [
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ]),
+].map((origin) => origin?.trim())
+  .filter((origin) => origin && origin !== '*')
+  .map(normalizeOrigin)
+  .filter(Boolean));
+
+// Cookies de sesión requieren orígenes explícitos; no se habilita CORS wildcard.
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*', // Configurar en .env para producción
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.has(normalizeOrigin(origin))) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-Auth'],
   credentials: true,
 }));
 
@@ -111,6 +137,24 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use((req, res, next) => {
+  const unsafeMethod = !['GET', 'HEAD', 'OPTIONS'].includes(req.method);
+  const hasCookieSession = Boolean(req.cookies?.[SESSION_COOKIE_NAME]);
+  const isCookieLogin = req.get('X-Session-Auth') === 'cookie';
+
+  // Verifica el origen en peticiones mutables autenticadas por cookie (CSRF).
+  if (!unsafeMethod || req.headers.authorization || (!hasCookieSession && !isCookieLogin)) {
+    return next();
+  }
+
+  const originHeader = req.get('Origin');
+  const refererHeader = req.get('Referer');
+  const requestOrigin = normalizeOrigin(originHeader || refererHeader);
+  if (!requestOrigin || !allowedOrigins.has(requestOrigin)) {
+    return sendError(res, 'Origen no autorizado', 403);
+  }
+  next();
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Swagger Documentation

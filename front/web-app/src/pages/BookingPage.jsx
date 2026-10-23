@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { viajeService, reservaService } from '../services/api';
@@ -42,17 +42,25 @@ const BookingPage = () => {
   const { user, loading: authLoading } = useAuth();
 
   // Restore saved state or init empty
-  const [savedState, setSavedState] = useState(() => {
+  const [savedState] = useState(() => {
     try {
       const saved = sessionStorage.getItem(BOOKING_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         // Only use if matches current trip
         if (parsed.tripId === id) {
-          return parsed;
+          // Restore choices only; never restore passenger PII from old stored payloads.
+          return {
+            tripId: id,
+            step: Number(parsed.step) || 1,
+            selectedSeats: Array.isArray(parsed.selectedSeats) ? parsed.selectedSeats : [],
+          };
         }
+        sessionStorage.removeItem(BOOKING_STORAGE_KEY);
       }
-    } catch {}
+    } catch {
+      sessionStorage.removeItem(BOOKING_STORAGE_KEY);
+    }
     return null;
   });
 
@@ -68,7 +76,7 @@ const BookingPage = () => {
 
   const [step, setStep] = useState(savedState?.step || 1);
   const [selectedSeats, setSelectedSeats] = useState(savedState?.selectedSeats || []);
-  const [passengers, setPassengers] = useState(savedState?.passengers || []);
+  const [passengers, setPassengers] = useState([]);
   const [errors, setErrors] = useState({});
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -80,15 +88,21 @@ const BookingPage = () => {
     };
   }, []);
 
-  const saveBookingState = () => {
+  const saveBookingState = useCallback(() => {
     const state = {
       tripId: id,
       step,
       selectedSeats,
-      passengers,
     };
     sessionStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(state));
-  };
+  }, [id, step, selectedSeats]);
+
+  // Rewrite legacy state once, dropping any passenger personal data saved by older versions.
+  useEffect(() => {
+    if (savedState) {
+      sessionStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(savedState));
+    }
+  }, [savedState]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -110,7 +124,7 @@ const BookingPage = () => {
       navigate('/chofer', { replace: true });
       return;
     }
-  }, [user, authLoading, navigate, id]);
+  }, [user, authLoading, navigate, id, saveBookingState]);
 
   useEffect(() => {
     let cancelled = false;

@@ -4,18 +4,35 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const api = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const url = error.config?.url || '';
+    const isAuthFormEndpoint = [
+      '/auth/login',
+      '/auth/logout',
+      '/auth/recuperar-contrasenia',
+      '/auth/resetear-contrasenia',
+    ].some((endpoint) => url.startsWith(endpoint));
+
+    if (error.response?.status === 401 && !isAuthFormEndpoint && typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('vyv:auth-expired'));
+    }
+    return Promise.reject(error);
+  },
+);
 
 export const authService = {
-  login: (usuario, contrasenia) => api.post('/auth/login', { usuario, contrasenia }),
+  login: (usuario, contrasenia) => api.post(
+    '/auth/login',
+    { usuario, contrasenia },
+    { headers: { 'X-Session-Auth': 'cookie' } },
+  ),
+  currentSession: () => api.get('/auth/me'),
+  logout: () => api.post('/auth/logout'),
   register: (userData) => api.post('/usuarios', userData),
 };
 

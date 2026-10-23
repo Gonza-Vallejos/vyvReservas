@@ -1,6 +1,7 @@
 const authService = require("../services/authService");
 const { sendSuccess, sendError } = require("../utils/responseHandler");
 const appLogger = require("../utils/logger");
+const { setSessionCookie, clearSessionCookie } = require('../utils/sessionCookie');
 
 exports.login = async (req, res) => {
   const { usuario, contrasenia } = req.body;
@@ -11,6 +12,11 @@ exports.login = async (req, res) => {
       userId: data?.usuario?.id,
       perfil: data?.usuario?.perfil_id,
     });
+    if (req.get('X-Session-Auth') === 'cookie') {
+      setSessionCookie(res, data.token);
+      const { token, ...sessionData } = data;
+      return sendSuccess(res, sessionData);
+    }
     sendSuccess(res, data);
   } catch (error) {
     appLogger.warn("login_failed", {
@@ -23,6 +29,29 @@ exports.login = async (req, res) => {
     }
     sendError(res, "Error en el servidor", 500, error);
   }
+};
+
+exports.currentSession = (req, res) => {
+  const { id, nombre, apellido, dni, telefono, email, usuario, perfil, perfil_id, empresa_id } = req.usuario;
+  return sendSuccess(res, {
+    usuario: {
+      id,
+      nombre,
+      apellido,
+      dni,
+      telefono,
+      email,
+      usuario,
+      perfil,
+      perfil_id,
+      id_empresa: empresa_id ?? req.usuario.id_empresa ?? null,
+    },
+  });
+};
+
+exports.logout = (req, res) => {
+  clearSessionCookie(res);
+  return sendSuccess(res, null, 'Sesión cerrada');
 };
 
 exports.verificarEmail = async (req, res) => {

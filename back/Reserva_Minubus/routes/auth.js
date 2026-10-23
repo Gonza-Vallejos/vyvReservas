@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
+const { autenticarToken } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -38,6 +39,8 @@ const authController = require('../controllers/authController');
  *         description: Credenciales inválidas
  */
 router.post('/login', authController.login);
+router.get('/me', autenticarToken, authController.currentSession);
+router.post('/logout', authController.logout);
 
 /**
  * @swagger

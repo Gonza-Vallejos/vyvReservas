@@ -16,7 +16,8 @@ const transporter = nodemailer.createTransport({
 class AuthService {
   async login(usuario, contrasenia) {
     const cleanUser = usuario ? usuario.trim() : '';
-    const cleanPass = contrasenia ? contrasenia.trim() : '';
+    // No modificar contraseñas: espacios pueden formar parte de una contraseña válida.
+    const cleanPass = typeof contrasenia === 'string' ? contrasenia : '';
 
     const user = await Usuario.findOne({
       where: {

@@ -5,6 +5,7 @@
 const jwt = require("jsonwebtoken");
 const { sendError } = require("../utils/responseHandler");
 const appLogger = require("../utils/logger");
+const { SESSION_COOKIE_NAME, clearSessionCookie } = require('../utils/sessionCookie');
 const { 
   PROFILES, 
   hasPermission, 
@@ -19,7 +20,9 @@ const {
  */
 const autenticarToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  const bearerToken = authHeader?.match(/^Bearer\s+(.+)$/i)?.[1];
+  const cookieToken = req.cookies?.[SESSION_COOKIE_NAME];
+  const token = bearerToken || cookieToken;
 
   if (!token) {
     appLogger.warn("auth_missing_token", { requestId: req.requestId, path: req.originalUrl });
@@ -33,7 +36,8 @@ const autenticarToken = (req, res, next) => {
         path: req.originalUrl,
         errorMessage: err.message,
       });
-      return sendError(res, "Token inválido o expirado", 403);
+      if (cookieToken && !bearerToken) clearSessionCookie(res);
+      return sendError(res, "Token inválido o expirado", 401);
     }
 
     // Normalizar también tokens antiguos que no tenían perfil_id.
