@@ -14,8 +14,6 @@ exports.login = async (req, res) => {
     });
     if (req.get('X-Session-Auth') === 'cookie') {
       setSessionCookie(res, data.token);
-      const { token, ...sessionData } = data;
-      return sendSuccess(res, sessionData);
     }
     sendSuccess(res, data);
   } catch (error) {

@@ -40,35 +40,55 @@ export const normalizeUser = (userData) => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const token = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+      if (token && storedUser) {
+        return normalizeUser(JSON.parse(storedUser));
+      }
+    } catch (e) {
+      console.error('Error cargando usuario de localStorage:', e);
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
 
-  const refreshSession = useCallback(async () => {
-    try {
-      const response = await authService.currentSession();
-      const sessionUser = response.data?.data?.usuario;
-      setUser(normalizeUser(sessionUser));
-      return sessionUser || null;
-    } catch {
-      setUser(null);
-      return null;
-    }
-  }, []);
-
   const clearLocalSession = useCallback(() => {
+    try {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    } catch {
+      // Ignore storage errors
+    }
     setUser(null);
     clearSessionStorage();
   }, []);
 
-  useEffect(() => {
-    // Remove credentials/profile cached by the old localStorage-based session.
-    try {
-      window.localStorage.removeItem('token');
-      window.localStorage.removeItem('user');
-    } catch {
-      // Ignore unavailable localStorage.
+  const refreshSession = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setUser(null);
+      return null;
     }
+    try {
+      const response = await authService.currentSession();
+      const sessionUser = response.data?.data?.usuario;
+      if (sessionUser) {
+        const normalized = normalizeUser(sessionUser);
+        try {
+          localStorage.setItem('user', JSON.stringify(normalized));
+        } catch {}
+        setUser(normalized);
+        return normalized;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }, []);
 
+  useEffect(() => {
     const handleExpired = () => {
       clearLocalSession();
       broadcastAuthChange('logout');
@@ -90,11 +110,29 @@ export const AuthProvider = ({ children }) => {
 
     let active = true;
     const loadInitialSession = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        if (active) {
+          setUser(null);
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
         const response = await authService.currentSession();
-        if (active) setUser(normalizeUser(response.data?.data?.usuario));
-      } catch {
-        if (active) setUser(null);
+        const serverUser = response.data?.data?.usuario;
+        if (active && serverUser) {
+          const normalized = normalizeUser(serverUser);
+          try {
+            localStorage.setItem('user', JSON.stringify(normalized));
+          } catch {}
+          setUser(normalized);
+        }
+      } catch (err) {
+        if (err.response?.status === 401) {
+          if (active) clearLocalSession();
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -108,8 +146,13 @@ export const AuthProvider = ({ children }) => {
     };
   }, [clearLocalSession, refreshSession]);
 
-  const login = (userData) => {
+  const login = (userData, token) => {
+    const userToken = token || userData?.token || localStorage.getItem('token');
     const normalized = normalizeUser(userData);
+    try {
+      if (userToken) localStorage.setItem('token', userToken);
+      if (normalized) localStorage.setItem('user', JSON.stringify(normalized));
+    } catch {}
     setUser(normalized);
     broadcastAuthChange('login');
   };
@@ -117,7 +160,6 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     clearLocalSession();
     broadcastAuthChange('logout');
-    // Clear the HttpOnly cookie server-side while updating the UI immediately.
     authService.logout().catch(() => {});
   };
 

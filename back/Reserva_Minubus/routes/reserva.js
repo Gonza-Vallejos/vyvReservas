@@ -98,7 +98,7 @@ router.post('/', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFI
  *     security:
  *       - bearerAuth: []
  */
-router.put('/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.CLIENTE), validateUpdatePasajero, reservaController.actualizarReserva);
+router.put('/:id', autenticarToken, permitirPerfiles(PROFILES.EMPRESA, PROFILES.MOSTRADOR, PROFILES.CLIENTE), validateUpdatePasajero, reservaController.actualizarReserva);
 
 /**
  * @swagger
@@ -109,7 +109,7 @@ router.put('/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PRO
  *     security:
  *       - bearerAuth: []
  */
-router.delete('/:id', autenticarToken, permitirPerfiles(PROFILES.ADMINISTRADOR, PROFILES.MOSTRADOR, PROFILES.CLIENTE), reservaController.eliminarReserva);
+router.delete('/:id', autenticarToken, permitirPerfiles(PROFILES.EMPRESA, PROFILES.MOSTRADOR, PROFILES.CLIENTE), reservaController.eliminarReserva);
 
 /**
  * @swagger

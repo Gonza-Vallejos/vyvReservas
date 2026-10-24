@@ -56,7 +56,7 @@ const LoginPage = () => {
       const response = await authService.login(form.usuario, form.contrasenia);
       const { success, data } = response.data;
       if (success && data) {
-        login(data.usuario);
+        login(data.usuario, data.token);
         toast.success('¡Bienvenido!');
         const perfilId = Number(
           data.usuario?.perfil_id ?? 

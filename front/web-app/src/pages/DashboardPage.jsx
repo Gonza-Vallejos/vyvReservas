@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Bus, Users, TrendingUp, Plus, Edit, Trash2, X,
   UserCheck, Truck, Building2, Settings, DollarSign, UserPlus, ShieldCheck,
   BookmarkCheck, ArrowRight, Menu, MapPin, Phone, Mail, IdCard, CreditCard, Link2,
-  Home, UserRound, LogOut
+  Home, UserRound, LogOut, Copy, Repeat, Calendar
 } from 'lucide-react';
 import { viajeService, transporteService, empresaService, reservaService, usuarioService, pagoService } from '../services/api';
 import InteractiveChart from '../components/InteractiveChart';
@@ -25,6 +25,14 @@ const formatISODate = (date) => {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+};
+
+const addDaysToISODate = (isoStr, days = 7) => {
+  if (!isoStr) return '';
+  const [year, month, day] = isoStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  return formatISODate(date);
 };
 
 const getWeekDays = (anchorDate = new Date()) => {
@@ -279,6 +287,14 @@ const DashboardPage = () => {
   const [selectedReserva, setSelectedReserva] = useState(null);
   const [passengers, setPassengers] = useState([]);
   const [selectedTripDate, setSelectedTripDate] = useState(() => formatISODate(new Date()));
+  const [repeatModal, setRepeatModal] = useState({
+    isOpen: false,
+    mode: 'single',
+    trip: null,
+    trips: [],
+    targetDate: '',
+    loading: false,
+  });
 
   const [nuevoViaje, setNuevoViaje] = useState({
     origenLocalidad: '',
@@ -584,6 +600,83 @@ const DashboardPage = () => {
       fetchData();
     } catch (err) {
       toast.error(err.response?.data?.message || 'No se puede eliminar el viaje');
+    }
+  };
+
+  const handleOpenRepeatSingle = (trip) => {
+    setRepeatModal({
+      isOpen: true,
+      mode: 'single',
+      trip,
+      trips: [trip],
+      targetDate: addDaysToISODate(trip.fechaViaje || selectedTripDate, 7),
+      loading: false,
+    });
+  };
+
+  const handleOpenRepeatAll = () => {
+    if (viajesDelDia.length === 0) return;
+    setRepeatModal({
+      isOpen: true,
+      mode: 'all',
+      trip: null,
+      trips: viajesDelDia,
+      targetDate: addDaysToISODate(selectedTripDate, 7),
+      loading: false,
+    });
+  };
+
+  const handleConfirmRepeat = async () => {
+    if (!repeatModal.targetDate) {
+      toast.error('Seleccioná la fecha destino para los viajes');
+      return;
+    }
+    setRepeatModal((prev) => ({ ...prev, loading: true }));
+    try {
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const v of repeatModal.trips) {
+        const vehiculoId = v.medioTransporte_id ?? v.medioTransporteId ?? v.MedioTransporte?.id;
+        const choferId = v.usuarioEmpresa_id ?? v.usuarioEmpresaId ?? v.UsuarioEmpresa?.id;
+
+        if (!vehiculoId || !choferId) {
+          failCount++;
+          continue;
+        }
+
+        try {
+          await viajeService.crear({
+            origenLocalidad: v.origenLocalidad,
+            destinoLocalidad: v.destinoLocalidad,
+            fechaViaje: repeatModal.targetDate,
+            horarioSalida: v.horarioSalida?.substring(0, 5) || '',
+            precio: parseFloat(v.precio),
+            medioTransporte_id: parseInt(vehiculoId, 10),
+            usuarioEmpresa_id: parseInt(choferId, 10),
+          });
+          successCount++;
+        } catch {
+          failCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(
+          repeatModal.mode === 'single'
+            ? `¡Viaje repetido con éxito para el ${repeatModal.targetDate}!`
+            : `¡Se duplicaron ${successCount} viajes con éxito para el ${repeatModal.targetDate}!`
+        );
+        setSelectedTripDate(repeatModal.targetDate);
+        fetchData();
+        setRepeatModal({ isOpen: false, mode: 'single', trip: null, trips: [], targetDate: '', loading: false });
+      } else {
+        toast.error('No se pudo duplicar el viaje. Verificá los datos del chofer y vehículo.');
+        setRepeatModal((prev) => ({ ...prev, loading: false }));
+      }
+    } catch {
+      toast.error('Error al duplicar los viajes');
+      setRepeatModal((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -919,13 +1012,32 @@ const DashboardPage = () => {
               <div className="animate-fade-in dashboard-tab">
                 <Card className="table-card" padded={false}>
                   <WeekDayNav selected={selectedTripDate} onSelect={setSelectedTripDate} />
+
+                  {viajesDelDia.length > 0 && !isSuperAdmin && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid var(--border)', background: '#f8fafc', flexWrap: 'wrap', gap: '10px' }}>
+                      <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        📅 {viajesDelDia.length} {viajesDelDia.length === 1 ? 'viaje programado' : 'viajes programados'} para este día
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleOpenRepeatAll}
+                          ariaLabel="Repetir viajes del día para la próxima semana"
+                        >
+                          <Repeat size={16} /> Repetir día para la próxima semana
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   {viajesDelDia.length === 0 ? (
                     <div style={{ padding: 'var(--space-5)' }}>
                       <EmptyState
                         icon={Bus}
                         title="No hay viajes para este día"
-                        description="Seleccioná otra fecha o creá un nuevo viaje desde el botón superior."
-                        action={{ label: 'Nuevo viaje', onClick: () => setShowTripModal(true) }}
+                        description={isSuperAdmin ? "No se registraron viajes en el sistema para esta fecha." : "Seleccioná otra fecha o creá un nuevo viaje desde el botón superior."}
+                        action={!isSuperAdmin ? { label: 'Nuevo viaje', onClick: () => setShowTripModal(true) } : undefined}
                       />
                     </div>
                   ) : (
@@ -979,29 +1091,38 @@ const DashboardPage = () => {
                                 >
                                   <Users size={16} /> Pasajeros
                                 </Button>
-                                <IconButton
-                                  icon={Edit}
-                                  label="Editar viaje"
-                                  onClick={() => {
-                                    setEditingTrip({
-                                      id: v.id,
-                                      origenLocalidad: v.origenLocalidad,
-                                      destinoLocalidad: v.destinoLocalidad,
-                                      fechaViaje: v.fechaViaje,
-                                      horarioSalida: v.horarioSalida?.substring(0, 5) || '',
-                                      precio: v.precio,
-                                      medioTransporte_id: v.medioTransporte_id ?? v.medioTransporteId ?? v.MedioTransporte?.id ?? '',
-                                      usuarioEmpresa_id: v.usuarioEmpresa_id ?? v.usuarioEmpresaId ?? v.UsuarioEmpresa?.id ?? '',
-                                    });
-                                    setShowEditTripModal(true);
-                                  }}
-                                />
-                                <IconButton
-                                  icon={Trash2}
-                                  label="Eliminar viaje"
-                                  variant="danger"
-                                  onClick={() => handleDeleteTrip(v.id, `${v.origenLocalidad} → ${v.destinoLocalidad}`)}
-                                />
+                                {!isSuperAdmin && (
+                                  <>
+                                    <IconButton
+                                      icon={Copy}
+                                      label="Repetir viaje para la próxima semana"
+                                      onClick={() => handleOpenRepeatSingle(v)}
+                                    />
+                                    <IconButton
+                                      icon={Edit}
+                                      label="Editar viaje"
+                                      onClick={() => {
+                                        setEditingTrip({
+                                          id: v.id,
+                                          origenLocalidad: v.origenLocalidad,
+                                          destinoLocalidad: v.destinoLocalidad,
+                                          fechaViaje: v.fechaViaje,
+                                          horarioSalida: v.horarioSalida?.substring(0, 5) || '',
+                                          precio: v.precio,
+                                          medioTransporte_id: v.medioTransporte_id ?? v.medioTransporteId ?? v.MedioTransporte?.id ?? '',
+                                          usuarioEmpresa_id: v.usuarioEmpresa_id ?? v.usuarioEmpresaId ?? v.UsuarioEmpresa?.id ?? '',
+                                        });
+                                        setShowEditTripModal(true);
+                                      }}
+                                    />
+                                    <IconButton
+                                      icon={Trash2}
+                                      label="Eliminar viaje"
+                                      variant="danger"
+                                      onClick={() => handleDeleteTrip(v.id, `${v.origenLocalidad} → ${v.destinoLocalidad}`)}
+                                    />
+                                  </>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -1070,7 +1191,7 @@ const DashboardPage = () => {
                                 >
                                   <BookmarkCheck size={16} /> Detalle
                                 </Button>
-                                {!cancelada && (
+                                {!cancelada && !isSuperAdmin && (
                                   <IconButton
                                     icon={Trash2}
                                     label="Cancelar reserva"
@@ -2211,6 +2332,95 @@ const DashboardPage = () => {
               </div>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {repeatModal.isOpen && (
+        <Modal
+          title={
+            repeatModal.mode === 'single'
+              ? `Repetir viaje: ${repeatModal.trip?.origenLocalidad} → ${repeatModal.trip?.destinoLocalidad}`
+              : `Repetir todos los viajes del día`
+          }
+          subtitle={
+            repeatModal.mode === 'single'
+              ? `Duplica este servicio con el mismo horario, unidad y chofer para una nueva fecha.`
+              : `Duplica los ${repeatModal.trips.length} servicios del día para la nueva fecha seleccionada.`
+          }
+          onClose={() => setRepeatModal((prev) => ({ ...prev, isOpen: false }))}
+        >
+          <div className="dashboard-modal-form">
+            <div style={{ marginBottom: '16px', background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '8px' }}>
+                {repeatModal.mode === 'single' ? 'Viaje a repetir' : `Viajes seleccionados (${repeatModal.trips.length})`}
+              </div>
+              {repeatModal.mode === 'single' && repeatModal.trip ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ fontWeight: 800, color: 'var(--color-primary)', fontSize: '1.05rem' }}>
+                    {repeatModal.trip.origenLocalidad} ➔ {repeatModal.trip.destinoLocalidad}
+                  </div>
+                  <div style={{ fontSize: '0.88rem', color: '#475569' }}>
+                    🕐 Horario: <strong>{formatTime(repeatModal.trip.horarioSalida)} hs</strong> · 💵 Precio: <strong>{formatCurrency(repeatModal.trip.precio)}</strong>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    📅 Fecha original: <strong>{repeatModal.trip.fechaViaje}</strong>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ maxHeight: '160px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {repeatModal.trips.map((t) => (
+                    <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: '#ffffff', borderRadius: '8px', border: '1px solid #edf2f7', fontSize: '0.85rem' }}>
+                      <span><strong>{formatTime(t.horarioSalida)} hs</strong> · {t.origenLocalidad} ➔ {t.destinoLocalidad}</span>
+                      <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{formatCurrency(t.precio)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label htmlFor="repeat-target-date" style={{ display: 'block', fontSize: '0.88rem', fontWeight: 700, marginBottom: '6px', color: 'var(--color-text)' }}>
+                Fecha destino (por defecto: misma salida la próxima semana)
+              </label>
+              <input
+                id="repeat-target-date"
+                type="date"
+                value={repeatModal.targetDate}
+                onChange={(e) => setRepeatModal((prev) => ({ ...prev, targetDate: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.95rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                }}
+                required
+              />
+              <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Los viajes se crearán con todos los asientos vacíos listos para recibir reservas en la nueva fecha.
+              </p>
+            </div>
+
+            <div className="dashboard-modal-actions">
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => setRepeatModal((prev) => ({ ...prev, isOpen: false }))}
+                disabled={repeatModal.loading}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleConfirmRepeat}
+                loading={repeatModal.loading}
+              >
+                <Repeat size={16} /> Confirmar y duplicar {repeatModal.mode === 'single' ? 'viaje' : `${repeatModal.trips.length} viajes`}
+              </Button>
+            </div>
+          </div>
         </Modal>
       )}
 

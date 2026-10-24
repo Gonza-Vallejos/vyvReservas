@@ -7,6 +7,18 @@ const api = axios.create({
   withCredentials: true,
 });
 
+api.interceptors.request.use((config) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch {
+    // localStorage may be unavailable
+  }
+  return config;
+});
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -26,11 +38,7 @@ api.interceptors.response.use(
 );
 
 export const authService = {
-  login: (usuario, contrasenia) => api.post(
-    '/auth/login',
-    { usuario, contrasenia },
-    { headers: { 'X-Session-Auth': 'cookie' } },
-  ),
+  login: (usuario, contrasenia) => api.post('/auth/login', { usuario, contrasenia }),
   currentSession: () => api.get('/auth/me'),
   logout: () => api.post('/auth/logout'),
   register: (userData) => api.post('/usuarios', userData),
