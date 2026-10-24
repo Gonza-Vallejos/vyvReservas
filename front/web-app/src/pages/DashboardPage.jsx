@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useId } from 'react';
+import { useState, useEffect, useMemo, useCallback, useId, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { PROFILES } from '../constants/profiles';
 import { usePermissions, getProfileInfo } from '../hooks/usePermissions';
@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Bus, Users, TrendingUp, Plus, Edit, Trash2, X,
   UserCheck, Truck, Building2, Settings, DollarSign, UserPlus, ShieldCheck,
   BookmarkCheck, ArrowRight, Menu, MapPin, Phone, Mail, IdCard, CreditCard, Link2,
-  Home, UserRound, LogOut, Copy, Repeat, Calendar
+  Home, UserRound, LogOut, Copy, Repeat, Calendar, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { viajeService, transporteService, empresaService, reservaService, usuarioService, pagoService } from '../services/api';
 import InteractiveChart from '../components/InteractiveChart';
@@ -27,6 +27,17 @@ const formatISODate = (date) => {
   return `${y}-${m}-${d}`;
 };
 
+const parseISODate = (isoStr) => {
+  if (!isoStr) return new Date();
+  if (isoStr instanceof Date) return new Date(isoStr.getTime());
+  const str = String(isoStr).split('T')[0];
+  const parts = str.split('-').map(Number);
+  if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+    return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+  }
+  return new Date();
+};
+
 const addDaysToISODate = (isoStr, days = 7) => {
   if (!isoStr) return '';
   const [year, month, day] = isoStr.split('-').map(Number);
@@ -35,24 +46,32 @@ const addDaysToISODate = (isoStr, days = 7) => {
   return formatISODate(date);
 };
 
-const getWeekDays = (anchorDate = new Date()) => {
+const getDaysRange = (anchorInput = new Date(), numDays = 14) => {
+  const anchorDate = parseISODate(anchorInput);
   const day = anchorDate.getDay();
   const diffToMonday = (day === 0 ? -6 : 1) - day;
   const monday = new Date(anchorDate);
   monday.setDate(anchorDate.getDate() + diffToMonday);
-  monday.setHours(0, 0, 0, 0);
+  monday.setHours(12, 0, 0, 0);
 
-  const labels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-  return Array.from({ length: 7 }, (_, i) => {
+  const labels = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+  return Array.from({ length: numDays }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     return {
-      label: labels[i],
+      label: labels[d.getDay()],
       date: d,
       iso: formatISODate(d),
       dayNumber: d.getDate(),
+      monthLabel: monthNames[d.getMonth()],
     };
   });
+};
+
+const getWeekDays = (anchorDate = new Date()) => {
+  return getDaysRange(anchorDate, 7);
 };
 
 const formatCurrency = (value) =>
@@ -97,33 +116,157 @@ const getRoleBadgeVariant = (perfilId) => {
   return 'default';
 };
 
-const WeekDayNav = ({ selected, onSelect }) => {
-  const weekDays = getWeekDays();
+const WeekDayNav = ({ selected, onSelect, tripCounts = {} }) => {
+  const [anchorDate, setAnchorDate] = useState(() => parseISODate(selected || formatISODate(new Date())));
+  const navScrollRef = useRef(null);
   const todayIso = formatISODate(new Date());
 
+  useEffect(() => {
+    if (!selected) return;
+    const currentDays = getDaysRange(anchorDate, 14);
+    const inRange = currentDays.some((d) => d.iso === selected);
+    if (!inRange) {
+      setAnchorDate(parseISODate(selected));
+    }
+  }, [selected]);
+
+  useEffect(() => {
+    if (navScrollRef.current) {
+      const activeEl = navScrollRef.current.querySelector('.dashboard-week-nav__btn--active');
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [selected]);
+
+  const days = useMemo(() => getDaysRange(anchorDate, 14), [anchorDate]);
+
+  const handlePrevWeek = () => {
+    const prev = new Date(anchorDate);
+    prev.setDate(anchorDate.getDate() - 7);
+    setAnchorDate(prev);
+  };
+
+  const handleNextWeek = () => {
+    const next = new Date(anchorDate);
+    next.setDate(anchorDate.getDate() + 7);
+    setAnchorDate(next);
+  };
+
+  const handleGoToday = () => {
+    const today = new Date();
+    setAnchorDate(today);
+    onSelect(formatISODate(today));
+  };
+
+  const handleDateChange = (e) => {
+    const val = e.target.value;
+    if (val) {
+      onSelect(val);
+      setAnchorDate(parseISODate(val));
+    }
+  };
+
+  const rangeStart = days[0];
+  const rangeEnd = days[days.length - 1];
+  const rangeTitle = `${rangeStart.dayNumber} ${rangeStart.monthLabel} — ${rangeEnd.dayNumber} ${rangeEnd.monthLabel} ${rangeEnd.date.getFullYear()}`;
+
   return (
-    <div className="dashboard-week-nav" role="tablist" aria-label="Días de la semana">
-      {weekDays.map((day) => {
-        const isSelected = day.iso === selected;
-        const isToday = day.iso === todayIso;
-        return (
+    <div className="dashboard-week-nav-container">
+      <div className="dashboard-week-nav-header">
+        <div className="dashboard-week-nav-title-wrap">
+          <span className="dashboard-week-nav-title">
+            <Calendar size={16} className="dashboard-week-nav-title-icon" aria-hidden="true" />
+            {rangeTitle}
+          </span>
+          <span className="dashboard-week-nav-subtitle">Mostrando 14 días (2 semanas)</span>
+        </div>
+
+        <div className="dashboard-week-nav-controls">
           <button
-            key={day.iso}
             type="button"
-            role="tab"
-            aria-selected={isSelected}
-            aria-label={`${day.label} ${day.dayNumber}${isToday ? ' Hoy' : ''}`}
-            onClick={() => onSelect(day.iso)}
-            className={`dashboard-week-nav__btn ${
-              isSelected ? 'dashboard-week-nav__btn--active' : ''
-            } ${isToday && !isSelected ? 'dashboard-week-nav__btn--today' : ''}`}
+            className="dashboard-week-nav-ctrl-btn"
+            onClick={handlePrevWeek}
+            title="Semana anterior (-7 días)"
+            aria-label="Semana anterior"
           >
-            <span className="dashboard-week-nav__label">{day.label}</span>
-            <span className="dashboard-week-nav__number">{day.dayNumber}</span>
-            {isToday && <span className="dashboard-week-nav__today">Hoy</span>}
+            <ChevronLeft size={16} aria-hidden="true" />
+            <span className="dashboard-week-nav-ctrl-text">Ant.</span>
           </button>
-        );
-      })}
+
+          <button
+            type="button"
+            className={`dashboard-week-nav-ctrl-btn dashboard-week-nav-ctrl-btn--today ${selected === todayIso ? 'dashboard-week-nav-ctrl-btn--today-active' : ''}`}
+            onClick={handleGoToday}
+            title="Ir al día de hoy"
+            aria-label="Ir al día de hoy"
+          >
+            Hoy
+          </button>
+
+          <button
+            type="button"
+            className="dashboard-week-nav-ctrl-btn"
+            onClick={handleNextWeek}
+            title="Semana siguiente (+7 días)"
+            aria-label="Semana siguiente"
+          >
+            <span className="dashboard-week-nav-ctrl-text">Sig.</span>
+            <ChevronRight size={16} aria-hidden="true" />
+          </button>
+
+          <div className="dashboard-week-nav-picker" title="Elegir una fecha específica en el calendario">
+            <Calendar size={14} className="dashboard-week-nav-picker__icon" aria-hidden="true" />
+            <span className="dashboard-week-nav-picker__label">Ir a fecha:</span>
+            <input
+              type="date"
+              value={selected}
+              onChange={handleDateChange}
+              className="dashboard-week-nav-picker__input"
+              aria-label="Seleccionar fecha"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="dashboard-week-nav"
+        role="tablist"
+        aria-label="Días para filtrar viajes"
+        ref={navScrollRef}
+      >
+        {days.map((day) => {
+          const isSelected = day.iso === selected;
+          const isToday = day.iso === todayIso;
+          const count = tripCounts[day.iso] || 0;
+
+          return (
+            <button
+              key={day.iso}
+              type="button"
+              role="tab"
+              aria-selected={isSelected}
+              aria-label={`${day.label} ${day.dayNumber} ${day.monthLabel}${isToday ? ' (Hoy)' : ''}${count > 0 ? `, ${count} viajes` : ''}`}
+              onClick={() => onSelect(day.iso)}
+              className={`dashboard-week-nav__btn ${
+                isSelected ? 'dashboard-week-nav__btn--active' : ''
+              } ${isToday && !isSelected ? 'dashboard-week-nav__btn--today' : ''} ${
+                count > 0 && !isSelected ? 'dashboard-week-nav__btn--has-trips' : ''
+              }`}
+            >
+              <span className="dashboard-week-nav__label">{day.label}</span>
+              <span className="dashboard-week-nav__number">{day.dayNumber}</span>
+              <span className="dashboard-week-nav__month">{day.monthLabel}</span>
+              {isToday && <span className="dashboard-week-nav__today">Hoy</span>}
+              {count > 0 && (
+                <span className={`dashboard-week-nav__badge ${isSelected ? 'dashboard-week-nav__badge--active' : ''}`}>
+                  {count} {count === 1 ? 'viaje' : 'viajes'}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };
@@ -347,12 +490,35 @@ const DashboardPage = () => {
   // Permission helpers
   const { can, isAdmin, isOwner: isOwnerCheck, isStaff, isAtLeast } = usePermissions();
 
+  const [tripViewMode, setTripViewMode] = useState('dia'); // 'dia' | 'todos'
+
+  const tripCountByDate = useMemo(() => {
+    const counts = {};
+    viajes.forEach((v) => {
+      if (!v.fechaViaje) return;
+      const d = String(v.fechaViaje).split('T')[0];
+      if (d) counts[d] = (counts[d] || 0) + 1;
+    });
+    return counts;
+  }, [viajes]);
+
   const viajesDelDia = useMemo(() => {
     return viajes.filter((v) => {
       const tripDate = String(v.fechaViaje).split('T')[0];
       return tripDate === selectedTripDate;
     });
   }, [viajes, selectedTripDate]);
+
+  const displayedViajes = useMemo(() => {
+    if (tripViewMode === 'todos') {
+      return [...viajes].sort((a, b) => {
+        const dateA = `${String(a.fechaViaje || '').split('T')[0]} ${a.horarioSalida || ''}`;
+        const dateB = `${String(b.fechaViaje || '').split('T')[0]} ${b.horarioSalida || ''}`;
+        return dateA.localeCompare(dateB);
+      });
+    }
+    return viajesDelDia;
+  }, [viajes, tripViewMode, viajesDelDia]);
 
   const reservasActivas = useMemo(() => reservas.filter((r) => r.eliminado !== 'si'), [reservas]);
 
@@ -748,15 +914,47 @@ const DashboardPage = () => {
         .dashboard-table__text { font-size: var(--text-sm); color: var(--text-muted); font-weight: 600; }
         .dashboard-actions-cell { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 
-        .dashboard-week-nav { display: flex; gap: var(--space-3); padding: var(--space-5) var(--space-5) 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .dashboard-week-nav__btn { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 64px; padding: var(--space-3) var(--space-2); border-radius: var(--radius-3); border: 1.5px solid var(--border); background: var(--color-surface); color: var(--color-text); cursor: pointer; font-family: var(--font-heading); transition: all 0.2s ease; box-shadow: var(--shadow-xs); }
+        .dashboard-view-mode-tabs { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-4); }
+        .dashboard-view-mode-tab { display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 9999px; border: 1.5px solid var(--border); background: var(--color-surface); font-size: 0.88rem; font-weight: 700; color: var(--text-muted); cursor: pointer; transition: all 0.2s ease; }
+        .dashboard-view-mode-tab:hover:not(.dashboard-view-mode-tab--active) { border-color: var(--color-primary); color: var(--color-primary); background: var(--surface-hover); }
+        .dashboard-view-mode-tab--active { background: var(--color-primary); border-color: var(--color-primary); color: #ffffff; box-shadow: 0 4px 14px -2px rgba(37, 99, 235, 0.35); }
+        .dashboard-view-mode-tab__count { font-size: 0.75rem; font-weight: 800; padding: 2px 8px; border-radius: 9999px; background: rgba(0, 0, 0, 0.08); }
+        .dashboard-view-mode-tab--active .dashboard-view-mode-tab__count { background: rgba(255, 255, 255, 0.25); color: #ffffff; }
+
+        .dashboard-week-nav-container { display: flex; flex-direction: column; width: 100%; border-bottom: 1px solid var(--border); background: var(--color-surface); }
+        .dashboard-week-nav-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px 10px; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border-light, #f1f5f9); }
+        .dashboard-week-nav-title-wrap { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .dashboard-week-nav-title { display: flex; align-items: center; gap: 6px; font-size: 0.95rem; font-weight: 800; color: var(--color-text); }
+        .dashboard-week-nav-title-icon { color: var(--color-primary); }
+        .dashboard-week-nav-subtitle { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); background: var(--surface-hover); padding: 3px 8px; border-radius: 6px; }
+        .dashboard-week-nav-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .dashboard-week-nav-ctrl-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: var(--radius-2); border: 1.5px solid var(--border); background: var(--color-surface); color: var(--color-text); font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease; }
+        .dashboard-week-nav-ctrl-btn:hover { border-color: var(--color-primary); color: var(--color-primary); background: var(--surface-hover); }
+        .dashboard-week-nav-ctrl-btn--today { background: var(--surface-hover); font-weight: 800; }
+        .dashboard-week-nav-ctrl-btn--today-active { border-color: var(--color-primary); color: var(--color-primary); background: var(--primary-light); }
+        .dashboard-week-nav-picker { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: var(--radius-2); border: 1.5px solid var(--border); background: var(--color-surface); font-size: 0.8rem; font-weight: 600; color: var(--text-muted); transition: border-color 0.2s ease; cursor: pointer; }
+        .dashboard-week-nav-picker:focus-within { border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--primary-light); }
+        .dashboard-week-nav-picker__icon { color: var(--color-primary); }
+        .dashboard-week-nav-picker__label { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); }
+        .dashboard-week-nav-picker__input { border: none; background: transparent; font-size: 0.8rem; font-weight: 700; color: var(--color-text); font-family: inherit; cursor: pointer; outline: none; }
+
+        .dashboard-week-nav { display: flex; gap: var(--space-3); padding: 12px 20px 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+        .dashboard-week-nav::-webkit-scrollbar { height: 6px; }
+        .dashboard-week-nav::-webkit-scrollbar-track { background: transparent; }
+        .dashboard-week-nav::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .dashboard-week-nav__btn { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 68px; padding: 10px 8px 8px; border-radius: var(--radius-3); border: 1.5px solid var(--border); background: var(--color-surface); color: var(--color-text); cursor: pointer; font-family: var(--font-heading); transition: all 0.2s ease; box-shadow: var(--shadow-xs); flex-shrink: 0; }
         .dashboard-week-nav__btn:hover:not(.dashboard-week-nav__btn--active) { border-color: var(--color-primary); background: var(--surface-hover); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
         .dashboard-week-nav__btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
         .dashboard-week-nav__btn--active { background: var(--color-primary); border-color: var(--color-primary); color: #ffffff; box-shadow: 0 8px 16px -4px rgba(37, 99, 235, 0.3); }
         .dashboard-week-nav__btn--today:not(.dashboard-week-nav__btn--active) { border-color: var(--color-primary); color: var(--color-primary); background: var(--primary-light); }
+        .dashboard-week-nav__btn--has-trips:not(.dashboard-week-nav__btn--active) { border-color: #93c5fd; background: #f0f7ff; }
         .dashboard-week-nav__label { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
-        .dashboard-week-nav__number { font-size: var(--text-xl); font-weight: 900; line-height: 1; }
+        .dashboard-week-nav__number { font-size: var(--text-xl); font-weight: 900; line-height: 1; margin: 2px 0 1px; }
+        .dashboard-week-nav__month { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+        .dashboard-week-nav__btn--active .dashboard-week-nav__month { color: rgba(255, 255, 255, 0.85); }
         .dashboard-week-nav__today { font-size: 0.65rem; font-weight: 800; margin-top: 2px; }
+        .dashboard-week-nav__badge { margin-top: 4px; font-size: 0.62rem; font-weight: 800; padding: 2px 6px; border-radius: 9999px; background: #e0e7ff; color: #3730a3; white-space: nowrap; line-height: 1.2; }
+        .dashboard-week-nav__badge--active { background: rgba(255, 255, 255, 0.25); color: #ffffff; }
 
         .dashboard-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: var(--radius-2); background: var(--surface-hover); color: var(--color-primary); border: none; cursor: pointer; transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease; }
         .dashboard-icon-btn:hover { background: var(--color-border); color: var(--color-primary-dark); }
@@ -1010,13 +1208,42 @@ const DashboardPage = () => {
 
             {activeTab === 'viajes' && (
               <div className="animate-fade-in dashboard-tab">
-                <Card className="table-card" padded={false}>
-                  <WeekDayNav selected={selectedTripDate} onSelect={setSelectedTripDate} />
+                <div className="dashboard-view-mode-tabs">
+                  <button
+                    type="button"
+                    className={`dashboard-view-mode-tab ${tripViewMode === 'dia' ? 'dashboard-view-mode-tab--active' : ''}`}
+                    onClick={() => setTripViewMode('dia')}
+                  >
+                    <Calendar size={16} />
+                    <span>Vista Diaria</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`dashboard-view-mode-tab ${tripViewMode === 'todos' ? 'dashboard-view-mode-tab--active' : ''}`}
+                    onClick={() => setTripViewMode('todos')}
+                  >
+                    <Bus size={16} />
+                    <span>Todos los Viajes</span>
+                    <span className="dashboard-view-mode-tab__count">{viajes.length}</span>
+                  </button>
+                </div>
 
-                  {viajesDelDia.length > 0 && !isSuperAdmin && (
+                <Card className="table-card" padded={false}>
+                  {tripViewMode === 'dia' && (
+                    <WeekDayNav
+                      selected={selectedTripDate}
+                      onSelect={(date) => {
+                        setSelectedTripDate(date);
+                        setTripViewMode('dia');
+                      }}
+                      tripCounts={tripCountByDate}
+                    />
+                  )}
+
+                  {tripViewMode === 'dia' && viajesDelDia.length > 0 && !isSuperAdmin && (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid var(--border)', background: '#f8fafc', flexWrap: 'wrap', gap: '10px' }}>
                       <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                        📅 {viajesDelDia.length} {viajesDelDia.length === 1 ? 'viaje programado' : 'viajes programados'} para este día
+                        📅 {viajesDelDia.length} {viajesDelDia.length === 1 ? 'viaje programado' : 'viajes programados'} para el {selectedTripDate}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Button
@@ -1031,21 +1258,36 @@ const DashboardPage = () => {
                     </div>
                   )}
 
-                  {viajesDelDia.length === 0 ? (
+                  {tripViewMode === 'todos' && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid var(--border)', background: '#f8fafc', flexWrap: 'wrap', gap: '10px' }}>
+                      <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        🚍 Total de {viajes.length} {viajes.length === 1 ? 'viaje registrado' : 'viajes registrados'} en la empresa
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--color-primary)', fontWeight: 600 }}>
+                        Ordenados cronológicamente por fecha y horario
+                      </div>
+                    </div>
+                  )}
+
+                  {displayedViajes.length === 0 ? (
                     <div style={{ padding: 'var(--space-5)' }}>
                       <EmptyState
                         icon={Bus}
-                        title="No hay viajes para este día"
-                        description={isSuperAdmin ? "No se registraron viajes en el sistema para esta fecha." : "Seleccioná otra fecha o creá un nuevo viaje desde el botón superior."}
+                        title={tripViewMode === 'dia' ? "No hay viajes para este día" : "No hay viajes registrados"}
+                        description={
+                          tripViewMode === 'dia'
+                            ? (isSuperAdmin ? "No se registraron viajes en el sistema para esta fecha." : "Seleccioná otra fecha arriba o creá un nuevo viaje desde el botón superior.")
+                            : (isSuperAdmin ? "No se registraron viajes en el sistema." : "Aún no registraste ningún viaje. Creá tu primer viaje desde el botón superior.")
+                        }
                         action={!isSuperAdmin ? { label: 'Nuevo viaje', onClick: () => setShowTripModal(true) } : undefined}
                       />
                     </div>
                   ) : (
                     <DashboardTable
                       headers={['Ruta', 'Fecha y hora', 'Unidad / Chofer', 'Pasajeros', 'Acciones']}
-                      caption="Viajes del día seleccionado"
+                      caption={tripViewMode === 'dia' ? `Viajes del día ${selectedTripDate}` : 'Todos los viajes de la empresa'}
                     >
-                      {viajesDelDia.map((v) => {
+                      {displayedViajes.map((v) => {
                         const vehicle = v.MedioTransporte || v.medioTransporte || vehiculos.find((ve) => String(ve.id) === String(v.medioTransporte_id ?? v.medioTransporteId));
                         const tripUeId = v.usuarioEmpresa_id ?? v.usuarioEmpresaId ?? v.UsuarioEmpresa?.id ?? v.usuarioEmpresa?.id;
                         const driver =
