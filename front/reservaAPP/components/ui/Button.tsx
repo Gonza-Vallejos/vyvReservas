@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   Pressable,
   Text,
@@ -7,20 +7,27 @@ import {
   PressableProps,
   ViewStyle,
   TextStyle,
+  Animated,
+  GestureResponderEvent,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "../Themed";
+import { Layout, Radii, Spacing } from "@/constants/Spacing";
+import { Shadows } from "@/constants/Shadows";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost";
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+export type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "destructive";
 export type ButtonSize = "sm" | "md" | "lg";
 
-interface ButtonProps extends Omit<PressableProps, "style"> {
+export interface ButtonProps extends Omit<PressableProps, "style"> {
   children: React.ReactNode;
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
   disabled?: boolean;
   pill?: boolean;
+  fullWidth?: boolean;
   icon?: keyof typeof Ionicons.glyphMap;
   iconPosition?: "left" | "right";
   accessibilityLabel?: string;
@@ -36,64 +43,106 @@ export default function Button({
   loading = false,
   disabled = false,
   pill = false,
+  fullWidth = false,
   icon,
   iconPosition = "left",
   accessibilityLabel,
   accessibilityHint,
   style,
   textStyle,
+  onPressIn,
+  onPressOut,
   ...pressableProps
 }: ButtonProps) {
   const primary = useThemeColor({}, "primary");
-  const surface = useThemeColor({}, "surface");
-  const textMuted = useThemeColor({}, "textMuted");
+  const surfaceElevated = useThemeColor({}, "surfaceElevated");
+  const text = useThemeColor({}, "text");
   const border = useThemeColor({}, "border");
+  const error = useThemeColor({}, "error");
 
+  const scale = useRef(new Animated.Value(1)).current;
   const isDisabled = disabled || loading;
 
-  const height = size === "sm" ? 36 : size === "lg" ? 52 : 44;
-  const paddingHorizontal = size === "sm" ? 14 : size === "lg" ? 28 : 20;
+  const handlePressIn = (e: GestureResponderEvent) => {
+    if (!isDisabled) {
+      Animated.spring(scale, {
+        toValue: 0.97,
+        useNativeDriver: true,
+        speed: 40,
+        bounciness: 4,
+      }).start();
+    }
+    onPressIn?.(e);
+  };
+
+  const handlePressOut = (e: GestureResponderEvent) => {
+    if (!isDisabled) {
+      Animated.spring(scale, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 40,
+        bounciness: 4,
+      }).start();
+    }
+    onPressOut?.(e);
+  };
+
+  const height =
+    size === "sm" ? Layout.buttonHeightSm : size === "lg" ? Layout.buttonHeightLg : Layout.buttonHeightMd;
+  const paddingHorizontal = size === "sm" ? Spacing.md : size === "lg" ? Spacing.xl : Spacing.base;
   const fontSize = size === "sm" ? 13 : size === "lg" ? 17 : 15;
-  const iconSize = size === "sm" ? 14 : size === "lg" ? 22 : 18;
+  const iconSize = size === "sm" ? 16 : size === "lg" ? 22 : 18;
 
   const backgroundColors: Record<ButtonVariant, string> = {
-    primary: primary,
-    secondary: surface,
+    primary,
+    secondary: surfaceElevated,
+    outline: "transparent",
     ghost: "transparent",
+    destructive: error,
   };
 
   const borderColors: Record<ButtonVariant, string> = {
-    primary: primary,
+    primary,
     secondary: border,
+    outline: primary,
     ghost: "transparent",
+    destructive: error,
   };
 
   const textColors: Record<ButtonVariant, string> = {
     primary: "#FFFFFF",
-    secondary: textMuted,
+    secondary: text,
+    outline: primary,
     ghost: primary,
+    destructive: "#FFFFFF",
   };
 
+  const shadowStyle = variant === "primary" && !isDisabled ? Shadows.sm : {};
+
   return (
-    <Pressable
+    <AnimatedPressable
       {...pressableProps}
       disabled={isDisabled}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       accessibilityLabel={
         accessibilityLabel || (typeof children === "string" ? children : undefined)
       }
       accessibilityHint={accessibilityHint}
       accessibilityRole="button"
       accessibilityState={{ disabled: isDisabled, busy: loading }}
-      style={({ pressed }) => [
+      style={[
         styles.base,
+        shadowStyle,
         {
           minHeight: height,
           paddingHorizontal,
-          borderRadius: pill ? 9999 : 12,
+          borderRadius: pill ? Radii.full : Radii.md,
           backgroundColor: backgroundColors[variant],
           borderColor: borderColors[variant],
-          opacity: isDisabled ? 0.5 : pressed ? 0.92 : 1,
-          transform: pressed && !isDisabled ? [{ scale: 0.98 }] : [{ scale: 1 }],
+          width: fullWidth ? "100%" : undefined,
+          opacity: isDisabled ? 0.5 : 1,
+          transform: [{ scale }],
         },
         style,
       ]}
@@ -101,7 +150,7 @@ export default function Button({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === "primary" ? "#FFFFFF" : primary}
+          color={variant === "primary" || variant === "destructive" ? "#FFFFFF" : primary}
           accessibilityHint="Cargando"
         />
       ) : (
@@ -137,7 +186,7 @@ export default function Button({
           )}
         </>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -147,7 +196,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    minWidth: 44,
+    minWidth: Layout.minTouchTarget,
   },
   text: {
     fontWeight: "700",

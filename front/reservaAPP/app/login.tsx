@@ -1,24 +1,31 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
-  TextInput,
-  Pressable,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ImageBackground,
-  ActivityIndicator,
+  Pressable,
   Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../context/AuthContext";
 import { loginUsuario } from "../services/authService";
-import { useColorScheme } from "@/components/useColorScheme";
-import { Ionicons } from "@expo/vector-icons";
-import * as Animatable from "react-native-animatable";
+import { useTheme } from "@/components/Themed";
+import {
+  Button,
+  InputField,
+  FeedbackBanner,
+  Card,
+  Title,
+  Subtitle,
+  Body,
+  Caption,
+  FadeInView,
+} from "@/components/ui";
+import { Spacing, Radii } from "@/constants/Spacing";
 
 export default function LoginScreen({
   onLoginSuccess,
@@ -26,55 +33,28 @@ export default function LoginScreen({
   onLoginSuccess?: () => void;
 }) {
   const { login } = useAuth();
-  const colorScheme = useColorScheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
 
   const [usuario, setUsuario] = useState("");
   const [contrasenia, setPassword] = useState("");
   const [errorMensaje, setErrorMensaje] = useState("");
-  const [mostrarPassword, setMostrarPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const passwordInputRef = useRef<TextInput>(null);
-  const frases = [
-    "Tu viaje comienza aquí",
-    "Reservá rápido",
-    "Viajá seguro",
-    "Comodidad garantizada",
-  ];
-
-  const [displayText, setDisplayText] = useState("");
-  const [fraseIndex, setFraseIndex] = useState(0);
-  const [charIndex, setCharIndex] = useState(0);
-
-  useEffect(() => {
-    let timeout;
-
-    if (charIndex < frases[fraseIndex].length) {
-      timeout = setTimeout(() => {
-        setDisplayText((prev) => prev + frases[fraseIndex][charIndex]);
-        setCharIndex((prev) => prev + 1);
-      }, 100);
-    } else {
-      // espera 2 segundos antes de borrar y pasar a la siguiente
-      timeout = setTimeout(() => {
-        setDisplayText("");
-        setCharIndex(0);
-        setFraseIndex((prev) => (prev + 1) % frases.length);
-      }, 2000);
-    }
-
-    return () => clearTimeout(timeout);
-  }, [charIndex, fraseIndex]);
+  const passwordInputRef = useRef<any>(null);
 
   const handleLogin = async () => {
+    if (!usuario.trim() || !contrasenia.trim()) {
+      setErrorMensaje("Por favor ingresa tu usuario y contraseña");
+      return;
+    }
+
     setLoading(true);
     setErrorMensaje("");
     try {
       const limpioUsuario = usuario.trim();
       const limpiaContrasenia = contrasenia.trim();
       const res = await loginUsuario(limpioUsuario, limpiaContrasenia);
-      // El backend devuelve { success: true, data: { token, usuario } }
       const token = res?.data?.token || res?.token;
 
       if (!token) {
@@ -97,7 +77,9 @@ export default function LoginScreen({
       const mensaje =
         error.response?.data?.message ||
         error.response?.data?.mensaje ||
-        (error.message?.includes("Network") ? "Error de conexión con el servidor. Verifica tu internet." : "Usuario o contraseña incorrectos");
+        (error.message?.includes("Network")
+          ? "Error de conexión con el servidor. Verifica tu internet."
+          : "Usuario o contraseña incorrectos");
       setErrorMensaje(mensaje);
     } finally {
       setLoading(false);
@@ -106,365 +88,242 @@ export default function LoginScreen({
 
   const handleUsuarioChange = (text: string) => {
     setUsuario(text);
-    if (errorMensaje !== "") setErrorMensaje("");
+    if (errorMensaje) setErrorMensaje("");
   };
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
-    if (errorMensaje !== "") setErrorMensaje("");
+    if (errorMensaje) setErrorMensaje("");
   };
 
-  const isDark = colorScheme === "dark";
+  const renderForm = () => (
+    <Card variant="elevated" style={styles.cardContainer}>
+      <Title align="center" style={styles.cardTitle}>
+        Iniciar sesión
+      </Title>
+      <Caption align="center" color="textMuted" style={styles.cardSubtitle}>
+        Ingresá con tus credenciales para continuar
+      </Caption>
 
-  const styles = StyleSheet.create({
-    wrapper: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      paddingHorizontal: 20,
-    },
-    containerWeb: {
-      flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      paddingHorizontal: 40,
-    },
-    sideImageContainer: {
-      flex: 1,
-      paddingRight: 20,
-    },
-    sideImage: {
-      width: "100%",
-      height: 400,
-      resizeMode: "cover",
-      borderRadius: 12,
-    },
-    formWrapper: {
-      flex: 1,
-      alignItems: "center",
-    },
-    formContainer: {
-      width: "100%",
-      maxWidth: 360,
-      backgroundColor: isDark ? "rgba(17,17,17,0.9)" : "rgba(242,242,242,0.9)",
-      padding: 24,
-      borderRadius: 12,
-      elevation: 3,
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: "bold",
-      color: "#007AFF",
-      marginBottom: 20,
-      textAlign: "center",
-    },
-    input: {
-      height: 48,
-      borderColor: "#007AFF",
-      borderWidth: 1,
-      borderRadius: 8,
-      marginBottom: 14,
-      paddingHorizontal: 12,
-      color: isDark ? "#fff" : "#000",
-      backgroundColor: isDark ? "#1a1a1a" : "#fff",
-    },
-    button: {
-      backgroundColor: "#4c68d7",
-      paddingVertical: 12,
-      paddingHorizontal: 20,
-      borderRadius: 20,
-      alignItems: "center",
-      justifyContent: "center",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
-      elevation: 5,
-    },
-    buttonText: {
-      color: "#fff",
-      fontWeight: "bold",
-      fontSize: 16,
-      letterSpacing: 0.5,
-    },
-    registroLink: {
-      marginTop: 16,
-      textAlign: "center",
-      color: isDark ? "#aaa" : "#444",
-    },
-    linkText: {
-      color: "#007AFF",
-      fontWeight: "bold",
-    },
-    backgroundImage: {
-      flex: 1,
-      width: "100%",
-      height: "100%",
-      resizeMode: "cover",
-    },
-    overlay: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: "rgba(0,0,0,0.3)",
-    },
-    sideTextContainer: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      padding: 20,
-      backgroundColor: "rgba(0,0,0,0.1)", // fondo sutil translúcido
-      borderRadius: 16,
-    },
-    sideText: {
-      fontSize: 22,
-      fontWeight: "600",
-      textAlign: "center",
-      color: "#00E5FF",
-      letterSpacing: 1,
-      textShadowColor: "rgba(0,229,255,0.4)",
-      textShadowOffset: { width: 1, height: 1 },
-      textShadowRadius: 4,
-    },
-    icon: {
-      width: 90,
-      height: 90,
-      marginBottom: 15,
-      tintColor: "#00C4FF",
-    },
-    titulo: {
-      fontSize: 34,
-      fontWeight: "900",
-      color: "#fff",
-      letterSpacing: 2,
-      textTransform: "uppercase",
-      marginBottom: 10,
-      textShadowColor: "rgba(0,0,0,0.6)", // efecto glow
-      textShadowOffset: { width: 2, height: 2 },
-      textShadowRadius: 6,
-    },
-  });
+      {errorMensaje ? (
+        <FeedbackBanner
+          type="error"
+          message={errorMensaje}
+          onDismiss={() => setErrorMensaje("")}
+          style={{ marginBottom: Spacing.md }}
+        />
+      ) : null}
+
+      <InputField
+        label="Usuario o Email"
+        icon="person-outline"
+        placeholder="ej: usuario@ejemplo.com"
+        autoCapitalize="none"
+        autoCorrect={false}
+        value={usuario}
+        onChangeText={handleUsuarioChange}
+        returnKeyType="next"
+        onSubmitEditing={() => passwordInputRef.current?.focus()}
+        required
+      />
+
+      <InputField
+        ref={passwordInputRef}
+        label="Contraseña"
+        icon="lock-closed-outline"
+        placeholder="••••••••"
+        isPassword
+        value={contrasenia}
+        onChangeText={handlePasswordChange}
+        onSubmitEditing={handleLogin}
+        returnKeyType="done"
+        required
+      />
+
+      <Button
+        variant="primary"
+        size="lg"
+        fullWidth
+        loading={loading}
+        onPress={handleLogin}
+        style={styles.submitButton}
+      >
+        Ingresar
+      </Button>
+
+      <View style={styles.linksContainer}>
+        <Body align="center" color="textSecondary" style={styles.signupText}>
+          ¿No tenés cuenta?{" "}
+          <Text
+            style={[styles.linkHighlight, { color: colors.primary }]}
+            onPress={() => router.push("/registro")}
+          >
+            Registrarse
+          </Text>
+        </Body>
+
+        <Pressable
+          onPress={() => router.push("/recuperarContrasenia")}
+          hitSlop={8}
+          style={styles.forgotPasswordButton}
+        >
+          <Caption align="center" color="primary">
+            ¿Olvidaste tu contraseña?
+          </Caption>
+        </Pressable>
+      </View>
+    </Card>
+  );
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 50 : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
     >
-      <View style={styles.backgroundImage}>
-        {Platform.OS === "web" ? (
-          <View style={styles.containerWeb}>
-            {/*Texto animado en lugar de la imagen */}
-            <View style={styles.sideTextContainer}>
-              <Animatable.Image
-                animation="swing"
-                iterationCount="infinite"
+      {Platform.OS === "web" ? (
+        <View style={styles.webWrapper}>
+          <FadeInView delay={0} duration={320} direction="none" style={styles.webBrandSide}>
+            <Image
+              source={require("../assets/images/bus-icon.png")}
+              style={[styles.webLogo, { tintColor: colors.primary }]}
+              resizeMode="contain"
+            />
+            <Title style={styles.webBrandTitle}>V&V Reservas</Title>
+            <Subtitle color="textSecondary" style={styles.webBrandSlogan}>
+              Tu plataforma de viajes y reservas interurbanas de minibús.
+            </Subtitle>
+          </FadeInView>
+          <FadeInView delay={100} duration={320} direction="up" style={styles.webFormSide}>
+            {renderForm()}
+          </FadeInView>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.scrollWrapper}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <FadeInView delay={0} duration={300} direction="down" style={styles.mobileHeader}>
+            <View
+              style={[
+                styles.iconBadge,
+                { backgroundColor: isDark ? colors.surfaceElevated : colors.primaryLight },
+              ]}
+            >
+              <Image
                 source={require("../assets/images/bus-icon.png")}
-                style={styles.icon}
-              /> 
-              <Text style={styles.titulo}>V&V Reservas</Text>
-              <Animatable.Text
-                animation="pulse"
-                iterationCount="infinite"
-                duration={1200}
-                style={styles.sideText}
-              >
-                {displayText}...
-                
-              </Animatable.Text>
-            </View>
-
-            {/* Formulario */}
-            <View style={styles.formWrapper}>
-              <View style={styles.formContainer}>
-                <Text style={styles.title}>Iniciar sesión</Text>
-
-                <TextInput
-                  style={styles.input}
-                  placeholder="Usuario o Email"
-                  placeholderTextColor={isDark ? "#ccc" : "#888"}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  value={usuario}
-                  onChangeText={handleUsuarioChange}
-                  returnKeyType="next"
-                  onSubmitEditing={() => passwordInputRef.current?.focus()}
-                />
-
-                <View style={{ position: "relative" }}>
-                  <TextInput
-                    ref={passwordInputRef}
-                    style={[styles.input, { paddingRight: 40 }]}
-                    placeholder="Contraseña"
-                    placeholderTextColor={isDark ? "#ccc" : "#888"}
-                    secureTextEntry={!mostrarPassword}
-                    value={contrasenia}
-                    onChangeText={handlePasswordChange}
-                    onSubmitEditing={handleLogin}
-                    returnKeyType="done"
-                  />
-
-                  <Pressable
-                    onPress={() => setMostrarPassword(!mostrarPassword)}
-                    style={{
-                      position: "absolute",
-                      right: 10,
-                      top: 12,
-                    }}
-                  >
-                    <Ionicons
-                      name={mostrarPassword ? "eye-off-outline" : "eye-outline"}
-                      size={22}
-                      color={"#555"}
-                    />
-                  </Pressable>
-                </View>
-
-                {errorMensaje !== "" && (
-                  <Text
-                    style={{
-                      color: "red",
-                      marginBottom: 10,
-                      textAlign: "center",
-                    }}
-                  >
-                    {errorMensaje}
-                  </Text>
-                )}
-
-                <Pressable
-                  style={styles.button}
-                  onPress={handleLogin}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.buttonText}>Ingresar</Text>
-                  )}
-                </Pressable>
-
-                <Text style={styles.registroLink}>
-                  ¿No tenés cuenta? {" "}
-                  <Text
-                    style={styles.linkText}
-                    onPress={() => router.push("/registro")}
-                  >
-                    Registrarse
-                  </Text>
-                </Text>
-
-                <Text
-                  style={[styles.registroLink, { marginTop: 12 }]}
-                  onPress={() => router.push("/recuperarContrasenia")}
-                >
-                  ¿Olvidaste tu contraseña?
-                </Text>
-              </View>
-            </View>
-          </View>
-        ) : (
-          <ScrollView
-            contentContainerStyle={styles.wrapper}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={{ alignItems: "center", marginBottom: 16 }}>
-              <Animatable.Image
-                animation="pulse"
-                iterationCount="infinite"
-                duration={2500}
-                source={require("../assets/images/bus-icon.png")}
-                style={{ width: 64, height: 64, tintColor: "#38bdf8", marginBottom: 8 }}
+                style={[styles.mobileLogo, { tintColor: colors.primary }]}
+                resizeMode="contain"
               />
-              <Text style={{ fontSize: 26, fontWeight: "800", color: "#ffffff", letterSpacing: 0.5 }}>
-                V&V Reservas
-              </Text>
-              <Text style={{ fontSize: 13, color: "#94a3b8", marginTop: 2 }}>
-                Viajes y traslados seguros
-              </Text>
             </View>
+            <Title style={styles.mobileTitle}>V&V Reservas</Title>
+            <Caption color="textMuted">Viajes y traslados seguros</Caption>
+          </FadeInView>
 
-            <View style={styles.formContainer}>
-              <Text style={styles.title}>Iniciar sesión</Text>
-
-              <TextInput
-                style={styles.input}
-                placeholder="Usuario o Email"
-                placeholderTextColor={isDark ? "#ccc" : "#888"}
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={usuario}
-                onChangeText={handleUsuarioChange}
-                returnKeyType="next"
-                onSubmitEditing={() => passwordInputRef.current?.focus()}
-              />
-
-              <View style={{ position: "relative" }}>
-                <TextInput
-                  ref={passwordInputRef}
-                  style={[styles.input, { paddingRight: 40 }]}
-                  placeholder="Contraseña"
-                  placeholderTextColor={isDark ? "#ccc" : "#888"}
-                  secureTextEntry={!mostrarPassword}
-                  value={contrasenia}
-                  onChangeText={handlePasswordChange}
-                  onSubmitEditing={handleLogin}
-                  returnKeyType="done"
-                />
-                <Pressable
-                  onPress={() => setMostrarPassword(!mostrarPassword)}
-                  style={{
-                    position: "absolute",
-                    right: 10,
-                    top: 12,
-                  }}
-                >
-                  <Ionicons
-                    name={mostrarPassword ? "eye-off" : "eye"}
-                    size={22}
-                    color={isDark ? "#ccc" : "#555"}
-                  />
-                </Pressable>
-              </View>
-
-              {errorMensaje !== "" && (
-                <Text
-                  style={{
-                    color: "red",
-                    marginBottom: 10,
-                    textAlign: "center",
-                  }}
-                >
-                  {errorMensaje}
-                </Text>
-              )}
-
-              <Pressable style={styles.button} onPress={handleLogin}>
-                {loading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>Ingresar</Text>
-                )}
-              </Pressable>
-
-              <Text style={styles.registroLink}>
-                ¿No tenés cuenta?{" "}
-                <Text
-                  style={styles.linkText}
-                  onPress={() => router.push("/registro")}
-                >
-                  Registrarse
-                </Text>
-              </Text>
-              <Text
-                style={[styles.registroLink, { marginTop: 12 }]}
-                onPress={() => router.push("/recuperarContrasenia")}
-              >
-                ¿Olvidaste tu contraseña?
-              </Text>
-            </View>
-          </ScrollView>
-        )}
-      </View>
+          <FadeInView delay={90} duration={320} direction="up">
+            {renderForm()}
+          </FadeInView>
+        </ScrollView>
+      )}
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollWrapper: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing["2xl"],
+  },
+  mobileHeader: {
+    alignItems: "center",
+    marginBottom: Spacing.xl,
+  },
+  iconBadge: {
+    width: 68,
+    height: 68,
+    borderRadius: Radii.xl,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.md,
+  },
+  mobileLogo: {
+    width: 36,
+    height: 36,
+  },
+  mobileTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    marginBottom: Spacing.xs,
+  },
+  cardContainer: {
+    width: "100%",
+    maxWidth: 420,
+    alignSelf: "center",
+    padding: Spacing.xl,
+    borderRadius: Radii.xl,
+  },
+  cardTitle: {
+    marginBottom: Spacing.xs,
+  },
+  cardSubtitle: {
+    marginBottom: Spacing.lg,
+  },
+  submitButton: {
+    marginTop: Spacing.sm,
+  },
+  linksContainer: {
+    marginTop: Spacing.lg,
+    alignItems: "center",
+  },
+  signupText: {
+    marginBottom: Spacing.sm,
+  },
+  linkHighlight: {
+    fontWeight: "700",
+  },
+  forgotPasswordButton: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+  },
+  // Adaptabilidad Web
+  webWrapper: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    maxWidth: 960,
+    alignSelf: "center",
+    width: "100%",
+    paddingHorizontal: Spacing.xl,
+  },
+  webBrandSide: {
+    flex: 1,
+    paddingRight: Spacing["3xl"],
+    alignItems: "flex-start",
+  },
+  webLogo: {
+    width: 56,
+    height: 56,
+    marginBottom: Spacing.md,
+  },
+  webBrandTitle: {
+    fontSize: 34,
+    fontWeight: "900",
+    marginBottom: Spacing.sm,
+  },
+  webBrandSlogan: {
+    fontSize: 17,
+    lineHeight: 24,
+  },
+  webFormSide: {
+    flex: 1,
+    maxWidth: 400,
+    width: "100%",
+  },
+});

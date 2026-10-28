@@ -16,21 +16,20 @@ type ThemeProps = {
 export type TextProps = ThemeProps & DefaultText["props"];
 export type ViewProps = ThemeProps & DefaultView["props"];
 
-type ColorName =
-  | "text"
-  | "textSecondary"
-  | "textMuted"
-  | "background"
-  | "surface"
-  | "surfaceElevated"
-  | "border"
-  | "primary"
-  | "primaryDark"
-  | "accent"
-  | "success"
-  | "error"
-  | "warning"
-  | "tint";
+export type ColorName = keyof (typeof Colors)["light"];
+
+/**
+ * Hook para obtener el tema actual ('light' | 'dark'), su paleta semántica y flag isDark
+ */
+export function useTheme() {
+  const theme = (useColorScheme() ?? "light") as "light" | "dark";
+  const colors = Colors[theme];
+  return {
+    theme,
+    colors,
+    isDark: theme === "dark",
+  };
+}
 
 export function useThemeColor(
   props: { light?: string; dark?: string },
@@ -42,7 +41,7 @@ export function useThemeColor(
   if (colorFromProps) {
     return colorFromProps;
   }
-  return Colors[theme][colorName as keyof (typeof Colors)["light"]];
+  return Colors[theme][colorName];
 }
 
 export function Text(props: TextProps) {

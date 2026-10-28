@@ -7,14 +7,19 @@ import {
   PressableProps,
 } from "react-native";
 import { useThemeColor } from "../Themed";
+import { Radii, Spacing } from "@/constants/Spacing";
+import { Shadows } from "@/constants/Shadows";
+
+export type CardVariant = "elevated" | "outlined" | "flat";
 
 interface CardBaseProps {
   children: React.ReactNode;
+  variant?: CardVariant;
   style?: ViewStyle;
   padded?: boolean;
 }
 
-type CardProps =
+export type CardProps =
   | (CardBaseProps & { onPress?: undefined; pressableProps?: never })
   | (CardBaseProps & {
       onPress: () => void;
@@ -23,29 +28,42 @@ type CardProps =
 
 export default function Card({
   children,
+  variant = "elevated",
   style,
   padded = true,
   onPress,
   pressableProps,
 }: CardProps) {
   const surface = useThemeColor({}, "surface");
+  const surfaceElevated = useThemeColor({}, "surfaceElevated");
   const border = useThemeColor({}, "border");
 
-  const content = (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: surface,
-          borderColor: border,
-          padding: padded ? 16 : 0,
-        },
-        style,
-      ]}
-    >
-      {children}
-    </View>
-  );
+  const variantStyles: Record<CardVariant, ViewStyle> = {
+    elevated: {
+      backgroundColor: surface,
+      borderColor: border,
+      borderWidth: 1,
+      ...Shadows.sm,
+    },
+    outlined: {
+      backgroundColor: surface,
+      borderColor: border,
+      borderWidth: 1,
+    },
+    flat: {
+      backgroundColor: surfaceElevated,
+      borderWidth: 0,
+    },
+  };
+
+  const cardStyle: ViewStyle[] = [
+    styles.card,
+    variantStyles[variant],
+    {
+      padding: padded ? Spacing.base : 0,
+    },
+    style || {},
+  ];
 
   if (onPress) {
     return (
@@ -54,25 +72,24 @@ export default function Card({
         onPress={onPress}
         accessibilityRole="button"
         style={({ pressed }) => [
-          { opacity: pressed ? 0.97 : 1, transform: [{ scale: pressed ? 0.995 : 1 }] },
+          ...cardStyle,
+          {
+            opacity: pressed ? 0.95 : 1,
+            transform: pressed ? [{ scale: 0.992 }] : [{ scale: 1 }],
+          },
         ]}
       >
-        {content}
+        {children}
       </Pressable>
     );
   }
 
-  return content;
+  return <View style={cardStyle}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    borderRadius: Radii.lg,
+    overflow: "hidden",
   },
 });

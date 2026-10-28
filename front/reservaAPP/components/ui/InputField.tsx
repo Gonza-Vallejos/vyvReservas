@@ -1,4 +1,4 @@
-import React, { useState, forwardRef } from "react";
+import React, { useState, forwardRef, useRef, useEffect } from "react";
 import {
   View,
   TextInput,
@@ -7,18 +7,24 @@ import {
   Pressable,
   TextInputProps,
   ViewStyle,
+  Platform,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "../Themed";
+import { Radii, Spacing, Layout } from "@/constants/Spacing";
 
-interface InputFieldProps extends TextInputProps {
+export interface InputFieldProps extends TextInputProps {
   label?: string;
   icon?: keyof typeof Ionicons.glyphMap;
+  rightIcon?: keyof typeof Ionicons.glyphMap;
+  onRightIconPress?: () => void;
   error?: string;
   helper?: string;
   containerStyle?: ViewStyle;
   clearable?: boolean;
   onClear?: () => void;
+  isPassword?: boolean;
   allowFontScaling?: boolean;
   required?: boolean;
 }
@@ -28,18 +34,23 @@ const InputField = forwardRef<TextInput, InputFieldProps>(
     {
       label,
       icon,
+      rightIcon,
+      onRightIconPress,
       error,
       helper,
       containerStyle,
       clearable,
       onClear,
+      isPassword = false,
       allowFontScaling = true,
       required,
+      secureTextEntry,
       ...textInputProps
     },
     ref
   ) => {
     const [isFocused, setIsFocused] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const text = useThemeColor({}, "text");
     const textSecondary = useThemeColor({}, "textSecondary");
@@ -49,42 +60,83 @@ const InputField = forwardRef<TextInput, InputFieldProps>(
     const errorColor = useThemeColor({}, "error");
     const primary = useThemeColor({}, "primary");
 
+    const iconScale = useRef(new Animated.Value(1)).current;
+    const shakeX = useRef(new Animated.Value(0)).current;
+
     const hasError = Boolean(error);
     const activeBorder = hasError ? errorColor : isFocused ? primary : border;
+    const isSecure = isPassword ? !showPassword : secureTextEntry;
+
+    useEffect(() => {
+      if (hasError) {
+        Animated.sequence([
+          Animated.timing(shakeX, { toValue: -4, duration: 40, useNativeDriver: true }),
+          Animated.timing(shakeX, { toValue: 4, duration: 60, useNativeDriver: true }),
+          Animated.timing(shakeX, { toValue: -2, duration: 50, useNativeDriver: true }),
+          Animated.timing(shakeX, { toValue: 2, duration: 50, useNativeDriver: true }),
+          Animated.timing(shakeX, { toValue: 0, duration: 40, useNativeDriver: true }),
+        ]).start();
+      }
+    }, [error]);
+
+    const handleFocus = (e: any) => {
+      setIsFocused(true);
+      Animated.spring(iconScale, {
+        toValue: 1.1,
+        speed: 40,
+        bounciness: 4,
+        useNativeDriver: true,
+      }).start();
+      textInputProps.onFocus?.(e);
+    };
+
+    const handleBlur = (e: any) => {
+      setIsFocused(false);
+      Animated.spring(iconScale, {
+        toValue: 1,
+        speed: 40,
+        bounciness: 4,
+        useNativeDriver: true,
+      }).start();
+      textInputProps.onBlur?.(e);
+    };
 
     return (
       <View style={[styles.container, containerStyle]}>
         {label && (
           <Text
             allowFontScaling={allowFontScaling}
-            style={[styles.label, { color: textSecondary }]}
+            style={[styles.label, { color: hasError ? errorColor : textSecondary }]}
           >
             {label}
-            {required && (
-              <Text style={{ color: errorColor }}> *</Text>
-            )}
+            {required && <Text style={{ color: errorColor }}> *</Text>}
           </Text>
         )}
-        <View
+        <Animated.View
           style={[
             styles.wrapper,
             {
               backgroundColor: surface,
               borderColor: activeBorder,
+              borderWidth: isFocused || hasError ? 1.5 : 1,
+              transform: [{ translateX: shakeX }],
             },
           ]}
         >
           {icon && (
-            <Ionicons
-              name={icon}
-              size={20}
-              color={isFocused ? primary : textMuted}
-              style={styles.icon}
-            />
+            <Animated.View style={{ transform: [{ scale: iconScale }] }}>
+              <Ionicons
+                name={icon}
+                size={20}
+                color={hasError ? errorColor : isFocused ? primary : textMuted}
+                style={styles.icon}
+              />
+            </Animated.View>
           )}
           <TextInput
             ref={ref}
             {...textInputProps}
+            secureTextEntry={isSecure}
             allowFontScaling={allowFontScaling}
             placeholderTextColor={textMuted}
             style={[
@@ -92,14 +144,8 @@ const InputField = forwardRef<TextInput, InputFieldProps>(
               { color: text },
               textInputProps.style,
             ]}
-            onFocus={(e) => {
-              setIsFocused(true);
-              textInputProps.onFocus?.(e);
-            }}
-            onBlur={(e) => {
-              setIsFocused(false);
-              textInputProps.onBlur?.(e);
-            }}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             accessibilityLabel={label || textInputProps.accessibilityLabel}
             accessibilityHint={
               error
@@ -108,18 +154,50 @@ const InputField = forwardRef<TextInput, InputFieldProps>(
             }
             aria-invalid={hasError}
           />
+
+          {/* Botón de limpiar si clearable está activo */}
           {clearable && Boolean(textInputProps.value) && (
             <Pressable
               onPress={onClear}
               hitSlop={8}
               accessibilityLabel="Limpiar campo"
               accessibilityRole="button"
-              style={styles.clearButton}
+              style={styles.actionButton}
             >
-              <Ionicons name="close-circle" size={20} color={textMuted} />
+              <Ionicons name="close-circle" size={18} color={textMuted} />
             </Pressable>
           )}
-        </View>
+
+          {/* Toggle de visibilidad para contraseñas */}
+          {isPassword && (
+            <Pressable
+              onPress={() => setShowPassword((prev) => !prev)}
+              hitSlop={8}
+              accessibilityLabel={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+              accessibilityRole="button"
+              style={styles.actionButton}
+            >
+              <Ionicons
+                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                size={20}
+                color={isFocused ? primary : textMuted}
+              />
+            </Pressable>
+          )}
+
+          {/* Icono derecho personalizado */}
+          {rightIcon && !isPassword && (
+            <Pressable
+              onPress={onRightIconPress}
+              disabled={!onRightIconPress}
+              hitSlop={8}
+              style={styles.actionButton}
+            >
+              <Ionicons name={rightIcon} size={20} color={textMuted} />
+            </Pressable>
+          )}
+        </Animated.View>
+
         {helper && !hasError && (
           <Text
             allowFontScaling={allowFontScaling}
@@ -128,14 +206,18 @@ const InputField = forwardRef<TextInput, InputFieldProps>(
             {helper}
           </Text>
         )}
+
         {hasError && (
-          <Text
-            allowFontScaling={allowFontScaling}
-            style={[styles.error, { color: errorColor }]}
-            accessibilityLiveRegion="polite"
-          >
-            {error}
-          </Text>
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle" size={14} color={errorColor} style={{ marginRight: 4 }} />
+            <Text
+              allowFontScaling={allowFontScaling}
+              style={[styles.error, { color: errorColor }]}
+              accessibilityLiveRegion="polite"
+            >
+              {error}
+            </Text>
+          </View>
         )}
       </View>
     );
@@ -146,20 +228,20 @@ InputField.displayName = "InputField";
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
   label: {
     fontSize: 13,
     fontWeight: "600",
     marginBottom: 6,
+    letterSpacing: 0.1,
   },
   wrapper: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    minHeight: 48,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    minHeight: Layout.inputHeight,
   },
   icon: {
     marginRight: 10,
@@ -167,20 +249,28 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    paddingVertical: 12,
-    minHeight: 44,
+    paddingVertical: Platform.OS === "ios" ? 12 : 10,
+    minHeight: Layout.inputHeight - 4,
   },
-  clearButton: {
-    padding: 4,
-    marginLeft: 6,
+  actionButton: {
+    padding: 6,
+    marginLeft: 4,
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 32,
+    minHeight: 32,
   },
   helper: {
     fontSize: 12,
     marginTop: 4,
   },
+  errorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
   error: {
     fontSize: 12,
-    marginTop: 4,
     fontWeight: "600",
   },
 });
