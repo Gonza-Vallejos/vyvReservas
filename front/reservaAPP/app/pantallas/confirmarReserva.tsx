@@ -316,7 +316,7 @@ function PassengerConfirmation({
       setError(null);
       try {
         const data = await obtenerReservas(userInfo.id);
-        const list = Array.isArray(data) ? data : data.data || [];
+        const list = Array.isArray(data) ? data : (data as any)?.data || [];
         const found = list.find((r: Reservation) => String(r.id) === String(reservaId));
         if (!cancelled) {
           if (found) {

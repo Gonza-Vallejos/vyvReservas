@@ -96,7 +96,12 @@ export default function TabLayout() {
         name="viajes"
         options={{
           title: "Viajes",
-          href: userInfo?.perfil === "usuarioCliente" ? undefined : null,
+          href:
+            userInfo?.perfil === "usuarioCliente" ||
+            userInfo?.perfil === "cliente" ||
+            userInfo?.perfil_id === 2
+              ? undefined
+              : null,
           lazy: true,
         }}
       />
@@ -105,7 +110,12 @@ export default function TabLayout() {
         name="reserva"
         options={{
           title: "Mis Reservas",
-          href: userInfo?.perfil === "usuarioCliente" ? undefined : null,
+          href:
+            userInfo?.perfil === "usuarioCliente" ||
+            userInfo?.perfil === "cliente" ||
+            userInfo?.perfil_id === 2
+              ? undefined
+              : null,
           lazy: true,
         }}
       />
@@ -114,7 +124,12 @@ export default function TabLayout() {
         name="perfil"
         options={{
           title: "Perfil",
-          href: userInfo?.perfil === "usuarioCliente" ? undefined : null,
+          href:
+            userInfo?.perfil === "usuarioCliente" ||
+            userInfo?.perfil === "cliente" ||
+            userInfo?.perfil_id === 2
+              ? undefined
+              : null,
           lazy: true,
         }}
       />

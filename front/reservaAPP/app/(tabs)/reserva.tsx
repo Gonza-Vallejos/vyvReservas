@@ -17,6 +17,7 @@ import { useAuth } from "../../context/AuthContext";
 import { obtenerReservas, eliminarReserva } from "../../services/reservaService";
 import { crearPreferencia } from "../../services/pagoService";
 import { useThemeColor } from "@/components/Themed";
+import { useFocusEffect } from "@react-navigation/native";
 import ScreenContainer from "@/components/ui/ScreenContainer";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -132,7 +133,13 @@ export default function MisReservasScreen() {
   const background = useThemeColor({}, "background");
   const surfaceElevated = useThemeColor({}, "surfaceElevated");
 
-  if (!authLoading && userInfo?.perfil !== "usuarioCliente") {
+  const isCliente =
+    !userInfo ||
+    userInfo.perfil === "usuarioCliente" ||
+    userInfo.perfil === "cliente" ||
+    userInfo.perfil_id === 2;
+
+  if (!authLoading && !isCliente) {
     return <Redirect href="/(tabs)" />;
   }
 
@@ -145,7 +152,7 @@ export default function MisReservasScreen() {
     setError(null);
     try {
       const data = await obtenerReservas(userInfo.id);
-      const list = Array.isArray(data) ? data : data.data || [];
+      const list = Array.isArray(data) ? data : data?.data || [];
       setReservas(Array.isArray(list) ? list : []);
     } catch {
       setError("No pudimos cargar tus reservas. Intentá de nuevo en unos instantes.");
@@ -155,11 +162,13 @@ export default function MisReservasScreen() {
     }
   }, [userInfo?.id]);
 
-  React.useEffect(() => {
-    if (!authLoading && isLoggedIn) {
-      fetchReservas();
-    }
-  }, [authLoading, isLoggedIn, fetchReservas]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!authLoading && isLoggedIn) {
+        fetchReservas();
+      }
+    }, [authLoading, isLoggedIn, fetchReservas])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -337,7 +346,7 @@ export default function MisReservasScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <ScreenContainer scrollEnabled={false}>
       <ScrollView
         style={[styles.scroll, { backgroundColor: background }]}
         contentContainerStyle={styles.container}

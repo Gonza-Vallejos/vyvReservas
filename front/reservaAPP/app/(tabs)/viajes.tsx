@@ -53,7 +53,13 @@ export default function ViajesScreen() {
   const [mensaje, setMensaje] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
 
-  if (userInfo?.perfil !== "usuarioCliente") {
+  const isCliente =
+    !userInfo ||
+    userInfo.perfil === "usuarioCliente" ||
+    userInfo.perfil === "cliente" ||
+    userInfo.perfil_id === 2;
+
+  if (!isCliente) {
     return <Redirect href="/(tabs)" />;
   }
 
@@ -72,10 +78,11 @@ export default function ViajesScreen() {
     Keyboard.dismiss();
 
     try {
-      const data = await listarViajes(o.trim(), d.trim());
-      setViajes(data);
+      const data = await listarViajes(o.trim(), d.trim(), f?.trim());
+      const list = Array.isArray(data) ? data : (data as any)?.data || [];
+      setViajes(list);
       setHasSearched(true);
-      if (data.length === 0) {
+      if (list.length === 0) {
         setMensaje("No se encontraron viajes disponibles para esta ruta y fecha.");
       }
     } catch (error) {

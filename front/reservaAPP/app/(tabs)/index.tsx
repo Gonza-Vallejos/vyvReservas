@@ -43,7 +43,11 @@ export default function Index() {
     return null;
   }
 
-  const isCliente = userInfo?.perfil === "usuarioCliente";
+  const isCliente =
+    !userInfo?.perfil ||
+    userInfo?.perfil === "usuarioCliente" ||
+    userInfo?.perfil === "cliente" ||
+    userInfo?.perfil_id === 2;
 
   const getPerfilLabel = (perfil?: string) => {
     switch (perfil) {
@@ -216,7 +220,7 @@ export default function Index() {
         style={styles.actionsContainer}
       >
         {/* Acciones Cliente */}
-        {userInfo?.perfil === "usuarioCliente" && (
+        {isCliente && (
           <>
             <QuickAction
               icon="search"
