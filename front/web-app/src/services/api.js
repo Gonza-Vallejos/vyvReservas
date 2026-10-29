@@ -1,6 +1,13 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const rawApiUrl = (import.meta.env.VITE_API_URL || 'https://vyvreservas-api.onrender.com/api').trim().replace(/\/+$/, '');
+const normalizedUrl = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
+
+// En desarrollo (npm run dev), si no se activa VITE_DIRECT_API, usamos '/api'
+// para que el proxy configurado en vite.config.js despache las peticiones y evite bloqueos de CORS.
+const API_URL = (import.meta.env.DEV && !import.meta.env.VITE_DIRECT_API)
+  ? '/api'
+  : normalizedUrl;
 
 const api = axios.create({
   baseURL: API_URL,
