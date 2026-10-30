@@ -78,7 +78,8 @@ const formatCurrency = (value) =>
   new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS',
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
   }).format(Number(value) || 0);
 
 const formatTime = (time) => (time ? time.substring(0, 5) : '--:--');
@@ -248,11 +249,9 @@ const WeekDayNav = ({ selected, onSelect, tripCounts = {} }) => {
               aria-selected={isSelected}
               aria-label={`${day.label} ${day.dayNumber} ${day.monthLabel}${isToday ? ' (Hoy)' : ''}${count > 0 ? `, ${count} viajes` : ''}`}
               onClick={() => onSelect(day.iso)}
-              className={`dashboard-week-nav__btn ${
-                isSelected ? 'dashboard-week-nav__btn--active' : ''
-              } ${isToday && !isSelected ? 'dashboard-week-nav__btn--today' : ''} ${
-                count > 0 && !isSelected ? 'dashboard-week-nav__btn--has-trips' : ''
-              }`}
+              className={`dashboard-week-nav__btn ${isSelected ? 'dashboard-week-nav__btn--active' : ''
+                } ${isToday && !isSelected ? 'dashboard-week-nav__btn--today' : ''} ${count > 0 && !isSelected ? 'dashboard-week-nav__btn--has-trips' : ''
+                }`}
             >
               <span className="dashboard-week-nav__label">{day.label}</span>
               <span className="dashboard-week-nav__number">{day.dayNumber}</span>
@@ -486,7 +485,7 @@ const DashboardPage = () => {
   const currentProfileId = Number(user?.perfil_id ?? user?.perfilId);
   const isSuperAdmin = currentProfileId === PROFILES.ADMINISTRADOR;
   const isOwner = currentProfileId === PROFILES.EMPRESA;
-  
+
   // Permission helpers
   const { can, isAdmin, isOwner: isOwnerCheck, isStaff, isAtLeast } = usePermissions();
 
@@ -621,16 +620,16 @@ const DashboardPage = () => {
         }
       }
       if (rRes.status === 'fulfilled') setReservas(rRes.value?.data?.data || rRes.value?.data || []);
-      
+
       let currentEmpresas = [];
       if (empListRes.status === 'fulfilled') {
         currentEmpresas = empListRes.value?.data?.data || empListRes.value?.data || [];
         setEmpresas(currentEmpresas);
       }
-      
+
       if (locRes.status === 'fulfilled')
         setLocalidades(locRes.value?.data?.data || locRes.value?.data || []);
-      
+
       let currentUsers = [];
       if (usersRes.status === 'fulfilled') {
         currentUsers = usersRes.value?.data?.data || usersRes.value?.data || [];
@@ -1586,91 +1585,91 @@ const DashboardPage = () => {
                 {miEmpresa ? (
                   <>
                     <Card>
-                    <div className="dashboard-company-header">
-                      <div className="dashboard-company-logo">
-                        <Building2 size={32} aria-hidden="true" />
-                      </div>
-                      <div>
-                        <h2 className="dashboard-company-name">{miEmpresa.nombre}</h2>
-                        <p className="dashboard-company-meta">CUIT: {miEmpresa.cuit || 'S/C'}</p>
-                      </div>
-                    </div>
-                    <div className="dashboard-company-grid">
-                      <div className="dashboard-company-item">
-                        <MapPin size={18} aria-hidden="true" />
+                      <div className="dashboard-company-header">
+                        <div className="dashboard-company-logo">
+                          <Building2 size={32} aria-hidden="true" />
+                        </div>
                         <div>
-                          <span>Dirección</span>
-                          <b>{miEmpresa.direccion || 'S/D'}</b>
+                          <h2 className="dashboard-company-name">{miEmpresa.nombre}</h2>
+                          <p className="dashboard-company-meta">CUIT: {miEmpresa.cuit || 'S/C'}</p>
                         </div>
                       </div>
-                      <div className="dashboard-company-item">
-                        <Phone size={18} aria-hidden="true" />
-                        <div>
-                          <span>Teléfono</span>
-                          <b>{miEmpresa.telefono || 'S/D'}</b>
+                      <div className="dashboard-company-grid">
+                        <div className="dashboard-company-item">
+                          <MapPin size={18} aria-hidden="true" />
+                          <div>
+                            <span>Dirección</span>
+                            <b>{miEmpresa.direccion || 'S/D'}</b>
+                          </div>
+                        </div>
+                        <div className="dashboard-company-item">
+                          <Phone size={18} aria-hidden="true" />
+                          <div>
+                            <span>Teléfono</span>
+                            <b>{miEmpresa.telefono || 'S/D'}</b>
+                          </div>
+                        </div>
+                        <div className="dashboard-company-item">
+                          <Mail size={18} aria-hidden="true" />
+                          <div>
+                            <span>Email</span>
+                            <b>{miEmpresa.email || 'S/D'}</b>
+                          </div>
+                        </div>
+                        <div className="dashboard-company-item">
+                          <IdCard size={18} aria-hidden="true" />
+                          <div>
+                            <span>Localidad</span>
+                            <b>{miEmpresa.Localidad?.nombre || 'S/D'}</b>
+                          </div>
                         </div>
                       </div>
-                      <div className="dashboard-company-item">
-                        <Mail size={18} aria-hidden="true" />
-                        <div>
-                          <span>Email</span>
-                          <b>{miEmpresa.email || 'S/D'}</b>
-                        </div>
-                      </div>
-                      <div className="dashboard-company-item">
-                        <IdCard size={18} aria-hidden="true" />
-                        <div>
-                          <span>Localidad</span>
-                          <b>{miEmpresa.Localidad?.nombre || 'S/D'}</b>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
+                    </Card>
 
-                  {/* Configuración de Mercado Pago & Acreditación de Fondos */}
-                  <Card style={{ marginTop: 'var(--space-5)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
-                      <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
-                        <div style={{ padding: 'var(--space-2)', background: 'var(--color-primary-light, rgba(239, 68, 68, 0.1))', borderRadius: 'var(--radius-md)', color: 'var(--color-primary)' }}>
-                          <CreditCard size={24} />
+                    {/* Configuración de Mercado Pago & Acreditación de Fondos */}
+                    <Card style={{ marginTop: 'var(--space-5)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+                        <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+                          <div style={{ padding: 'var(--space-2)', background: 'var(--color-primary-light, rgba(239, 68, 68, 0.1))', borderRadius: 'var(--radius-md)', color: 'var(--color-primary)' }}>
+                            <CreditCard size={24} />
+                          </div>
+                          <div>
+                            <h3 style={{ margin: 0, fontSize: 'var(--font-size-base)', fontWeight: 600 }}>Mercado Pago & Cobros de Pasajes</h3>
+                            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)' }}>
+                              Acreditación directa en tu cuenta bancaria / Mercado Pago
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 style={{ margin: 0, fontSize: 'var(--font-size-base)', fontWeight: 600 }}>Mercado Pago & Cobros de Pasajes</h3>
-                          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)' }}>
-                            Acreditación directa en tu cuenta bancaria / Mercado Pago
-                          </p>
-                        </div>
+                        {miEmpresa.mp_vinculado ? (
+                          <Badge variant="success">Cuenta Vinculada ✅</Badge>
+                        ) : (
+                          <Badge variant="warning">Sin vincular ⚠️</Badge>
+                        )}
                       </div>
-                      {miEmpresa.mp_vinculado ? (
-                        <Badge variant="success">Cuenta Vinculada ✅</Badge>
-                      ) : (
-                        <Badge variant="warning">Sin vincular ⚠️</Badge>
-                      )}
-                    </div>
 
-                    <div style={{ background: 'var(--bg-secondary, #f8fafc)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-4)', border: '1px solid var(--border-color)' }}>
-                      <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                        • <b>Comisión de servicio de la plataforma:</b> {miEmpresa.comision_porcentaje || 10}%<br />
-                        • <b>Ingresos netos que recibe tu empresa:</b> {100 - (miEmpresa.comision_porcentaje || 10)}% por cada boleto vendido.<br />
-                        {miEmpresa.mp_vinculado
-                          ? '• Tu cuenta de Mercado Pago está conectada. Los cobros de tus viajes se depositan directamente en tu cuenta con el split automático de comisiones.'
-                          : '• Conectá tu cuenta de Mercado Pago para que los clientes te abonen los pasajes directamente y recibas los fondos de manera automática e inmediata.'}
-                      </p>
-                    </div>
+                      <div style={{ background: 'var(--bg-secondary, #f8fafc)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-4)', border: '1px solid var(--border-color)' }}>
+                        <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                          • <b>Comisión de servicio de la plataforma:</b> {miEmpresa.comision_porcentaje || 10}%<br />
+                          • <b>Ingresos netos que recibe tu empresa:</b> {100 - (miEmpresa.comision_porcentaje || 10)}% por cada boleto vendido.<br />
+                          {miEmpresa.mp_vinculado
+                            ? '• Tu cuenta de Mercado Pago está conectada. Los cobros de tus viajes se depositan directamente en tu cuenta con el split automático de comisiones.'
+                            : '• Conectá tu cuenta de Mercado Pago para que los clientes te abonen los pasajes directamente y recibas los fondos de manera automática e inmediata.'}
+                        </p>
+                      </div>
 
-                    <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-                      {!miEmpresa.mp_vinculado ? (
-                        <Button onClick={() => handleVincularMpEmpresa(miEmpresa.id)}>
-                          <Link2 size={18} /> Vincular Mercado Pago
-                        </Button>
-                      ) : (
-                        <Button variant="danger" size="sm" onClick={() => handleDesvincularMp(miEmpresa.id)}>
-                          Desvincular Mercado Pago
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
-                </>
+                      <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                        {!miEmpresa.mp_vinculado ? (
+                          <Button onClick={() => handleVincularMpEmpresa(miEmpresa.id)}>
+                            <Link2 size={18} /> Vincular Mercado Pago
+                          </Button>
+                        ) : (
+                          <Button variant="danger" size="sm" onClick={() => handleDesvincularMp(miEmpresa.id)}>
+                            Desvincular Mercado Pago
+                          </Button>
+                        )}
+                      </div>
+                    </Card>
+                  </>
                 ) : (
                   <EmptyState
                     icon={Building2}
@@ -1737,29 +1736,29 @@ const DashboardPage = () => {
 
                 {/* Tarjetas KPI de Comisiones */}
                 <div className="stats-grid" style={{ marginBottom: 'var(--space-6)' }}>
-                  <StatCard 
-                    icon={DollarSign} 
-                    label="Facturación Total Pasajes" 
-                    value={formatCurrency(metricasComisiones?.resumen?.totalRecaudado || 0)} 
-                    variant="primary" 
+                  <StatCard
+                    icon={DollarSign}
+                    label="Facturación Total Pasajes"
+                    value={formatCurrency(metricasComisiones?.resumen?.totalRecaudado || 0)}
+                    variant="primary"
                   />
-                  <StatCard 
-                    icon={ShieldCheck} 
-                    label="Tus Ganancias (Comisiones)" 
-                    value={formatCurrency(metricasComisiones?.resumen?.totalComisionesPlataforma || 0)} 
-                    variant="success" 
+                  <StatCard
+                    icon={ShieldCheck}
+                    label="Tus Ganancias (Comisiones)"
+                    value={formatCurrency(metricasComisiones?.resumen?.totalComisionesPlataforma || 0)}
+                    variant="success"
                   />
-                  <StatCard 
-                    icon={Truck} 
-                    label="Liquidación Neta Empresas" 
-                    value={formatCurrency(metricasComisiones?.resumen?.totalNetoEmpresas || 0)} 
-                    variant="accent" 
+                  <StatCard
+                    icon={Truck}
+                    label="Liquidación Neta Empresas"
+                    value={formatCurrency(metricasComisiones?.resumen?.totalNetoEmpresas || 0)}
+                    variant="accent"
                   />
-                  <StatCard 
-                    icon={TrendingUp} 
-                    label="Comisión Promedio Plataforma" 
-                    value={`${metricasComisiones?.resumen?.comisionPromedioPorcentaje || 10}%`} 
-                    variant="default" 
+                  <StatCard
+                    icon={TrendingUp}
+                    label="Comisión Promedio Plataforma"
+                    value={`${metricasComisiones?.resumen?.comisionPromedioPorcentaje || 10}%`}
+                    variant="default"
                   />
                 </div>
 
@@ -1787,8 +1786,8 @@ const DashboardPage = () => {
                   <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--border-color)' }}>
                     <h3 style={{ margin: 0, fontSize: 'var(--font-size-base)', fontWeight: 600 }}>Comisión pactada por Empresa</h3>
                   </div>
-                  <DashboardTable 
-                    headers={['Empresa', 'Ventas', 'Total Vendido', 'Tu Comisión ($)', '% Comisión', 'Mercado Pago', 'Acciones']} 
+                  <DashboardTable
+                    headers={['Empresa', 'Ventas', 'Total Vendido', 'Tu Comisión ($)', '% Comisión', 'Mercado Pago', 'Acciones']}
                     caption="Comisiones por empresa"
                   >
                     {(metricasComisiones?.empresas || []).map((emp) => (
@@ -1821,9 +1820,9 @@ const DashboardPage = () => {
                           )}
                         </td>
                         <td>
-                          <Button 
-                            variant="secondary" 
-                            size="sm" 
+                          <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={() => {
                               setEditingComisionEmpresa(emp);
                               setNuevaComisionValor(String(emp.comisionPorcentaje));
@@ -1842,8 +1841,8 @@ const DashboardPage = () => {
                   <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--border-color)' }}>
                     <h3 style={{ margin: 0, fontSize: 'var(--font-size-base)', fontWeight: 600 }}>Últimas transacciones y comisiones retenidas</h3>
                   </div>
-                  <DashboardTable 
-                    headers={['ID Pago', 'Fecha', 'Viaje / Empresa', 'Total Cobrado', 'Tu Comisión', 'Neto Empresa']} 
+                  <DashboardTable
+                    headers={['ID Pago', 'Fecha', 'Viaje / Empresa', 'Total Cobrado', 'Tu Comisión', 'Neto Empresa']}
                     caption="Últimas transacciones"
                   >
                     {(metricasComisiones?.ultimasTransacciones || []).map((tx) => (
@@ -1898,18 +1897,18 @@ const DashboardPage = () => {
                       description="No se encontraron otras empresas en el sistema."
                     />
                   ) : (
-                    <DashboardTable 
-                      headers={['Nombre', 'CUIT', 'Contacto', 'Estado', ...(isSuperAdmin ? ['Comisión Plataforma'] : []), 'Dueño']} 
+                    <DashboardTable
+                      headers={['Nombre', 'CUIT', 'Contacto', 'Estado', ...(isSuperAdmin ? ['Comisión Plataforma'] : []), 'Dueño']}
                       caption="Empresas registradas"
                     >
                       {empresas.map((emp) => {
                         const dueno = empresaOwners[emp.id] ||
-                                      emp.dueno ||
-                                      (emp.Usuarios?.find((u) => Number(u.perfil_id || u.perfilId) === PROFILES.EMPRESA)) ||
-                                      allUsers.find((u) => 
-                                        String(u.id_empresa || u.idEmpresa || u.UsuarioEmpresas?.[0]?.id_empresa) === String(emp.id) && 
-                                        Number(u.perfil_id || u.perfilId) === PROFILES.EMPRESA
-                                      );
+                          emp.dueno ||
+                          (emp.Usuarios?.find((u) => Number(u.perfil_id || u.perfilId) === PROFILES.EMPRESA)) ||
+                          allUsers.find((u) =>
+                            String(u.id_empresa || u.idEmpresa || u.UsuarioEmpresas?.[0]?.id_empresa) === String(emp.id) &&
+                            Number(u.perfil_id || u.perfilId) === PROFILES.EMPRESA
+                          );
                         return (
                           <tr key={emp.id}>
                             <td>

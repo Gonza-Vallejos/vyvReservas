@@ -206,10 +206,10 @@ const BookingConfirmationPage = () => {
                 <span>
                   {trip.fechaViaje
                     ? new Date(trip.fechaViaje).toLocaleDateString('es-AR', {
-                        weekday: 'long',
-                        day: '2-digit',
-                        month: 'long',
-                      })
+                      weekday: 'long',
+                      day: '2-digit',
+                      month: 'long',
+                    })
                     : 'Fecha no disponible'}
                 </span>
               </div>

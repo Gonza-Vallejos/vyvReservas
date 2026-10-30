@@ -477,10 +477,10 @@ function PassengerConfirmation({
               <Text style={[passengerStyles.detailText, { color: textSecondary }]} allowFontScaling>
                 {trip.fechaViaje
                   ? new Date(trip.fechaViaje).toLocaleDateString("es-AR", {
-                      weekday: "long",
-                      day: "2-digit",
-                      month: "long",
-                    })
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "long",
+                  })
                   : "Fecha no disponible"}
               </Text>
             </View>

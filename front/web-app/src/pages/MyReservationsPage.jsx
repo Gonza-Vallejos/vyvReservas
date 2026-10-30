@@ -33,7 +33,7 @@ const formatCurrency = (value) =>
     style: 'currency',
     currency: 'ARS',
     minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 2,
   });
 
 const parseDeparture = (trip) => {
@@ -356,7 +356,6 @@ const ReservationCard = ({
   const departure = parseDeparture(trip);
   const total =
     reserva.total || trip.precio * (passengers.length || 1) || 0;
-
   const handleViewDetail = () => {
     navigate(`/confirmacion/${reserva.id}`);
   };
@@ -401,10 +400,10 @@ const ReservationCard = ({
           <span>
             {departure
               ? departure.toLocaleDateString('es-AR', {
-                  weekday: 'short',
-                  day: '2-digit',
-                  month: 'short',
-                })
+                weekday: 'short',
+                day: '2-digit',
+                month: 'short',
+              })
               : 'Fecha no disp.'}
           </span>
         </div>
