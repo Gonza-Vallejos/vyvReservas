@@ -485,6 +485,10 @@ const DashboardPage = () => {
   const currentProfileId = Number(user?.perfil_id ?? user?.perfilId);
   const isSuperAdmin = currentProfileId === PROFILES.ADMINISTRADOR;
   const isOwner = currentProfileId === PROFILES.EMPRESA;
+  const isMostrador = currentProfileId === PROFILES.MOSTRADOR;
+
+  // Solo el usuario Mostrador puede realizar ABM (Alta, Baja y Modificación) en viajes, reservas y flota
+  const canABM = isMostrador;
 
   // Permission helpers
   const { can, isAdmin, isOwner: isOwnerCheck, isStaff, isAtLeast } = usePermissions();
@@ -758,6 +762,10 @@ const DashboardPage = () => {
   }, [user, authLoading, navigate, fetchData, fetchMetricasComisiones]);
 
   const handleDeleteTrip = async (id, routeLabel) => {
+    if (!canABM) {
+      toast.error('No tenés permisos para eliminar viajes');
+      return;
+    }
     if (!window.confirm(`¿Estás seguro de eliminar el viaje ${routeLabel}?`)) return;
     try {
       await viajeService.eliminar(id);
@@ -769,6 +777,10 @@ const DashboardPage = () => {
   };
 
   const handleOpenRepeatSingle = (trip) => {
+    if (!canABM) {
+      toast.error('No tenés permisos para duplicar viajes');
+      return;
+    }
     setRepeatModal({
       isOpen: true,
       mode: 'single',
@@ -780,6 +792,10 @@ const DashboardPage = () => {
   };
 
   const handleOpenRepeatAll = () => {
+    if (!canABM) {
+      toast.error('No tenés permisos para duplicar viajes');
+      return;
+    }
     if (viajesDelDia.length === 0) return;
     setRepeatModal({
       isOpen: true,
@@ -792,6 +808,10 @@ const DashboardPage = () => {
   };
 
   const handleConfirmRepeat = async () => {
+    if (!canABM) {
+      toast.error('No tenés permisos para duplicar viajes');
+      return;
+    }
     if (!repeatModal.targetDate) {
       toast.error('Seleccioná la fecha destino para los viajes');
       return;
@@ -846,6 +866,10 @@ const DashboardPage = () => {
   };
 
   const handleCancelReserva = async (id) => {
+    if (!canABM) {
+      toast.error('No tenés permisos para cancelar reservas');
+      return;
+    }
     if (!window.confirm(`¿Estás seguro de cancelar la reserva #RES-${id}? Los cupos serán reintegrados al viaje.`)) return;
     try {
       await reservaService.cancelar(id);
@@ -1128,20 +1152,21 @@ const DashboardPage = () => {
             </div>
           ) : (
             <div className="dashboard-actions animate-fade-in">
-              <Button onClick={() => setShowTripModal(true)}>
-                <Plus size={20} /> Nuevo Viaje
-              </Button>
-              <Button variant="secondary" onClick={() => setShowVehicleModal(true)}>
-                <Truck size={20} /> Nueva Unidad
-              </Button>
+              {canABM && (
+                <>
+                  <Button onClick={() => setShowTripModal(true)}>
+                    <Plus size={20} /> Nuevo Viaje
+                  </Button>
+                  <Button variant="secondary" onClick={() => setShowVehicleModal(true)}>
+                    <Truck size={20} /> Nueva Unidad
+                  </Button>
+                </>
+              )}
               {isOwner && (
                 <Button variant="primary" onClick={() => setShowEmployeeModal(true)}>
                   <UserPlus size={20} /> Contratar
                 </Button>
               )}
-              <Button variant="secondary" onClick={() => navigate('/chofer')}>
-                <Bus size={20} /> Chofer
-              </Button>
             </div>
           )}
         </header>
@@ -1239,7 +1264,7 @@ const DashboardPage = () => {
                     />
                   )}
 
-                  {tripViewMode === 'dia' && viajesDelDia.length > 0 && !isSuperAdmin && (
+                  {tripViewMode === 'dia' && viajesDelDia.length > 0 && canABM && (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid var(--border)', background: '#f8fafc', flexWrap: 'wrap', gap: '10px' }}>
                       <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: 600 }}>
                         📅 {viajesDelDia.length} {viajesDelDia.length === 1 ? 'viaje programado' : 'viajes programados'} para el {selectedTripDate}
@@ -1275,10 +1300,10 @@ const DashboardPage = () => {
                         title={tripViewMode === 'dia' ? "No hay viajes para este día" : "No hay viajes registrados"}
                         description={
                           tripViewMode === 'dia'
-                            ? (isSuperAdmin ? "No se registraron viajes en el sistema para esta fecha." : "Seleccioná otra fecha arriba o creá un nuevo viaje desde el botón superior.")
-                            : (isSuperAdmin ? "No se registraron viajes en el sistema." : "Aún no registraste ningún viaje. Creá tu primer viaje desde el botón superior.")
+                            ? (canABM ? "Seleccioná otra fecha arriba o creá un nuevo viaje desde el botón superior." : "No se registraron viajes para esta fecha.")
+                            : (canABM ? "Aún no registraste ningún viaje. Creá tu primer viaje desde el botón superior." : "No se registraron viajes en la empresa.")
                         }
-                        action={!isSuperAdmin ? { label: 'Nuevo viaje', onClick: () => setShowTripModal(true) } : undefined}
+                        action={canABM ? { label: 'Nuevo viaje', onClick: () => setShowTripModal(true) } : undefined}
                       />
                     </div>
                   ) : (
@@ -1332,7 +1357,7 @@ const DashboardPage = () => {
                                 >
                                   <Users size={16} /> Pasajeros
                                 </Button>
-                                {!isSuperAdmin && (
+                                {canABM && (
                                   <>
                                     <IconButton
                                       icon={Copy}
@@ -1432,7 +1457,7 @@ const DashboardPage = () => {
                                 >
                                   <BookmarkCheck size={16} /> Detalle
                                 </Button>
-                                {!cancelada && !isSuperAdmin && (
+                                {!cancelada && canABM && (
                                   <IconButton
                                     icon={Trash2}
                                     label="Cancelar reserva"
@@ -1458,11 +1483,14 @@ const DashboardPage = () => {
                     <EmptyState
                       icon={Truck}
                       title="No hay unidades registradas"
-                      description="Agregá tu primer minibús para poder crear viajes."
-                      action={{ label: 'Nueva unidad', onClick: () => setShowVehicleModal(true) }}
+                      description={canABM ? "Agregá tu primer minibús para poder crear viajes." : "No hay unidades registradas en la flota."}
+                      action={canABM ? { label: 'Nueva unidad', onClick: () => setShowVehicleModal(true) } : undefined}
                     />
                   ) : (
-                    <DashboardTable headers={['Unidad', 'Patente / Capacidad', 'Estado', 'Acciones']} caption="Flota de vehículos">
+                    <DashboardTable 
+                      headers={canABM ? ['Unidad', 'Patente / Capacidad', 'Estado', 'Acciones'] : ['Unidad', 'Patente / Capacidad', 'Estado']} 
+                      caption="Flota de vehículos"
+                    >
                       {vehiculos.map((veh) => (
                         <tr key={veh.id}>
                           <td>
@@ -1476,13 +1504,15 @@ const DashboardPage = () => {
                           <td>
                             <Badge variant="success">Activo</Badge>
                           </td>
-                          <td>
-                            <IconButton
-                              icon={Edit}
-                              label="Editar unidad"
-                              onClick={() => toast('Edición de unidades próximamente')}
-                            />
-                          </td>
+                          {canABM && (
+                            <td>
+                              <IconButton
+                                icon={Edit}
+                                label="Editar unidad"
+                                onClick={() => toast('Edición de unidades próximamente')}
+                              />
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </DashboardTable>
@@ -1498,8 +1528,8 @@ const DashboardPage = () => {
                     <EmptyState
                       icon={Users}
                       title="No hay personal registrado"
-                      description="Contratá choferes o secretarios de mostrador para tu empresa."
-                      action={{ label: 'Contratar personal', onClick: () => setShowEmployeeModal(true) }}
+                      description={isOwner ? "Contratá choferes o secretarios de mostrador para tu empresa." : "No hay personal registrado en la empresa."}
+                      action={isOwner ? { label: 'Contratar personal', onClick: () => setShowEmployeeModal(true) } : undefined}
                     />
                   ) : (
                     <DashboardTable headers={['Nombre', 'Documento', 'Rol', 'Estado', 'Acciones']} caption="Personal de la empresa">
@@ -2118,7 +2148,7 @@ const DashboardPage = () => {
         </Modal>
       )}
 
-      {showEmployeeModal && (
+      {showEmployeeModal && isOwner && (
         <Modal
           title="Contratar personal"
           subtitle="Completá los datos del nuevo empleado."
@@ -2211,7 +2241,7 @@ const DashboardPage = () => {
         </Modal>
       )}
 
-      {showTripModal && (
+      {showTripModal && canABM && (
         <Modal title="Crear nuevo viaje" subtitle="Programá un servicio y asigná unidad y chofer." onClose={() => setShowTripModal(false)}>
           <form
             onSubmit={async (e) => {
@@ -2342,7 +2372,7 @@ const DashboardPage = () => {
         </Modal>
       )}
 
-      {showVehicleModal && (
+      {showVehicleModal && canABM && (
         <Modal title="Añadir a la flota" subtitle="Registrá una nueva unidad disponible." onClose={() => setShowVehicleModal(false)}>
           <form
             onSubmit={async (e) => {
@@ -2438,7 +2468,7 @@ const DashboardPage = () => {
         </Modal>
       )}
 
-      {showEditTripModal && (
+      {showEditTripModal && canABM && (
         <Modal
           title={`Editar viaje #${editingTrip.id}`}
           subtitle="Modificá los datos del servicio o reasigná la unidad y el chofer."
@@ -2576,7 +2606,7 @@ const DashboardPage = () => {
         </Modal>
       )}
 
-      {repeatModal.isOpen && (
+      {repeatModal.isOpen && canABM && (
         <Modal
           title={
             repeatModal.mode === 'single'

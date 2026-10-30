@@ -22,6 +22,7 @@ import MinibusLoader from './components/MinibusLoader';
 import { viajeService } from './services/api';
 import { PROFILES } from './constants/profiles';
 import { RouteMetadataWatcher } from './hooks/useSEO';
+import logoVyV from './assets/Logotipo V&V Reservas con carretera.png';
 import './index.css';
 
 const Home = () => {
@@ -230,8 +231,7 @@ const Navbar = () => {
           </button>
 
           <Link to="/" className="site-navbar__logo" aria-label="V&V Reservas, ir al inicio">
-            <span className="site-navbar__logo-mark"><Bus size={22} /></span>
-            <span>V&V</span>
+            <img src={logoVyV} alt="V&V Reservas" className="site-navbar__logo-img" />
           </Link>
           {user && (
             <div className="site-navbar__greeting-badge mobile-only">
