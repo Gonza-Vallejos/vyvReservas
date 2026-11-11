@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useId, useRef } from 'react'
 import { useAuth } from '../context/AuthContext';
 import { PROFILES } from '../constants/profiles';
 import { usePermissions, getProfileInfo } from '../hooks/usePermissions';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Bus, Users, TrendingUp, Plus, Edit, Trash2, X,
   UserCheck, Truck, Building2, Settings, DollarSign, UserPlus, ShieldCheck,
@@ -380,8 +380,18 @@ const SidebarItem = ({ icon: Icon, label, badgeCount, active, onClick }) => (
 const DashboardPage = () => {
   const { user, loading: authLoading, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
 
-  const [activeTab, setActiveTab] = useState('resumen');
+  const tabFromUrl = searchParams.get('tab') || location.state?.tab;
+  const [activeTab, setActiveTab] = useState(tabFromUrl || 'resumen');
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') || location.state?.tab;
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams, location.state]);
   const [loading, setLoading] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 

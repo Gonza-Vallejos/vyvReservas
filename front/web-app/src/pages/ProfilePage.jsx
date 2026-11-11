@@ -20,19 +20,24 @@ import {
   X,
   Lock,
   Loader,
+  Building2,
+  LayoutDashboard,
+  BookmarkCheck,
+  Bus,
 } from 'lucide-react';
+import { PROFILES } from '../constants/profiles';
 import toast from 'react-hot-toast';
 import { usuarioService } from '../services/api';
 
 const roleLabel = (perfilId) => {
   switch (perfilId) {
-    case 1:
+    case PROFILES.ADMINISTRADOR:
       return 'Super Administrador';
-    case 3:
+    case PROFILES.MOSTRADOR:
       return 'Mostrador';
-    case 4:
+    case PROFILES.CHOFER:
       return 'Chofer';
-    case 5:
+    case PROFILES.EMPRESA:
       return 'Dueño';
     default:
       return 'Pasajero';
@@ -56,6 +61,10 @@ const roleBadgeVariant = (perfilId) => {
 const ProfilePage = () => {
   const { user, loading: authLoading, logout, login } = useAuth();
   const navigate = useNavigate();
+
+  const perfilId = Number(user?.perfil_id ?? user?.perfilId);
+  const isOwner = perfilId === PROFILES.EMPRESA;
+  const isMostrador = perfilId === PROFILES.MOSTRADOR;
 
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -299,16 +308,46 @@ const ProfilePage = () => {
               <h2>Accesos rápidos</h2>
             </div>
             <nav aria-label="Accesos rápidos del perfil">
-              <Link to="/mis-reservas" className="profile-page__quick-link">
-                <Ticket size={18} aria-hidden="true" />
-                Mis reservas
-                <span aria-hidden="true" className="profile-page__quick-link-arrow">→</span>
-              </Link>
-              <Link to="/" className="profile-page__quick-link">
-                <span aria-hidden="true">🚍</span>
-                Buscar pasajes
-                <span aria-hidden="true" className="profile-page__quick-link-arrow">→</span>
-              </Link>
+              {isOwner ? (
+                <>
+                  <Link to="/dashboard?tab=mi-empresa" state={{ tab: 'mi-empresa' }} className="profile-page__quick-link">
+                    <Building2 size={18} aria-hidden="true" />
+                    Ir a Mi Empresa
+                    <span aria-hidden="true" className="profile-page__quick-link-arrow">→</span>
+                  </Link>
+                  <Link to="/dashboard?tab=resumen" state={{ tab: 'resumen' }} className="profile-page__quick-link">
+                    <LayoutDashboard size={18} aria-hidden="true" />
+                    Resumen
+                    <span aria-hidden="true" className="profile-page__quick-link-arrow">→</span>
+                  </Link>
+                </>
+              ) : isMostrador ? (
+                <>
+                  <Link to="/dashboard?tab=reservas" state={{ tab: 'reservas' }} className="profile-page__quick-link">
+                    <BookmarkCheck size={18} aria-hidden="true" />
+                    Reservas
+                    <span aria-hidden="true" className="profile-page__quick-link-arrow">→</span>
+                  </Link>
+                  <Link to="/dashboard?tab=viajes" state={{ tab: 'viajes' }} className="profile-page__quick-link">
+                    <Bus size={18} aria-hidden="true" />
+                    Viajes
+                    <span aria-hidden="true" className="profile-page__quick-link-arrow">→</span>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link to="/mis-reservas" className="profile-page__quick-link">
+                    <Ticket size={18} aria-hidden="true" />
+                    Mis reservas
+                    <span aria-hidden="true" className="profile-page__quick-link-arrow">→</span>
+                  </Link>
+                  <Link to="/" className="profile-page__quick-link">
+                    <span aria-hidden="true">🚍</span>
+                    Buscar pasajes
+                    <span aria-hidden="true" className="profile-page__quick-link-arrow">→</span>
+                  </Link>
+                </>
+              )}
             </nav>
           </Card>
 
