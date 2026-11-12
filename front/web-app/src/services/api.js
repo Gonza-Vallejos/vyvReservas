@@ -1,22 +1,25 @@
 import axios from 'axios';
 
 // ============================================================================
-// CONFIGURACIÓN ACTUAL: Conexión con backend en la nube (Render) mediante proxy
-// ============================================================================
-/*const rawApiUrl = (import.meta.env.VITE_API_URL || 'https://vyvreservas-api.onrender.com/api').trim().replace(/\/+$/, '');
-const normalizedUrl = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
-
-// En desarrollo (npm run dev), si no se activa VITE_DIRECT_API, usamos '/api'
-// para que el proxy configurado en vite.config.js despache las peticiones y evite bloqueos de CORS.
-const API_URL = (import.meta.env.DEV && !import.meta.env.VITE_DIRECT_API)
-  ? '/api'
-  : normalizedUrl;*/
-
-// ============================================================================
-// CONFIGURACIÓN ORIGINAL: Backend local tradicional en localhost:3000
-// Para volver al modo normal con backend local, comenta el bloque de arriba y descomenta la siguiente línea:
+// MODO NUBE / ORIGINAL (ACTIVO)
+// Lee la variable VITE_API_URL definida en el entorno o en .env (para producción/nube)
 // ============================================================================
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+// ============================================================================
+// MODO LOCAL CON PROXY DE VITE (COMENTADO)
+// Si quieres levantar localmente (npm run dev) contra el backend de Render usando
+// el proxy de vite.config.js para evitar bloqueos de CORS, comenta la línea de
+// arriba (const API_URL = ...) y descomenta el siguiente bloque:
+// ============================================================================
+/*
+const rawApiUrl = (import.meta.env.VITE_API_URL || 'https://vyvreservas-api.onrender.com/api').trim().replace(/\/+$/, '');
+const normalizedUrl = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
+
+const API_URL = (import.meta.env.DEV && !import.meta.env.VITE_DIRECT_API)
+  ? '/api'
+  : normalizedUrl;
+*/
 
 const api = axios.create({
   baseURL: API_URL,

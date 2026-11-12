@@ -2,11 +2,21 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // ============================================================================
-// CONFIGURACIÓN ACTUAL: Con proxy para Backend en la nube (Render)
-// Permite que npm run dev redirija '/api' a la nube evitando errores de CORS en el navegador
+// MODO NUBE / ORIGINAL (ACTIVO)
+// Configuración estándar de Vite para despliegue en la nube (Vercel, producción, etc.)
 // ============================================================================
-// https://vite.dev/config/
-/*export default defineConfig(({ mode }) => {
+export default defineConfig({
+  plugins: [react()],
+})
+
+// ============================================================================
+// MODO LOCAL CON BACKEND EN LA NUBE (COMENTADO)
+// Si quieres levantar el front de forma local (npm run dev) conectándote al
+// backend de Render, descomenta el siguiente bloque y comenta el export default de arriba.
+// Esto activa el proxy local para evitar problemas de CORS en el navegador.
+// ============================================================================
+/*
+export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const rawApiUrl = env.VITE_API_URL || 'https://vyvreservas-api.onrender.com'
 
@@ -31,12 +41,5 @@ import react from '@vitejs/plugin-react'
       },
     },
   }
-})*/
-
-// ============================================================================
-// CONFIGURACIÓN ORIGINAL: Sin proxy (Modo estándar por defecto de Vite)
-// Para volver al modo normal, comenta el export default de arriba y descomenta este:
-// ============================================================================
-export default defineConfig({
-  plugins: [react()],
 })
+*/
